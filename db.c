@@ -91,6 +91,7 @@ void csync_db_open(const char * file)
 
 void csync_db_close()
 {
+	if (!db) return;
 	if (db_blocking_mode)
 		SQL("COMMIT TRANSACTION", "COMMIT TRANSACTION");
 	sqlite_close(db);
