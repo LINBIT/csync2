@@ -34,9 +34,9 @@ void csync_hint(const char *file, int recursive)
 		"VALUES ('%s', %d)", url_encode(file), recursive);
 }
 
-void csync_mark(const char *file)
+void csync_mark(const char *file, const char *thispeer)
 {
-	struct peer *pl = csync_find_peers(file);
+	struct peer *pl = csync_find_peers(file, thispeer);
 	int pl_idx;
 
 	if ( ! pl ) {
@@ -79,7 +79,7 @@ void csync_check_del(const char * file, int recursive)
 	} SQL_END;
 
 	for (t = tl; t != 0; t = t->next) {
-		csync_mark(t->value);
+		csync_mark(t->value, 0);
 		SQL("Removing file from DB. It isn't with us anymore.",
 		    "DELETE FROM file WHERE filename = '%s'",
 		    url_encode(t->value));
@@ -132,7 +132,7 @@ void csync_check_mod(const char * file, int recursive, int ignnoent)
 			    "INSERT INTO file (filename, checktxt) "
 			    "VALUES ('%s', '%s')",
 			    url_encode(file), url_encode(checktxt));
-			csync_mark(file);
+			csync_mark(file, 0);
 		}
 		/* fall thru */
 	case 1:

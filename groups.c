@@ -106,7 +106,7 @@ void csync_check_usefullness(const char *file, int recursive)
 	csync_debug(0, "WARNING: Parameter will be ignored: %s\n", file);
 }
 
-struct peer *csync_find_peers(const char *file)
+struct peer *csync_find_peers(const char *file, const char *thispeer)
 {
 	const struct csync_group *g = NULL;
 	struct peer *plist = 0;
@@ -114,6 +114,15 @@ struct peer *csync_find_peers(const char *file)
 
 	while ( (g=csync_find_next(g, file)) ) {
 		struct csync_group_host *h = g->host;
+
+		if (thispeer) {
+			while (h) {
+				if ( !strcmp(h->hostname, thispeer) )
+					goto next_group;
+				h = h->next;
+			}
+			h = g->host;
+		}
 
 		while (h) {
 			int i=0;
@@ -127,6 +136,7 @@ struct peer *csync_find_peers(const char *file)
 next_host:
 			h = h->next;
 		}
+next_group:
 	}
 
 	return plist;

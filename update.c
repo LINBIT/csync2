@@ -119,8 +119,15 @@ void csync_update_file_del(const char *peername,
 			goto got_error;
 	}
 
-	connprintf(conn, "DEL %s %s\n", url_encode(key), url_encode(filename));
-	if ( read_conn_status(conn, filename, peername) ) goto got_error;
+	connprintf(conn, "DEL %s %s\n",
+			url_encode(key), url_encode(filename));
+	if ( read_conn_status(conn, filename, peername) )
+		goto got_error;
+
+	connprintf(conn, "MARK %s %s\n",
+			url_encode(key), url_encode(filename));
+	if ( read_conn_status(conn, filename, peername) )
+		goto got_error;
 
 	SQL("Remove dirty-file entry.",
 		"DELETE FROM dirty WHERE filename = '%s' "
@@ -272,6 +279,11 @@ void csync_update_file_mod(const char *peername,
 		if ( read_conn_status(conn, filename, peername) )
 			goto got_error;
 	}
+
+	connprintf(conn, "MARK %s %s\n",
+			url_encode(key), url_encode(filename));
+	if ( read_conn_status(conn, filename, peername) )
+		goto got_error;
 
 skip_action:
 	SQL("Remove dirty-file entry.",

@@ -94,7 +94,7 @@ struct csync_command {
 };
 
 enum {
-	A_SIG, A_FLUSH, A_DEL, A_PATCH,
+	A_SIG, A_FLUSH, A_MARK, A_DEL, A_PATCH,
 	A_MKDIR, A_MKCHR, A_MKBLK, A_MKFIFO, A_MKLINK, A_MKSOCK,
 	A_SETOWN, A_SETMOD, A_SETIME,
 	A_DEBUG, A_HELLO, A_BYE
@@ -104,6 +104,7 @@ enum {
 struct csync_command cmdtab[] = {
 	{ "sig",	1, 0, 0, 0, 1, A_SIG	},
 	{ "flush",	1, 0, 0, 0, 1, A_FLUSH	},
+	{ "mark",	1, 0, 0, 0, 1, A_MARK	},
 	{ "del",	1, 1, 0, 1, 1, A_DEL	},
 	{ "patch",	1, 1, 2, 1, 1, A_PATCH	},
 	{ "mkdir",	1, 1, 1, 1, 1, A_MKDIR	},
@@ -208,6 +209,9 @@ void csync_daemon_session(FILE * in, FILE * out)
 			SQL("Flushing dirty entry (if any) for file",
 				"DELETE FROM dirty WHERE filename = '%s'",
 				url_encode(tag[2]));
+			break;
+		case A_MARK:
+			csync_mark(tag[2], peer);
 			break;
 		case A_DEL:
 			csync_unlink(tag[2], 0);

@@ -316,7 +316,7 @@ int main(int argc, char ** argv)
 			for (i=optind; i < argc; i++) {
 				char *realname = getrealfn(argv[i]);
 				csync_check_usefullness(realname, recursive);
-				csync_mark(realname);
+				csync_mark(realname, 0);
 			}
 			break;
 
