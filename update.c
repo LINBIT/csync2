@@ -259,31 +259,48 @@ got_error:
 	csync_debug(1, "File stays in dirty state. Try again later...\n");
 }
 
-void csync_update_host(const char * hostname)
+int compare_files(const char *filename, const char *pattern, int recursive)
+{
+	int i;
+	for (i=0; filename[i] && pattern[i]; i++)
+		if (filename[i] != pattern[i]) return 0;
+	if ( filename[i] == '\n' && !pattern[i] && recursive) return 1;
+	if ( !filename[i] && !pattern[i]) return 1;
+	return 0;
+}
+
+void csync_update_host(const char * hostname,
+		const char ** patlist, int patnum, int recursive)
 {
 	FILE * conn;
 	struct textlist *tl = 0, *t, *next_t;
 	struct textlist *tl_mod = 0, **last_tn=&tl;
 	struct stat st;
 
+	SQL_BEGIN("Get files for host from dirty table",
+		"SELECT filename, force FROM dirty WHERE hostname = '%s' "
+		"ORDER by filename ASC", url_encode(hostname))
+	{
+		const char * filename = url_decode(SQL_V[0]);
+		int i, use_this = patnum == 0;
+		for (i=0; i<patnum && !use_this; i++)
+			if ( !compare_files(filename, patlist[i], recursive) ) use_this = 1;
+		if (use_this)
+			textlist_add(&tl, filename, atoi(SQL_V[1]));
+	} SQL_END;
+
+	/* just return if there are no files to update */
+	if ( !tl ) return;
+
 	csync_debug(1, "Updating host %s ...\n", hostname);
 
-	conn = connect_to_host(hostname);
-
-	if ( !conn ) {
+	if ( (conn = connect_to_host(hostname)) == 0 ) {
 		csync_error_count++;
 		csync_debug(1, "ERROR: Connection to remote host failed.\n");
 		csync_debug(1, "Host stays in dirty state. "
 				"Try again later...\n");
 		return;
 	}
-
-	SQL_BEGIN("Get files for host from dirty table",
-		"SELECT filename, force FROM dirty WHERE hostname = '%s' "
-		"ORDER by filename ASC", url_encode(hostname))
-	{
-		textlist_add(&tl, url_decode(SQL_V[0]), atoi(SQL_V[1]));
-	} SQL_END;
 
 	/*
 	 * The SQL statement above creates a linked list. Due to the
@@ -324,7 +341,7 @@ void csync_update_host(const char * hostname)
 	fclose(conn);
 }
 
-void csync_update()
+void csync_update(const char ** patlist, int patnum, int recursive)
 {
 	struct textlist *tl = 0, *t;
 
@@ -335,7 +352,7 @@ void csync_update()
 	} SQL_END;
 
 	for (t = tl; t != 0; t = t->next)
-		csync_update_host(t->value);
+		csync_update_host(t->value, patlist, patnum, recursive);
 
 	textlist_free(tl);
 }

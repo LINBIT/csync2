@@ -62,8 +62,7 @@ void help(char *cmd)
 "	-f [file..]		Force this file in sync (resolve conflict)\n"
 "\n"
 "Simple mode:\n"
-"	-x [file..]		Add files as recursive hints to the db, run\n"
-"				checks for all hints in database and update\n"
+"	-x [-r] [file..]	Run checks for all given files and update\n"
 "				remote hosts.\n"
 "\n"
 "Without file parameters:\n"
@@ -110,7 +109,6 @@ int main(int argc, char ** argv)
 			case 'x':
 				if ( mode != MODE_NONE ) help(argv[0]);
 				mode = MODE_SIMPLE;
-				recursive = 1;
 				break;
 			case 'c':
 				if ( mode != MODE_NONE ) help(argv[0]);
@@ -145,7 +143,7 @@ int main(int argc, char ** argv)
 				mode = MODE_LIST_DIRTY;
 				break;
 			case 'r':
-				if ( mode != MODE_HINT ) help(argv[0]);
+				if ( mode != MODE_HINT && mode != MODE_SIMPLE ) help(argv[0]);
 				recursive = 1;
 				break;
 			default:
@@ -178,11 +176,22 @@ int main(int argc, char ** argv)
 	csync_db_open(file_database);
 
 	switch (mode) {
-		case MODE_HINT:
 		case MODE_SIMPLE:
+			{
+				const char *realnames[argc-optind];
+				for (i=optind; i < argc; i++) {
+					realnames[i-optind] = strdup(getrealfn(argv[i]));
+					csync_check(realnames[i-optind], recursive);
+				}
+				if ( argc-optind > 0 )
+					csync_update(realnames, argc-optind, recursive);
+			}
+			break;
+
+		case MODE_HINT:
 			for (i=optind; i < argc; i++)
 				csync_hint(getrealfn(argv[i]), recursive);
-			if (mode != MODE_SIMPLE) break;
+			break;
 
 		case MODE_CHECK:
 			SQL_BEGIN("Check all hints",
@@ -201,10 +210,10 @@ int main(int argc, char ** argv)
 			}
 
 			textlist_free(tl);
-			if (mode != MODE_SIMPLE) break;
+			break;
 
 		case MODE_UPDATE:
-			csync_update();
+			csync_update(0, 0, 0);
 			break;
 
 		case MODE_INETD:
