@@ -272,7 +272,10 @@ void csync_update_file_mod(const char *peername,
 				url_encode(filename), st.st_mode);
 		if ( read_conn_status(conn, filename, peername) )
 			goto got_error;
+	}
 
+skip_action:
+	if ( !S_ISLNK(st.st_mode) ) {
 		connprintf(conn, "SETIME %s %s %Ld\n",
 				url_encode(key), url_encode(filename),
 				(long long)st.st_mtime);
@@ -285,7 +288,6 @@ void csync_update_file_mod(const char *peername,
 	if ( read_conn_status(conn, filename, peername) )
 		goto got_error;
 
-skip_action:
 	SQL("Remove dirty-file entry.",
 		"DELETE FROM dirty WHERE filename = '%s' "
 		"AND peername = '%s'", url_encode(filename),
@@ -407,5 +409,125 @@ void csync_update(const char ** patlist, int patnum, int recursive, int dry_run)
 		csync_update_host(t->value, patlist, patnum, recursive, dry_run);
 
 	textlist_free(tl);
+}
+
+int csync_insynctest_readline(FILE *conn, char **file, char **checktxt)
+{
+	char inbuf[2048], *tmp;
+
+	if (*file) free(*file);
+	if (*checktxt) free(*checktxt);
+	*file = *checktxt = 0;
+
+	if ( !fgets(inbuf, 2048, conn) ) return 1;
+	if ( inbuf[0] != 'v' ) {
+		if ( !strncmp(inbuf, "OK (", 4) ) {
+			csync_debug(2, "End of query results: %s", inbuf);
+			return 1;
+		}
+		csync_error_count++;
+		csync_debug(1, "ERROR from peer: %s", inbuf);
+		return 1;
+	}
+
+	tmp = strtok(inbuf, "\t");
+	if (tmp) *checktxt=strdup(url_decode(tmp));
+	else {
+		csync_error_count++;
+		csync_debug(1, "Format error in reply: \\t not found!\n");
+		return 1;
+	}
+
+	tmp = strtok(0, "\n");
+	if (tmp) *file=strdup(url_decode(tmp));
+	else {
+		csync_error_count++;
+		csync_debug(1, "Format error in reply: \\n not found!\n");
+		return 1;
+	}
+
+	csync_debug(2, "Fetched tuple from peer: %s [%s]\n", *file, *checktxt);
+
+	return 0;
+}
+
+int csync_insynctest(const char *myname, const char *peername)
+{
+	FILE *conn;
+	const struct csync_group *g;
+	const struct csync_group_host *h;
+	char *r_file=0, *r_checktxt=0;
+	int remote_reuse = 0, remote_eof = 0;
+	int rel, ret = 1;
+
+	if ( (conn = connect_to_host(peername)) == 0 ) {
+		csync_error_count++;
+		csync_debug(1, "ERROR: Connection to remote host failed.\n");
+		csync_debug(1, "Host stays in dirty state. "
+				"Try again later...\n");
+		return 0;
+	}
+
+	connprintf(conn, "HELLO %s\n", myname);
+	read_conn_status(conn, 0, peername);
+
+	connprintf(conn, "LIST %s", peername);
+	for (g = csync_group; g; g = g->next) {
+		if ( !g->myname || strcmp(g->myname, myname) ) continue;
+		for (h = g->host; h; h = h->next)
+			if (!strcmp(h->hostname, peername)) goto found_host;
+		continue;
+found_host:
+		connprintf(conn, " %s", g->key);
+	}
+	connprintf(conn, "\n");
+
+	SQL_BEGIN("DB Dump - File",
+		"SELECT checktxt, filename FROM file ORDER BY filename")
+	{
+		const char *l_file = url_decode(SQL_V[1]), *l_checktxt = url_decode(SQL_V[0]);
+		if ( csync_match_file_host(l_file, myname, peername, 0) ) {
+			if ( remote_eof ) {
+got_remote_eof:
+				printf("L %s\n", l_file); ret=0;
+			} else {
+				if ( !remote_reuse )
+					if ( csync_insynctest_readline(conn, &r_file, &r_checktxt) )
+						{ remote_eof = 1; goto got_remote_eof; }
+				rel = strcmp(l_file, r_file);
+
+				while ( rel > 0 ) {
+					printf("R %s\n", r_file); ret=0;
+					if ( csync_insynctest_readline(conn, &r_file, &r_checktxt) )
+						{ remote_eof = 1; goto got_remote_eof; }
+					rel = strcmp(l_file, r_file);
+				}
+
+				if ( rel < 0 ) {
+					printf("L %s\n", l_file); ret=0;
+					remote_reuse = 1;
+				} else {
+					remote_reuse = 0;
+					if ( !rel ) {
+						if ( strcmp(l_checktxt, r_checktxt) )
+							{ printf("X %s\n", l_file); ret=0; }
+					}
+				}
+			}
+		}
+	} SQL_END;
+
+	if ( !remote_eof )
+		while ( !csync_insynctest_readline(conn, &r_file, &r_checktxt) )
+			{ printf("R %s\n", r_file); ret=0; }
+
+	if (r_file) free(r_file);
+	if (r_checktxt) free(r_checktxt);
+
+	connprintf(conn, "BYE\n");
+	read_conn_status(conn, 0, peername);
+	fclose(conn);
+
+	return ret;
 }
 

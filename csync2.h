@@ -40,6 +40,7 @@ struct peer {
 
 extern int csync_match_file(const char *file);
 extern void csync_check_usefullness(const char *file, int recursive);
+extern int csync_match_file_host(const char *file, const char *myname, const char *peername, const char **keys);
 extern struct peer *csync_find_peers(const char *file, const char *thispeer);
 extern const char *csync_key(const char *hostname, const char *filename);
 extern int csync_perm(const char *filename, const char *key, const char *hostname);
@@ -108,6 +109,7 @@ extern void csync_mark(const char *file, const char *thispeer);
 /* update.c */
 
 extern void csync_update(const char **patlist, int patnum, int recursive, int dry_run);
+extern int csync_insynctest(const char *myname, const char *peername);
 
 
 /* daemon.c */

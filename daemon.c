@@ -97,9 +97,8 @@ enum {
 	A_SIG, A_FLUSH, A_MARK, A_DEL, A_PATCH,
 	A_MKDIR, A_MKCHR, A_MKBLK, A_MKFIFO, A_MKLINK, A_MKSOCK,
 	A_SETOWN, A_SETMOD, A_SETIME,
-	A_DEBUG, A_HELLO, A_BYE
+	A_LIST, A_DEBUG, A_HELLO, A_BYE
 };
-
 
 struct csync_command cmdtab[] = {
 	{ "sig",	1, 0, 0, 0, 1, A_SIG	},
@@ -115,7 +114,8 @@ struct csync_command cmdtab[] = {
 	{ "mksock",	1, 1, 1, 1, 1, A_MKSOCK	},
 	{ "setown",	1, 1, 0, 1, 1, A_SETOWN	},
 	{ "setmod",	1, 1, 0, 1, 1, A_SETMOD	},
-	{ "setime",	1, 1, 0, 1, 1, A_SETIME	},
+	{ "setime",	1, 0, 0, 1, 1, A_SETIME	},
+	{ "list",	0, 0, 0, 0, 1, A_LIST	},
 #if 0
 	{ "debug",	0, 0, 0, 0, 1, A_DEBUG	},
 #endif
@@ -270,6 +270,15 @@ void csync_daemon_session(FILE * in, FILE * out)
 					cmd_error = strerror(errno);
 			}
 			break;
+		case A_LIST:
+			SQL_BEGIN("DB Dump - Files for sync pair",
+				"SELECT checktxt, filename FROM file ORDER BY filename")
+			{
+				if ( csync_match_file_host(SQL_V[1], tag[1], peer, (const char **)&tag[2]) )
+					fprintf(out, "%s\t%s\n", SQL_V[0], SQL_V[1]);
+			} SQL_END;
+			break;
+
 		case A_DEBUG:
 			csync_debug_out = stdout;
 			if ( tag[1][0] )

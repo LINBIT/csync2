@@ -106,6 +106,29 @@ void csync_check_usefullness(const char *file, int recursive)
 	csync_debug(0, "WARNING: Parameter will be ignored: %s\n", file);
 }
 
+int csync_match_file_host(const char *file, const char *myname, const char *peername, const char **keys)
+{
+	const struct csync_group *g = NULL;
+
+	while ( (g=csync_find_next(g, file)) ) {
+		struct csync_group_host *h = g->host;
+		if ( strcmp(myname, g->myname) ) continue;
+		if (keys) {
+			const char **k = keys;
+			while (*k && **k)
+				if ( !strcmp(*(k++), g->key) ) goto found_key;
+			continue;
+found_key:
+		}
+		while (h) {
+			if ( !strcmp(h->hostname, peername) ) return 1;
+			h = h->next;
+		}
+	}
+
+	return 0;
+}
+
 struct peer *csync_find_peers(const char *file, const char *thispeer)
 {
 	const struct csync_group *g = NULL;

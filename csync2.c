@@ -51,6 +51,8 @@ enum {
 	MODE_FORCE,
 	MODE_LIST_HINT,
 	MODE_LIST_FILE,
+	MODE_LIST_SYNC,
+	MODE_TEST_SYNC,
 	MODE_LIST_DIRTY,
 	MODE_SIMPLE
 };
@@ -83,7 +85,13 @@ void help(char *cmd)
 "	-L	List all file-entries from status db\n"
 "	-M	List all dirty files from status db\n"
 "\n"
-"	The list modes (-H, -L and -M) return 2 if the requested db is empty.\n"
+"	-S myname peername	List file-entries from status db for this\n"
+"				synchronisation pair.\n"
+"\n"
+"	-T myname peername	Test if this synchronisation pair is in sync.\n"
+"\n"
+"	The modes -H, -L, -M and -S return 2 if the requested db is empty.\n"
+"	The mode -T returns 2 if both hosts are in sync.\n"
 "\n"
 "	-i	Run in inetd server mode.\n"
 "\n"
@@ -140,7 +148,7 @@ int main(int argc, char ** argv)
 		return create_keyfile(argv[2]);
 	}
 
-	while ( (opt = getopt(argc, argv, "C:D:N:HLMvhcuimfxrd")) != -1 ) {
+	while ( (opt = getopt(argc, argv, "C:D:N:HLSTMvhcuimfxrd")) != -1 ) {
 		switch (opt) {
 			case 'C':
 				file_config = optarg;
@@ -190,6 +198,14 @@ int main(int argc, char ** argv)
 				if ( mode != MODE_NONE ) help(argv[0]);
 				mode = MODE_LIST_FILE;
 				break;
+			case 'S':
+				if ( mode != MODE_NONE ) help(argv[0]);
+				mode = MODE_LIST_SYNC;
+				break;
+			case 'T':
+				if ( mode != MODE_NONE ) help(argv[0]);
+				mode = MODE_TEST_SYNC;
+				break;
 			case 'M':
 				if ( mode != MODE_NONE ) help(argv[0]);
 				mode = MODE_LIST_DIRTY;
@@ -208,7 +224,11 @@ int main(int argc, char ** argv)
 	if ( optind < argc &&
 			mode != MODE_HINT && mode != MODE_MARK &&
 			mode != MODE_FORCE && mode != MODE_SIMPLE &&
-			mode != MODE_UPDATE && mode != MODE_CHECK)
+			mode != MODE_UPDATE && mode != MODE_CHECK &&
+			mode != MODE_LIST_SYNC && mode != MODE_TEST_SYNC)
+		help(argv[0]);
+
+	if ( (mode == MODE_LIST_SYNC || mode == MODE_TEST_SYNC) && optind+2 != argc )
 		help(argv[0]);
 
 	if ( mode == MODE_NONE )
@@ -331,10 +351,9 @@ int main(int argc, char ** argv)
 		case MODE_LIST_HINT:
 			retval = 2;
 			SQL_BEGIN("DB Dump - Hint",
-				"SELECT recursive, filename FROM hint")
+				"SELECT recursive, filename FROM hint ORDER BY filename")
 			{
-				printf("%s\t%s\n", SQL_V[0],
-						url_decode(SQL_V[1]));
+				printf("%s\t%s\n", SQL_V[0], url_decode(SQL_V[1]));
 				retval = -1;
 			} SQL_END;
 			break;
@@ -342,26 +361,36 @@ int main(int argc, char ** argv)
 		case MODE_LIST_FILE:
 			retval = 2;
 			SQL_BEGIN("DB Dump - File",
-				"SELECT checktxt, filename FROM file")
+				"SELECT checktxt, filename FROM file ORDER BY filename")
 			{
-				printf("%s\t%s\n",
-						url_decode(SQL_V[0]),
-						url_decode(SQL_V[1]));
+				printf("%s\t%s\n", url_decode(SQL_V[0]), url_decode(SQL_V[1]));
 				retval = -1;
 			} SQL_END;
+			break;
+
+		case MODE_LIST_SYNC:
+			retval = 2;
+			SQL_BEGIN("DB Dump - File",
+				"SELECT checktxt, filename FROM file ORDER BY filename")
+			{
+				if ( csync_match_file_host(url_decode(SQL_V[1]), argv[optind], argv[optind+1], 0) )
+					printf("%s\t%s\n", url_decode(SQL_V[0]), url_decode(SQL_V[1]));
+				retval = -1;
+			} SQL_END;
+			break;
+
+		case MODE_TEST_SYNC:
+			if ( csync_insynctest(argv[optind], argv[optind+1]) )
+				retval = 2;
 			break;
 
 		case MODE_LIST_DIRTY:
 			retval = 2;
 			SQL_BEGIN("DB Dump - Dirty",
-				"SELECT force, myname, peername, filename FROM dirty")
+				"SELECT force, myname, peername, filename FROM dirty ORDER BY filename")
 			{
-				printf("%s\t%s\t%s\t%s\n",
-						atoi(SQL_V[0]) ?
-							"force" : "chary",
-						url_decode(SQL_V[1]),
-						url_decode(SQL_V[2]),
-						url_decode(SQL_V[3]));
+				printf("%s\t%s\t%s\t%s\n", atoi(SQL_V[0]) ?  "force" : "chary",
+						url_decode(SQL_V[1]), url_decode(SQL_V[2]), url_decode(SQL_V[3]));
 				retval = -1;
 			} SQL_END;
 			break;
