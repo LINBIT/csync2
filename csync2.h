@@ -193,10 +193,28 @@ struct csync_group_pattern {
 	const char *pattern;
 };
 
+struct csync_group_action_pattern {
+	struct csync_group_action_pattern *next;
+	const char *pattern;
+}
+
+struct csync_group_action_command {
+	struct csync_group_action_command *next;
+	const char *command;
+}
+
+struct csync_group_action {
+	struct csync_group_action *next;
+	struct csync_group_action_pattern *pattern;
+	struct csync_group_action_command *command;
+	int do_local;
+};
+
 struct csync_group {
 	struct csync_group *next;
 	struct csync_group_host *host;
 	struct csync_group_pattern *pattern;
+	struct csync_group_action *action;
 	const char *key, *myname;
 };
 

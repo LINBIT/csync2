@@ -151,18 +151,33 @@ static void check_group()
 
 static void new_action()
 {
+	struct csync_group_action *t =
+		calloc(sizeof(struct csync_group_action), 1);
+	t->next = csync_group->action;
+	csync_group->action = t;
 }
 
 static void add_action_pattern(const char *pattern)
 {
+	struct csync_group_action_pattern *t =
+		calloc(sizeof(struct csync_group_action_pattern), 1);
+	t->pattern = pattern;
+	t->next = csync_group->action->pattern;
+	csync_group->action->pattern = t;
 }
 
 static void add_action_exec(const char *command)
 {
+	struct csync_group_action_command *t =
+		calloc(sizeof(struct csync_group_action_command), 1);
+	t->command = command;
+	t->next = csync_group->action->command;
+	csync_group->action->command = t;
 }
 
 static void set_action_dolocal()
 {
+	csync_group->action->do_local = 1;
 }
 
 %}
