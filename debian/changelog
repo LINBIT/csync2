@@ -1,0 +1,15 @@
+csync2 (1.2-1) unstable; urgency=low
+
+  * New Upstream Version.
+
+ -- Philipp Richter <philipp.richter@linbit.com>  Tue, 30 Mar 2004 13:20:45 +0100
+
+csync2 (1.1) unstable; urgency=low
+
+  * Initial Release.
+
+ -- Philipp Richter <philipp.richter@linbit.com>  Fri, 26 Mar 2004 15:03:45 +0100
+
+Local variables:
+mode: debian-changelog
+End:

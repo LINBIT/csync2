@@ -1,0 +1,14 @@
+Source: csync2
+Section: admin
+Priority: optional
+Maintainer: Philipp Richter <philipp.richter@linbit.com>
+Build-Depends: debhelper (>= 4.0.0)
+Standards-Version: 3.6.0
+
+Package: csync2
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: cluster synchronisation tool
+ CSYNC2 synchronizes files in a cluster using the rsync-algorithm.
+ It maintains a database of modified files so it is able to handle
+ deletion of files and file modification conflicts.
