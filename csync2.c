@@ -167,6 +167,11 @@ int main(int argc, char ** argv)
 		return create_keyfile(argv[2]);
 	}
 
+	if (!access("/etc/csync2.lock", F_OK)) {
+		printf("Found /etc/csync2.lock.\n");
+		return 1;
+	}
+
 	while ( (opt = getopt(argc, argv, "G:C:D:N:HBILSTMRvhcuimfxrd")) != -1 ) {
 		switch (opt) {
 			case 'G':
