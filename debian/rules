@@ -21,7 +21,7 @@ endif
 configure: configure-stamp
 configure-stamp:
 	dh_testdir
-	# configure ...
+	./configure
 	touch configure-stamp
 
 build: build-stamp

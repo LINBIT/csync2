@@ -19,7 +19,7 @@
  */
 
 %{
-#include "y.tab.h"
+#include "cfgfile_parser.h"
 #include <string.h>
 
 #define MAX_INCLUDE_DEPTH 10

@@ -48,6 +48,7 @@ Requirements:
 
 Build and install the binaries using:
 
+	./configure
 	make install
 
 Add the csync2 port to your /etc/services file:

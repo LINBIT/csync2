@@ -31,7 +31,7 @@
 
 static char *file_database = 0;
 static char *file_config = 0;
-static char *dbdir = "/var/lib/csync2";
+static char *dbdir = DBDIR;
 char *cfgname = "";
 
 char myhostname[256] = "";
@@ -66,7 +66,7 @@ void help(char *cmd)
 {
 	printf(
 "\n"
-"csync2 SNAPSHOT - cluster synchronisation tool, 2nd generation\n"
+PACKAGE_STRING " - cluster synchronisation tool, 2nd generation\n"
 "LINBIT Information Technologies GmbH <http://www.linbit.com>\n"
 "Copyright (C) 2004  Clifford Wolf <clifford@clifford.at>\n"
 "This program is free software under the terms of the GNU GPL.\n"
@@ -177,8 +177,8 @@ int main(int argc, char ** argv)
 		return create_keyfile(argv[2]);
 	}
 
-	if (!access("/etc/csync2.lock", F_OK)) {
-		printf("Found /etc/csync2.lock.\n");
+	if (!access(ETCDIR "/csync2.lock", F_OK)) {
+		printf("Found " ETCDIR "/csync2.lock.\n");
 		return 1;
 	}
 
@@ -313,7 +313,7 @@ int main(int argc, char ** argv)
 
 	if ( !*cfgname ) {
 		asprintf(&file_database, "%s/%s.db", dbdir, myhostname);
-		asprintf(&file_config, "/etc/csync2.cfg");
+		asprintf(&file_config, ETCDIR "/csync2.cfg");
 	} else {
 		int i;
 
@@ -326,7 +326,7 @@ int main(int argc, char ** argv)
 			}
 
 		asprintf(&file_database, "%s/%s_%s.db", dbdir, myhostname, cfgname);
-		asprintf(&file_config, "/etc/csync2_%s.cfg", cfgname);
+		asprintf(&file_config, ETCDIR "/csync2_%s.cfg", cfgname);
 	}
 
 	csync_debug(2, "My hostname is %s.\n", myhostname);

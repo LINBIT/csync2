@@ -1,0 +1,2 @@
+Please fetch the ChangeLog directly from the subversion repository:
+svn log -v http://svn.clifford.at/csync2/
