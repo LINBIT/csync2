@@ -90,7 +90,7 @@ void csync_check_del(const char * file, int recursive)
 		free(where_rec);
 }
 
-void csync_check_mod(const char * file, int recursive)
+void csync_check_mod(const char * file, int recursive, int ignnoent)
 {
 	int check_type = csync_match_file(file);
 	struct dirent **namelist;
@@ -98,9 +98,11 @@ void csync_check_mod(const char * file, int recursive)
 	const char * checktxt;
 	struct stat st;
 
-	if ( check_type>0 && lstat(file, &st) != 0 )
+	if ( check_type>0 && lstat(file, &st) != 0 ) {
+		if ( ignnoent ) return;
 		csync_fatal("This should not happen: "
 				"Can't stat %s.\n", file);
+	}
 
 	switch ( check_type )
 	{
@@ -148,7 +150,7 @@ void csync_check_mod(const char * file, int recursive)
 				sprintf(fn, "%s/%s",
 					!strcmp(file, "/") ? "" : file,
 					namelist[n]->d_name);
-				csync_check_mod(fn, recursive);
+				csync_check_mod(fn, recursive, 0);
 			  }
 			  free(namelist[n]);
 			}
@@ -166,6 +168,6 @@ void csync_check(const char * filename, int recursive)
 	csync_debug(2, "Running%s check for %s ...\n",
 			recursive ? " recursive" : "", filename);
 	csync_check_del(filename, recursive);
-	csync_check_mod(filename, recursive);
+	csync_check_mod(filename, recursive, 1);
 }
 

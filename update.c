@@ -167,7 +167,7 @@ void csync_update_file_mod(const char * hostname,
 		for (i=0; chk1[i] && chk1[i] != '\n' && chk2[i]; i++)
 			if ( chk1[i] != chk2[i] ) { found_diff=1; break; }
 
-		if ( csync_rs_check(filename, conn) ) found_diff=1;
+		if ( csync_rs_check(filename, conn, S_ISREG(st.st_mode)) ) found_diff=1;
 		if ( read_conn_status(conn, filename, hostname) ) goto got_error;
 
 		if ( !found_diff ) {

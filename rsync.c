@@ -84,7 +84,7 @@ void csync_recv_file(FILE * in, FILE * out)
 	rewind(out);
 }
 
-int csync_rs_check(const char * filename, FILE * in_sig)
+int csync_rs_check(const char * filename, FILE * in_sig, int isreg)
 {
 	FILE *basis_file, *sig_file;
 	char buffer1[512], buffer2[512];
@@ -97,10 +97,12 @@ int csync_rs_check(const char * filename, FILE * in_sig)
 	basis_file = fopen(filename, "r");
 	if ( !basis_file ) basis_file = fopen("/dev/null", "r");
 
-	result = rs_sig_file(basis_file, sig_file,
-			RS_DEFAULT_BLOCK_LEN, RS_DEFAULT_STRONG_LEN, &stats);
-	if (result != RS_DONE)
-		csync_fatal("Got an error from librsync, too bad!\n");
+	if ( isreg ) {
+		result = rs_sig_file(basis_file, sig_file,
+				RS_DEFAULT_BLOCK_LEN, RS_DEFAULT_STRONG_LEN, &stats);
+		if (result != RS_DONE)
+			csync_fatal("Got an error from librsync, too bad!\n");
+	}
 
 	fclose(basis_file);
 
