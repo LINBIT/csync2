@@ -98,8 +98,9 @@ void csync_run_single_command(const char *command, const char *logfile)
 		assert(strlen(real_command)+1 < len);
 	}
 
-	pid = fork();
 	csync_debug(1, "Running '%s' ...\n", real_command);
+
+	pid = fork();
 	if ( !pid ) {
 		close(0); close(1); close(2);
 		/* 0 */ open("/dev/null", O_RDONLY);
