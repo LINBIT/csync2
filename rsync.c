@@ -84,35 +84,52 @@ void csync_recv_file(FILE * in, FILE * out)
 	rewind(out);
 }
 
-/* FIXME: This function does currently not compare the signatures!
- * Instead it just skips the input and returns the the both streams
- * are identical.
- */
 int csync_rs_check(const char * filename, FILE * in_sig)
 {
-	char buffer[512];
-	int rc, chunk;
+	FILE *basis_file, *sig_file;
+	char buffer1[512], buffer2[512];
+	int rc, chunk, found_diff = 0;
+	rs_stats_t stats;
+	rs_result result;
 	long size;
+
+	sig_file = tmpfile();
+	basis_file = fopen(filename, "r");
+	if ( !basis_file ) basis_file = fopen("/dev/null", "r");
+
+	result = rs_sig_file(basis_file, sig_file,
+			RS_DEFAULT_BLOCK_LEN, RS_DEFAULT_STRONG_LEN, &stats);
+	if (result != RS_DONE)
+		csync_fatal("Got an error from librsync, too bad!\n");
+
+	fclose(basis_file);
 
 	if ( fscanf(in_sig, "octet-stream %ld\n", &size) != 1 )
 		csync_fatal("Format-error while receiving data.\n");
+
+	rewind(sig_file); fflush(sig_file);
+	if ( size != ftell(sig_file) ) found_diff = 1;
 
 	csync_debug(3, "Receiving %ld bytes ..\n", size);
 
 	while ( size > 0 ) {
 		chunk = size > 512 ? 512 : size;
-		rc = fread(buffer, 1, chunk, in_sig);
+		rc = fread(buffer1, 1, chunk, in_sig);
 
 		if ( rc <= 0 )
 			csync_fatal("Read-error while receiving data.\n");
 		chunk = rc;
+
+		if ( fread(buffer2, chunk, 1, sig_file) != 1 ) found_diff = 1;
+		if ( memcmp(buffer1, buffer2, chunk) ) found_diff = 1;
 
 		size -= chunk;
 		csync_debug(3, "Got %d bytes, %ld bytes left ..\n",
 				chunk, size);
 	}
 
-	return 0;
+	fclose(sig_file);
+	return found_diff;
 }
 
 void csync_rs_sig(const char * filename, FILE * out_sig)
