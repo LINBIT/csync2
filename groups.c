@@ -61,7 +61,7 @@ const struct csync_group *csync_find_next(
 	else basename = file;
 
 	for (g = g==0 ? csync_group : g->next;  g;  g = g->next) {
-		if ( ! g->hasme ) continue;
+		if ( ! g->myname ) continue;
 		if ( match_pattern_list(file, basename, g->pattern) ) break;
 	}
 
@@ -76,7 +76,7 @@ int csync_step_into(const char *file)
 	if ( !strcmp(file, "/") ) return 1;
 
 	for (g=csync_group; g; g=g->next) {
-		if ( ! g->hasme ) continue;
+		if ( ! g->myname ) continue;
 		for (p=g->pattern; p; p=p->next)
 			if ( p->pattern[0] == '/' && p->isinclude ) {
 				char t[strlen(p->pattern)+1], *l;
@@ -99,29 +99,30 @@ int csync_match_file(const char *file)
 	return 0;
 }
 
-const char **csync_find_hosts(const char *file)
+struct peer *csync_find_peers(const char *file)
 {
 	const struct csync_group *g = NULL;
-	const char **hlist = 0;
-	int hl_size = 0;
+	struct peer *plist = 0;
+	int pl_size = 0;
 
 	while ( (g=csync_find_next(g, file)) ) {
 		struct csync_group_host *h = g->host;
 
 		while (h) {
 			int i=0;
-			while (hlist && hlist[i])
-				if ( !strcmp(hlist[i++], h->hostname) )
+			while (plist && plist[i].peername)
+				if ( !strcmp(plist[i++].peername, h->hostname) )
 						goto next_host;
-			hlist = realloc(hlist, sizeof(char*)*(++hl_size+1));
-			hlist[hl_size-1] = h->hostname;
-			hlist[hl_size] = 0;
+			plist = realloc(plist, sizeof(struct peer)*(++pl_size+1));
+			plist[pl_size-1].peername = h->hostname;
+			plist[pl_size-1].myname = g->myname;
+			plist[pl_size].peername = 0;
 next_host:
 			h = h->next;
 		}
 	}
 
-	return hlist;
+	return plist;
 }
 
 const char *csync_key(const char *hostname, const char *filename)

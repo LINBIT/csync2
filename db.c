@@ -42,8 +42,8 @@ void csync_db_open(const char * file)
 		0, 0, 0);
 	sqlite_exec(db,
 		"CREATE TABLE dirty ("
-		"	filename, force, hostname,"
-		"	UNIQUE ( filename, hostname ) ON CONFLICT IGNORE"
+		"	filename, force, myname, peername,"
+		"	UNIQUE ( filename, peername ) ON CONFLICT IGNORE"
 		")",
 		0, 0, 0);
 	sqlite_exec(db,

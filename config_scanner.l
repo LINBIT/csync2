@@ -28,6 +28,7 @@
 "{"		{ return TK_BLOCK_BEGIN; }
 "}"		{ return TK_BLOCK_END; }
 ";"		{ return TK_STEND; }
+"@"		{ return TK_AT; }
 
 "group"		{ return TK_GROUP; }
 "host"		{ return TK_HOST; }
@@ -36,5 +37,5 @@
 "key"		{ return TK_KEY; }
 
 [ \n\t]+	/* whitespaces are just delimiters */
-[^ \n\t;]+	{ yylval.txt=strdup(yytext); return TK_STRING; }
+[^ \n\t@;]+	{ yylval.txt=strdup(yytext); return TK_STRING; }
 %%

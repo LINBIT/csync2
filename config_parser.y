@@ -42,17 +42,18 @@ static void new_group()
 	csync_group = t;
 }
 
-static void add_host(const char *hostname)
+static void add_host(const char *hostname, const char *peername)
 {
 	if ( strcmp(hostname, myhostname) == 0 ) {
-		csync_group->hasme = 1;
+		csync_group->myname = peername;
 		free((void*)hostname);
 	} else {
 		struct csync_group_host *t =
 			calloc(sizeof(struct csync_group_host), 1);
-		t->hostname = hostname;
+		t->hostname = peername;
 		t->next = csync_group->host;
 		csync_group->host = t;
+		free((void*)hostname);
 	}
 }
 
@@ -106,11 +107,13 @@ static void check_group()
 		struct csync_group_pattern *p = csync_group->pattern;
 		csync_debug(2, "group {\n\tkey\t%s;\n", csync_group->key);
 		while (h) {
-			csync_debug(2, "\thost\t%s;\n", h->hostname);
+			csync_debug(2, "\thost\twhocares@%s;\n",
+				h->hostname);
 			h = h->next;
 		}
-		if ( csync_group->hasme )
-			csync_debug(2, "\thost\t%s;\n", myhostname);
+		if ( csync_group->myname )
+			csync_debug(2, "\thost\t%s@%s;\n",
+				myhostname, csync_group->myname);
 		while (p) {
 			csync_debug(2, "\t%s\t%s;\n",
 				p->isinclude ? "include" : "exclude",
@@ -127,7 +130,7 @@ static void check_group()
 	char *txt;
 }
 
-%token TK_BLOCK_BEGIN TK_BLOCK_END TK_STEND
+%token TK_BLOCK_BEGIN TK_BLOCK_END TK_STEND TK_AT
 %token TK_GROUP TK_HOST TK_EXCL TK_INCL TK_KEY
 %token <txt> TK_STRING
 
@@ -160,7 +163,9 @@ config_stmt:	TK_HOST host_list
 		;
 
 host_list:	/* empty */
-	|	host_list TK_STRING	{ add_host($2); }
+	|	host_list TK_STRING	{ add_host($2, $2); }
+	|	host_list TK_STRING TK_AT TK_STRING
+					{ add_host($2, $4); }
 		;
 		
 excl_list:	/* empty */

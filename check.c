@@ -36,22 +36,23 @@ void csync_hint(const char *file, int recursive)
 
 void csync_mark(const char *file)
 {
-	const char **hl = csync_find_hosts(file);
-	int hl_idx;
+	struct peer *pl = csync_find_peers(file);
+	int pl_idx;
 
-	if ( ! hl ) {
+	if ( ! pl ) {
 		csync_debug(2, "Not in one of my groups: %s\n", file);
 		return;
 	}
 
 	csync_debug(1, "Marking file as dirty: %s\n", file);
-	for (hl_idx=0; hl[hl_idx]; hl_idx++)
+	for (pl_idx=0; pl[pl_idx].peername; pl_idx++)
 		SQL("Marking File Dirty",
-			"INSERT INTO dirty (filename, force, hostname) "
-			"VALUES ('%s', 0, '%s')",
-			url_encode(file), url_encode(hl[hl_idx]));
+			"INSERT INTO dirty (filename, force, myname, peername) "
+			"VALUES ('%s', 0, '%s', '%s')", url_encode(file),
+			url_encode(pl[pl_idx].myname),
+			url_encode(pl[pl_idx].peername));
 
-	free(hl);
+	free(pl);
 }
 
 void csync_check_del(const char * file, int recursive)

@@ -283,13 +283,14 @@ int main(int argc, char ** argv)
 
 		case MODE_LIST_DIRTY:
 			SQL_BEGIN("DB Dump - Dirty",
-				"SELECT force, hostname, filename FROM dirty")
+				"SELECT force, myname, peername, filename FROM dirty")
 			{
-				printf("%s\t%s\t%s\n",
+				printf("%s\t%s\t%s\t%s\n",
 						atoi(SQL_V[0]) ?
-							"force" : "auto",
+							"force" : "chary",
 						url_decode(SQL_V[1]),
-						url_decode(SQL_V[2]));
+						url_decode(SQL_V[2]),
+						url_decode(SQL_V[3]));
 			} SQL_END;
 			break;
 	}

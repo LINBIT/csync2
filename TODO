@@ -1,6 +1,5 @@
 
 Better security concept:
-- Allow using direct links using host-mappings
 - Load shared secrets from extra files
 - Create key files with "csync2 -k"
 

@@ -49,7 +49,7 @@ int connprintf(FILE *stream, const char *format, ...)
 	return rc;
 }
 
-int read_conn_status(FILE * conn, const char *file, const char *host)
+int read_conn_status(FILE *conn, const char *file, const char *host)
 {
 	char line[4096];
 	if ( fgets(line, 4096, conn) ) {
@@ -64,15 +64,15 @@ int read_conn_status(FILE * conn, const char *file, const char *host)
 	return 1;
 }
 
-FILE * connect_to_host(const char * hostname)
+FILE *connect_to_host(const char *peername)
 {
 	struct sockaddr_in sin;
 	struct hostent *hp;
 	int s;
 
-	hp = gethostbyname(hostname);
+	hp = gethostbyname(peername);
 	if ( ! hp ) {
-		csync_debug(1, "Can't resolve hostname.\n");
+		csync_debug(1, "Can't resolve peername.\n");
 		return 0;
 	}
 
@@ -94,50 +94,50 @@ FILE * connect_to_host(const char * hostname)
 	return fdopen(s, "r+");
 }
 
-void csync_update_file_del(const char *hostname,
+void csync_update_file_del(const char *peername,
 		const char *filename, int force, FILE *conn)
 {
-	const char * key = csync_key(hostname, filename);
+	const char * key = csync_key(peername, filename);
 
-	csync_debug(1, "Deleting %s on %s ...\n", filename, hostname);
+	csync_debug(1, "Deleting %s on %s ...\n", filename, peername);
 
 	if ( !key ) {
 		csync_debug(0, "ERROR: No key for %s on %s.n",
-				filename, hostname);
+				filename, peername);
 		csync_error_count++;
 		goto got_error;
 	}
 
 	if ( force ) {
 		connprintf(conn, "FLUSH %s %s\n", url_encode(key), url_encode(filename));
-		if ( read_conn_status(conn, filename, hostname) )
+		if ( read_conn_status(conn, filename, peername) )
 			goto got_error;
 	}
 
 	connprintf(conn, "DEL %s %s\n", url_encode(key), url_encode(filename));
-	if ( read_conn_status(conn, filename, hostname) ) goto got_error;
+	if ( read_conn_status(conn, filename, peername) ) goto got_error;
 
 	SQL("Remove dirty-file entry.",
 		"DELETE FROM dirty WHERE filename = '%s' "
-		"AND hostname = '%s'", url_encode(filename),
-		url_encode(hostname));
+		"AND peername = '%s'", url_encode(filename),
+		url_encode(peername));
 	return;
 
 got_error:
 	csync_debug(1, "File stays in dirty state. Try again later...\n");
 }
 
-void csync_update_file_mod(const char * hostname,
-		const char * filename, int force, FILE * conn)
+void csync_update_file_mod(const char *peername,
+		const char *filename, int force, FILE *conn)
 {
 	struct stat st;
-	const char * key = csync_key(hostname, filename);
+	const char * key = csync_key(peername, filename);
 
-	csync_debug(1, "Updating %s on %s ...\n", filename, hostname);
+	csync_debug(1, "Updating %s on %s ...\n", filename, peername);
 
 	if ( !key ) {
 		csync_debug(0, "ERROR: No key for %s on %s.\n",
-				filename, hostname);
+				filename, peername);
 		csync_error_count++;
 		goto got_error;
 	}
@@ -151,7 +151,7 @@ void csync_update_file_mod(const char * hostname,
 	if ( force ) {
 		connprintf(conn, "FLUSH %s %s\n",
 				url_encode(key), url_encode(filename));
-		if ( read_conn_status(conn, filename, hostname) )
+		if ( read_conn_status(conn, filename, peername) )
 			goto got_error;
 	} else {
 		int i, found_diff = 0;
@@ -160,7 +160,7 @@ void csync_update_file_mod(const char * hostname,
 
 		connprintf(conn, "SIG %s %s\n",
 				url_encode(key), url_encode(filename));
-		if ( read_conn_status(conn, filename, hostname) ) goto got_error;
+		if ( read_conn_status(conn, filename, peername) ) goto got_error;
 
 		if ( !fgets(chk1, 4096, conn) ) goto got_error;
 		chk2 = csync_genchecktxt(&st, filename, 1);
@@ -168,7 +168,7 @@ void csync_update_file_mod(const char * hostname,
 			if ( chk1[i] != chk2[i] ) { found_diff=1; break; }
 
 		if ( csync_rs_check(filename, conn, S_ISREG(st.st_mode)) ) found_diff=1;
-		if ( read_conn_status(conn, filename, hostname) ) goto got_error;
+		if ( read_conn_status(conn, filename, peername) ) goto got_error;
 
 		if ( !found_diff ) {
 			csync_debug(1, "File is already up to date on peer.\n");
@@ -179,34 +179,34 @@ void csync_update_file_mod(const char * hostname,
 	if ( S_ISREG(st.st_mode) ) {
 		connprintf(conn, "PATCH %s %s\n",
 				url_encode(key), url_encode(filename));
-		if ( read_conn_status(conn, filename, hostname) )
+		if ( read_conn_status(conn, filename, peername) )
 			goto got_error;
 		csync_rs_delta(filename, conn, conn);
-		if ( read_conn_status(conn, filename, hostname) )
+		if ( read_conn_status(conn, filename, peername) )
 			goto got_error;
 	} else
 	if ( S_ISDIR(st.st_mode) ) {
 		connprintf(conn, "MKDIR %s %s\n",
 				url_encode(key), url_encode(filename));
-		if ( read_conn_status(conn, filename, hostname) )
+		if ( read_conn_status(conn, filename, peername) )
 			goto got_error;
 	} else
 	if ( S_ISCHR(st.st_mode) ) {
 		connprintf(conn, "MKCHR %s %s\n",
 				url_encode(key), url_encode(filename));
-		if ( read_conn_status(conn, filename, hostname) )
+		if ( read_conn_status(conn, filename, peername) )
 			goto got_error;
 	} else
 	if ( S_ISBLK(st.st_mode) ) {
 		connprintf(conn, "MKBLK %s %s\n",
 				url_encode(key), url_encode(filename));
-		if ( read_conn_status(conn, filename, hostname) )
+		if ( read_conn_status(conn, filename, peername) )
 			goto got_error;
 	} else
 	if ( S_ISFIFO(st.st_mode) ) {
 		connprintf(conn, "MKFIFO %s %s\n",
 				url_encode(key), url_encode(filename));
-		if ( read_conn_status(conn, filename, hostname) )
+		if ( read_conn_status(conn, filename, peername) )
 			goto got_error;
 	} else
 	if ( S_ISLNK(st.st_mode) ) {
@@ -218,41 +218,41 @@ void csync_update_file_mod(const char * hostname,
 			connprintf(conn, "MKLINK %s %s %s\n",
 					url_encode(key), url_encode(filename),
 					url_encode(target));
-			if ( read_conn_status(conn, filename, hostname) )
+			if ( read_conn_status(conn, filename, peername) )
 				goto got_error;
 		}
 	} else
 	if ( S_ISSOCK(st.st_mode) ) {
 		connprintf(conn, "MKSOCK %s %s\n",
 				url_encode(key), url_encode(filename));
-		if ( read_conn_status(conn, filename, hostname) )
+		if ( read_conn_status(conn, filename, peername) )
 			goto got_error;
 	}
 
 	connprintf(conn, "SETOWN %s %s %d %d\n",
 			url_encode(key), url_encode(filename),
 			st.st_uid, st.st_gid);
-	if ( read_conn_status(conn, filename, hostname) )
+	if ( read_conn_status(conn, filename, peername) )
 		goto got_error;
 
 	if ( !S_ISLNK(st.st_mode) ) {
 		connprintf(conn, "SETMOD %s %s %d\n", url_encode(key),
 				url_encode(filename), st.st_mode);
-		if ( read_conn_status(conn, filename, hostname) )
+		if ( read_conn_status(conn, filename, peername) )
 			goto got_error;
 
 		connprintf(conn, "SETIME %s %s %Ld\n",
 				url_encode(key), url_encode(filename),
 				(long long)st.st_mtime);
-		if ( read_conn_status(conn, filename, hostname) )
+		if ( read_conn_status(conn, filename, peername) )
 			goto got_error;
 	}
 
 skip_action:
 	SQL("Remove dirty-file entry.",
 		"DELETE FROM dirty WHERE filename = '%s' "
-		"AND hostname = '%s'", url_encode(filename),
-		url_encode(hostname));
+		"AND peername = '%s'", url_encode(filename),
+		url_encode(peername));
 	return;
 
 got_error:
@@ -269,42 +269,39 @@ int compare_files(const char *filename, const char *pattern, int recursive)
 	return 0;
 }
 
-void csync_update_host(const char * hostname,
-		const char ** patlist, int patnum, int recursive)
+void csync_update_host(const char *peername,
+		const char **patlist, int patnum, int recursive)
 {
-	FILE * conn;
 	struct textlist *tl = 0, *t, *next_t;
 	struct textlist *tl_mod = 0, **last_tn=&tl;
+	char *current_name = 0;
 	struct stat st;
+	FILE *conn;
 
 	SQL_BEGIN("Get files for host from dirty table",
-		"SELECT filename, force FROM dirty WHERE hostname = '%s' "
-		"ORDER by filename ASC", url_encode(hostname))
+		"SELECT filename, myname, force FROM dirty WHERE peername = '%s' "
+		"ORDER by filename ASC", url_encode(peername))
 	{
 		const char * filename = url_decode(SQL_V[0]);
 		int i, use_this = patnum == 0;
 		for (i=0; i<patnum && !use_this; i++)
 			if ( compare_files(filename, patlist[i], recursive) ) use_this = 1;
 		if (use_this)
-			textlist_add(&tl, filename, atoi(SQL_V[1]));
+			textlist_add2(&tl, filename, url_decode(SQL_V[1]), atoi(SQL_V[2]));
 	} SQL_END;
 
 	/* just return if there are no files to update */
 	if ( !tl ) return;
 
-	csync_debug(1, "Updating host %s ...\n", hostname);
+	csync_debug(1, "Updating host %s ...\n", peername);
 
-	if ( (conn = connect_to_host(hostname)) == 0 ) {
+	if ( (conn = connect_to_host(peername)) == 0 ) {
 		csync_error_count++;
 		csync_debug(1, "ERROR: Connection to remote host failed.\n");
 		csync_debug(1, "Host stays in dirty state. "
 				"Try again later...\n");
 		return;
 	}
-
-	connprintf(conn, "HELLO %s\n", url_encode(myhostname));
-	if ( read_conn_status(conn, 0, hostname) )
-		goto ident_failed;
 
 	/*
 	 * The SQL statement above creates a linked list. Due to the
@@ -326,23 +323,36 @@ void csync_update_host(const char * hostname,
 			t->next = tl_mod;
 			tl_mod = t;
 		} else {
-			csync_update_file_del(hostname,
+			if ( !current_name || strcmp(current_name, t->value2) ) {
+				connprintf(conn, "HELLO %s\n", url_encode(t->value2));
+				if ( read_conn_status(conn, t->value, peername) )
+					goto ident_failed_1;
+				current_name = t->value2;
+			}
+			csync_update_file_del(peername,
 					t->value, t->intvalue, conn);
+ident_failed_1:
 			last_tn=&(t->next);
 		}
 	}
 
 	for (t = tl_mod; t != 0; t = t->next) {
-		csync_update_file_mod(hostname,
+		if ( !current_name || strcmp(current_name, t->value2) ) {
+			connprintf(conn, "HELLO %s\n", url_encode(t->value2));
+			if ( read_conn_status(conn, t->value, peername) )
+				goto ident_failed_2;
+			current_name = t->value2;
+		}
+		csync_update_file_mod(peername,
 				t->value, t->intvalue, conn);
+ident_failed_2:
 	}
 
-ident_failed:
 	textlist_free(tl_mod);
 	textlist_free(tl);
 
 	connprintf(conn, "BYE\n");
-	read_conn_status(conn, 0, hostname);
+	read_conn_status(conn, 0, peername);
 	fclose(conn);
 }
 
@@ -351,7 +361,7 @@ void csync_update(const char ** patlist, int patnum, int recursive)
 	struct textlist *tl = 0, *t;
 
 	SQL_BEGIN("Get hosts from dirty table",
-		"SELECT hostname FROM dirty GROUP BY hostname")
+		"SELECT peername FROM dirty GROUP BY peername")
 	{
 		textlist_add(&tl, url_decode(SQL_V[0]), 0);
 	} SQL_END;

@@ -33,10 +33,15 @@
 
 /* groups.c */
 
+struct peer {
+	const char *myname;
+	const char *peername;
+};
+
 extern int csync_match_file(const char *file);
-extern const char **csync_find_hosts(const char *file);
-extern const char * csync_key(const char *hostname, const char *filename);
-extern int csync_perm(const char * filename, const char * key, const char * hostname);
+extern struct peer *csync_find_peers(const char *file);
+extern const char *csync_key(const char *hostname, const char *filename);
+extern int csync_perm(const char *filename, const char *key, const char *hostname);
 
 
 /* error.c */
@@ -131,6 +136,7 @@ struct textlist {
 	struct textlist *next;
 	int intvalue;
 	char *value;
+	char *value2;
 };
 
 static inline void textlist_add(struct textlist **listhandle, const char *item, int intitem)
@@ -139,6 +145,17 @@ static inline void textlist_add(struct textlist **listhandle, const char *item, 
 	*listhandle = malloc(sizeof(struct textlist));
 	(*listhandle)->intvalue = intitem;
 	(*listhandle)->value = strdup(item);
+	(*listhandle)->value2 = 0;
+	(*listhandle)->next = tmp;
+}
+
+static inline void textlist_add2(struct textlist **listhandle, const char *item, const char *item2, int intitem)
+{
+	struct textlist *tmp = *listhandle;
+	*listhandle = malloc(sizeof(struct textlist));
+	(*listhandle)->intvalue = intitem;
+	(*listhandle)->value = strdup(item);
+	(*listhandle)->value2 = strdup(item2);
 	(*listhandle)->next = tmp;
 }
 
@@ -148,6 +165,8 @@ static inline void textlist_free(struct textlist *listhandle)
 	while (listhandle != 0) {
 		next = listhandle->next;
 		free(listhandle->value);
+		if ( listhandle->value2 )
+			free(listhandle->value2);
 		free(listhandle);
 		listhandle = next;
 	}
@@ -175,8 +194,7 @@ struct csync_group {
 	struct csync_group *next;
 	struct csync_group_host *host;
 	struct csync_group_pattern *pattern;
-	const char *key;
-	int hasme;
+	const char *key, *myname;
 };
 
 
