@@ -410,7 +410,8 @@ int main(int argc, char ** argv)
 			SQL_BEGIN("DB Dump - File",
 				"SELECT checktxt, filename FROM file ORDER BY filename")
 			{
-				printf("%s\t%s\n", url_decode(SQL_V[0]), url_decode(SQL_V[1]));
+				if (csync_find_next(0, url_decode(SQL_V[1])))
+					printf("%s\t%s\n", url_decode(SQL_V[0]), url_decode(SQL_V[1]));
 				retval = -1;
 			} SQL_END;
 			break;
@@ -436,13 +437,16 @@ int main(int argc, char ** argv)
 			SQL_BEGIN("DB Dump - Dirty",
 				"SELECT force, myname, peername, filename FROM dirty ORDER BY filename")
 			{
-				printf("%s\t%s\t%s\t%s\n", atoi(SQL_V[0]) ?  "force" : "chary",
+				if (csync_find_next(0, url_decode(SQL_V[3])))
+					printf("%s\t%s\t%s\t%s\n", atoi(SQL_V[0]) ?  "force" : "chary",
 						url_decode(SQL_V[1]), url_decode(SQL_V[2]), url_decode(SQL_V[3]));
 				retval = -1;
 			} SQL_END;
 			break;
 
 		case MODE_REMOVE_OLD:
+			if ( active_grouplist )
+				csync_fatal("Never run -R with -G!\n");
 			csync_remove_old();
 			break;
 	}

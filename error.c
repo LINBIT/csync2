@@ -32,6 +32,7 @@ void csync_fatal(const char *fmt, ...)
 	vfprintf(csync_debug_out, fmt, ap);
 	va_end(ap);
 
+	csync_db_close();
 	exit(1);
 }
 
