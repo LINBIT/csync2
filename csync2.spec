@@ -18,7 +18,7 @@ License:      GPL
 Group:        System/Monitoring
 Requires:     sqlite openssl
 Autoreqprov:  on
-Version:      1.15
+Version:      SNAPSHOT
 Release:      1
 Source0:      csync2-%{version}.tar.gz
 URL:          http://oss.linbit.com/csync2
@@ -43,6 +43,7 @@ Authors:
 
 %build
 export CFLAGS="$RPM_OPT_FLAGS"
+if ! [ -f configure ]; then ./autogen.sh; fi
 ./configure --prefix=%{_prefix} \
 
 make all 

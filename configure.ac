@@ -1,7 +1,7 @@
 # Process this file with autoconf to produce a configure script.
 AC_INIT(csync2, SNAPSHOT, clifford@clifford.at)
-AC_CONFIG_SRCDIR([csync2.c])
-AM_CONFIG_HEADER([config.h])
+AC_CONFIG_SRCDIR(csync2.c)
+AM_CONFIG_HEADER(config.h)
 AM_INIT_AUTOMAKE
 
 # Use /etc and /var instead of $prefix/...

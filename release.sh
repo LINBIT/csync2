@@ -32,7 +32,8 @@ case "$1" in
 	svn co $URL/tags/$PACKAGE-$VERSION ../$PACKAGE-$VERSION
 
 	cd ../$PACKAGE-$VERSION
-	perl -pi -e "s/SNAPSHOT/$VERSION/g" configure.ac; sleep 2
+	perl -pi -e "s/SNAPSHOT/$VERSION/g" configure.ac
+	perl -pi -e "s/SNAPSHOT/$VERSION/g" csync2.spec; sleep 2
 	svn commit -m "Fixed version info in tag $VERSION" configure.ac
 	./autogen.sh; rm -rf aclocal.m4 autom4te.cache $( find -name .svn )
 	rm -f release.sh # don't include this script in the source tar
