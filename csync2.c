@@ -57,12 +57,14 @@ void help(char *cmd)
 "Usage: %s [-v..] [-C config-file] [-D database-dir] [-N hostname] ..\n"
 "\n"
 "With file parameters:\n"
-"	-h [-r] [file..]	Add (recursive) hints for check to db\n"
-"	-m [file..]		Mark files in database as dirty\n"
-"	-f [file..]		Force this file in sync (resolve conflict)\n"
+"	-h [-r] file..		Add (recursive) hints for check to db\n"
+"	-c [-r] file..		Check files and maybe add to dirty db\n"
+"	-u [-r] file..		Updates files if listed in dirty db\n"
+"	-f file..		Force this file in sync (resolve conflict)\n"
+"	-m file..		Mark files in database as dirty\n"
 "\n"
 "Simple mode:\n"
-"	-x [-r] [file..]	Run checks for all given files and update\n"
+"	-x [[-r] file..]	Run checks for all given files and update\n"
 "				remote hosts.\n"
 "\n"
 "Without file parameters:\n"
@@ -143,7 +145,6 @@ int main(int argc, char ** argv)
 				mode = MODE_LIST_DIRTY;
 				break;
 			case 'r':
-				if ( mode != MODE_HINT && mode != MODE_SIMPLE ) help(argv[0]);
 				recursive = 1;
 				break;
 			default:
@@ -152,7 +153,8 @@ int main(int argc, char ** argv)
 	}
 
 	if ( optind < argc && mode != MODE_HINT && mode != MODE_MARK &&
-			mode != MODE_FORCE && mode != MODE_SIMPLE )
+			mode != MODE_FORCE && mode != MODE_SIMPLE &&
+			mode != MODE_UPDATE && mode != MODE_CHECK)
 		help(argv[0]);
 
 	if ( mode == MODE_NONE )
@@ -177,14 +179,21 @@ int main(int argc, char ** argv)
 
 	switch (mode) {
 		case MODE_SIMPLE:
+			if ( argc == optind )
 			{
-				const char *realnames[argc-optind];
+				csync_check("/", 1);
+				csync_update(0, 0, 0);
+			}
+			else
+			{
+				char *realnames[argc-optind];
 				for (i=optind; i < argc; i++) {
 					realnames[i-optind] = strdup(getrealfn(argv[i]));
 					csync_check(realnames[i-optind], recursive);
 				}
-				if ( argc-optind > 0 )
-					csync_update(realnames, argc-optind, recursive);
+				csync_update(realnames, argc-optind, recursive);
+				for (i=optind; i < argc; i++)
+					free(realnames[i-optind]);
 			}
 			break;
 
@@ -194,26 +203,46 @@ int main(int argc, char ** argv)
 			break;
 
 		case MODE_CHECK:
-			SQL_BEGIN("Check all hints",
-				"SELECT filename, recursive FROM hint")
+			if ( argc == optind )
 			{
-				textlist_add(&tl, url_decode(SQL_V[0]),
-						atoi(SQL_V[1]));
-			} SQL_END;
+				SQL_BEGIN("Check all hints",
+					"SELECT filename, recursive FROM hint")
+				{
+					textlist_add(&tl, url_decode(SQL_V[0]),
+							atoi(SQL_V[1]));
+				} SQL_END;
 
-			for (t = tl; t != 0; t = t->next) {
-				csync_check(t->value, t->intvalue);
-				SQL("Remove processed hint.",
-				    "DELETE FROM hint WHERE filename = '%s' "
-				    "and recursive = %d",
-				    url_encode(t->value), t->intvalue);
+				for (t = tl; t != 0; t = t->next) {
+					csync_check(t->value, t->intvalue);
+					SQL("Remove processed hint.",
+					    "DELETE FROM hint WHERE filename = '%s' "
+					    "and recursive = %d",
+					    url_encode(t->value), t->intvalue);
+				}
+
+				textlist_free(tl);
 			}
-
-			textlist_free(tl);
+			else
+			{
+				for (i=optind; i < argc; i++)
+					csync_check(getrealfn(argv[i]), recursive);
+			}
 			break;
 
 		case MODE_UPDATE:
-			csync_update(0, 0, 0);
+			if ( argc == optind )
+			{
+				csync_update(0, 0, 0);
+			}
+			else
+			{
+				char *realnames[argc-optind];
+				for (i=optind; i < argc; i++)
+					realnames[i-optind] = strdup(getrealfn(argv[i]));
+				csync_update(realnames, argc-optind, recursive);
+				for (i=optind; i < argc; i++)
+					free(realnames[i-optind]);
+			}
 			break;
 
 		case MODE_INETD:
