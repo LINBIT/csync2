@@ -118,8 +118,8 @@ int csync_match_file_host(const char *file, const char *myname, const char *peer
 			while (*k && **k)
 				if ( !strcmp(*(k++), g->key) ) goto found_key;
 			continue;
-found_key:
 		}
+found_key:
 		while (h) {
 			if ( !strcmp(h->hostname, peername) ) return 1;
 			h = h->next;
@@ -159,7 +159,7 @@ struct peer *csync_find_peers(const char *file, const char *thispeer)
 next_host:
 			h = h->next;
 		}
-next_group:
+next_group:	;
 	}
 
 	return plist;

@@ -384,7 +384,7 @@ ident_failed_1:
 		}
 		csync_update_file_mod(peername,
 				t->value, t->intvalue, conn, dry_run);
-ident_failed_2:
+ident_failed_2:	;
 	}
 
 	textlist_free(tl_mod);
