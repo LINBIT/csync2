@@ -99,6 +99,13 @@ int csync_match_file(const char *file)
 	return 0;
 }
 
+void csync_check_usefullness(const char *file, int recursive)
+{
+	if ( csync_find_next(0, file) ) return;
+	if ( recursive && csync_step_into(file) ) return;
+	csync_debug(0, "WARNING: Parameter will be ignored: %s\n", file);
+}
+
 struct peer *csync_find_peers(const char *file)
 {
 	const struct csync_group *g = NULL;

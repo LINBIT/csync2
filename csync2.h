@@ -39,6 +39,7 @@ struct peer {
 };
 
 extern int csync_match_file(const char *file);
+extern void csync_check_usefullness(const char *file, int recursive);
 extern struct peer *csync_find_peers(const char *file);
 extern const char *csync_key(const char *hostname, const char *filename);
 extern int csync_perm(const char *filename, const char *key, const char *hostname);

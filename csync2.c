@@ -202,7 +202,8 @@ int main(int argc, char ** argv)
 		}
 	}
 
-	if ( optind < argc && mode != MODE_HINT && mode != MODE_MARK &&
+	if ( optind < argc &&
+			mode != MODE_HINT && mode != MODE_MARK &&
 			mode != MODE_FORCE && mode != MODE_SIMPLE &&
 			mode != MODE_UPDATE && mode != MODE_CHECK)
 		help(argv[0]);
@@ -239,6 +240,7 @@ int main(int argc, char ** argv)
 				char *realnames[argc-optind];
 				for (i=optind; i < argc; i++) {
 					realnames[i-optind] = strdup(getrealfn(argv[i]));
+					csync_check_usefullness(realnames[i-optind], recursive);
 					csync_check(realnames[i-optind], recursive);
 				}
 				csync_update(realnames, argc-optind, recursive, dry_run);
@@ -248,8 +250,11 @@ int main(int argc, char ** argv)
 			break;
 
 		case MODE_HINT:
-			for (i=optind; i < argc; i++)
-				csync_hint(getrealfn(argv[i]), recursive);
+			for (i=optind; i < argc; i++) {
+				char *realname = getrealfn(argv[i]);
+				csync_check_usefullness(realname, recursive);
+				csync_hint(realname, recursive);
+			}
 			break;
 
 		case MODE_CHECK:
@@ -274,8 +279,11 @@ int main(int argc, char ** argv)
 			}
 			else
 			{
-				for (i=optind; i < argc; i++)
-					csync_check(getrealfn(argv[i]), recursive);
+				for (i=optind; i < argc; i++) {
+					char *realname = getrealfn(argv[i]);
+					csync_check_usefullness(realname, recursive);
+					csync_check(realname, recursive);
+				}
 			}
 			break;
 
@@ -287,8 +295,10 @@ int main(int argc, char ** argv)
 			else
 			{
 				char *realnames[argc-optind];
-				for (i=optind; i < argc; i++)
+				for (i=optind; i < argc; i++) {
 					realnames[i-optind] = strdup(getrealfn(argv[i]));
+					csync_check_usefullness(realnames[i-optind], recursive);
+				}
 				csync_update(realnames, argc-optind, recursive, dry_run);
 				for (i=optind; i < argc; i++)
 					free(realnames[i-optind]);
@@ -300,8 +310,11 @@ int main(int argc, char ** argv)
 			break;
 
 		case MODE_MARK:
-			for (i=optind; i < argc; i++)
-				csync_mark(getrealfn(argv[i]));
+			for (i=optind; i < argc; i++) {
+				char *realname = getrealfn(argv[i]);
+				csync_check_usefullness(realname, recursive);
+				csync_mark(realname);
+			}
 			break;
 
 		case MODE_FORCE:
