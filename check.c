@@ -57,9 +57,29 @@ void csync_mark(const char *file, const char *thispeer)
 	free(pl);
 }
 
-void csync_check_del(const char * file, int recursive, int init_run)
+/* return 0 if path does not contain any symlinks */
+int check_pure(const char *filename)
 {
-	char * where_rec = "";
+	struct stat sbuf;
+	int i=0;
+
+	while (filename[i]) i++;
+
+	{ /* new block for myfilename[] */
+		char myfilename[i+1];
+		memcpy(myfilename, filename, i+1);
+		while (1) {
+			while (myfilename[i] != '/')
+				if (--i <= 0) return 0;
+			myfilename[i]=0;
+			if ( lstat(myfilename, &sbuf) || S_ISLNK(sbuf.st_mode) ) return 1;
+		}
+	}
+}
+
+void csync_check_del(const char *file, int recursive, int init_run)
+{
+	char *where_rec = "";
 	struct textlist *tl = 0, *t;
 	struct stat st;
 
@@ -74,10 +94,11 @@ void csync_check_del(const char * file, int recursive, int init_run)
 
 	SQL_BEGIN("Checking for removed files",
 			"SELECT filename from file where "
-			"filename = '%s' %s", url_encode(file), where_rec)
+			"filename = '%s' %s ORDER BY filename", url_encode(file), where_rec)
 	{
-		if ( lstat(url_decode(SQL_V[0]), &st) != 0 )
-			textlist_add(&tl, url_decode(SQL_V[0]), 0);
+		const char *filename = url_decode(SQL_V[0]);
+		if ( lstat(filename, &st) != 0 || check_pure(filename) )
+			textlist_add(&tl, filename, 0);
 	} SQL_END;
 
 	for (t = tl; t != 0; t = t->next) {
