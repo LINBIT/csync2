@@ -102,7 +102,7 @@ void help(char *cmd)
 "	-r	Recursive operation over subdirectories\n"
 "	-d	Dry-run on all remote update operations\n"
 "\n"
-"	-B	Don't block everything into one big SQL transaction. This\n"
+"	-B	Don't block everything into big SQL transactions. This\n"
 "		slows down csync2 but allows multiple csync2 processes to\n"
 "		access the database at the same time. Use e.g. when slow\n"
 "		lines are used or huge files are transfered.\n"
