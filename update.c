@@ -622,6 +622,7 @@ void csync_remove_old()
 	}
 	textlist_free(tl);
 
+	tl = 0;
 	SQL_BEGIN("Query file DB",
 	          "SELECT filename FROM file GROUP BY filename")
 	{
