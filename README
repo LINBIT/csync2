@@ -33,7 +33,7 @@ group
 {
 	host host1 host2 host3;
 	host host4@host4-eth2;
-	key Yushaidi6nohnooviagheexahyasai;
+	key /etc/csync2.key_mygroup;
 	include /home/bob;
 	exclude /home/bob/temp;
 	exclude *~ .*;
@@ -46,8 +46,8 @@ crossover cable with other IP addresses should be used), the syntax
 "hostname@hostname-for-communication" can be used.
 
 The key statement must be used exactly once in each group and defines
-the shared secret for that host. Use something such as the output
-of "pwgen 30 1" here.
+the the file containing shared secret for that group. The keyfile can
+be created using "csync2 -k keyfilename".
 
 The include and exclude pattern are a bit more complex. There are two
 kind of patterns: pathname-patterns starting with a slash character and

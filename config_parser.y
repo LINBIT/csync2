@@ -67,11 +67,35 @@ static void add_patt(int isinclude, const char *pattern)
 	csync_group->pattern = t;
 }
 
-static void set_key(const char *key)
+static void set_key(const char *keyfilename)
 {
+	FILE *keyfile;
+	char line[1024];
+	int i;
+
 	if ( csync_group->key )
 		csync_fatal("Config error: a group might only have one key.\n");
-	csync_group->key = key;
+
+	if ( (keyfile = fopen(keyfilename, "r")) == 0 ||
+	     fgets(line, 1024, keyfile) == 0 )
+		csync_fatal("Config error: Can't read keyfile %s.\n", keyfilename);
+
+	for (i=0; line[i]; i++) {
+		if (line[i] == '\n') { line[i]=0; break; }
+		if ( !(line[i] >= 'A' && line[i] <= 'Z') &&
+		     !(line[i] >= 'a' && line[i] <= 'z') &&
+		     !(line[i] >= '0' && line[i] <= '9') &&
+		     line[i] != '.' && line[i] != '_' )
+			csync_fatal("Unallowed character '%c' in key file %s.\n",
+					line[i], keyfilename);
+	}
+
+	if ( strlen(line) < 32 )
+		csync_fatal("Config error: Key in file %s is too short.\n", keyfilename);
+
+	csync_group->key = strdup(line);
+	free((void*)keyfilename);
+	fclose(keyfile);
 }
 
 static void check_group()
@@ -105,7 +129,7 @@ static void check_group()
 	if ( csync_debug_level >= 2 ) {
 		struct csync_group_host *h = csync_group->host;
 		struct csync_group_pattern *p = csync_group->pattern;
-		csync_debug(2, "group {\n\tkey\t%s;\n", csync_group->key);
+		csync_debug(2, "group {\n\tkey\tkeyfile;\n");
 		while (h) {
 			csync_debug(2, "\thost\twhocares@%s;\n",
 				h->hostname);

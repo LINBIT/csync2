@@ -19,10 +19,15 @@
  */
 
 #include "csync2.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <assert.h>
+#include <errno.h>
 
 static char *file_database = "/var/lib/csync2";
 static char *file_config = "/etc/csync2.cfg";
@@ -80,9 +85,39 @@ void help(char *cmd)
 "Modifiers:\n"
 "	-r	Recursive operation over subdirectories\n"
 "	-d	Dry-run on all remote update operations\n"
+"\n"
+"Creating key file:\n"
+"	%s -k filename\n"
 "\n",
-		cmd);
+		cmd, cmd);
 	exit(1);
+}
+
+int create_keyfile(const char *filename)
+{
+	int fd = open(filename, O_WRONLY|O_CREAT|O_EXCL, 0600);
+	int rand = open("/dev/random", O_RDONLY);
+	char matrix[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._";
+	unsigned char n;
+	int i;
+
+	assert(sizeof(matrix) == 65);
+	if ( fd == -1 ) {
+		fprintf(stderr, "Can't create key file: %s\n", strerror(errno));
+		return 1;
+	}
+	if ( rand == -1 ) {
+		fprintf(stderr, "Can't open /dev/random: %s\n", strerror(errno));
+		return 1;
+	}
+	for (i=0; i<64; i++) {
+		read(rand, &n, 1);
+		write(fd, matrix+(n&63), 1);
+	}
+	write(fd, "\n", 1);
+	close(rand);
+	close(fd);
+	return 0;
 }
 
 int main(int argc, char ** argv)
@@ -94,6 +129,10 @@ int main(int argc, char ** argv)
 	int opt, i;
 
 	csync_debug_out = stderr;
+
+	if ( argc==3 && !strcmp(argv[1], "-k") ) {
+		return create_keyfile(argv[2]);
+	}
 
 	while ( (opt = getopt(argc, argv, "C:D:N:HLMvhcuimfxrd")) != -1 ) {
 		switch (opt) {

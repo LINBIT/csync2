@@ -1,8 +1,4 @@
 
-Better security concept:
-- Load shared secrets from extra files
-- Create key files with "csync2 -k"
-
 Eventually improve config file format.
 Add SQL transactions to avoid races.
 Optimize repeated checks in daemon code.
