@@ -187,7 +187,7 @@ config_stmt:	TK_HOST host_list
 		;
 
 host_list:	/* empty */
-	|	host_list TK_STRING	{ add_host($2, $2); }
+	|	host_list TK_STRING	{ add_host($2, strdup($2)); }
 	|	host_list TK_STRING TK_AT TK_STRING
 					{ add_host($2, $4); }
 		;

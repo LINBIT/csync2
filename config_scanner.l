@@ -20,9 +20,18 @@
 
 %{
 #include "y.tab.h"
+#include <string.h>
+
+/* yyunput() is unused */
+#define YY_NO_UNPUT
+
+#define MAX_INCLUDE_DEPTH 10
+YY_BUFFER_STATE include_stack[MAX_INCLUDE_DEPTH];
+int include_stack_ptr = 0;
 %}
 
 %option noyywrap
+%x STRING INCL
 
 %%
 "{"		{ return TK_BLOCK_BEGIN; }
@@ -36,7 +45,40 @@
 "include"	{ return TK_INCL; }
 "key"		{ return TK_KEY; }
 
+"config"	BEGIN(INCL);
+<INCL>[ \t]*	/* eat the whitespaces */
+<INCL>[^ \t\n;]+ {
+			if ( include_stack_ptr >= MAX_INCLUDE_DEPTH ) {
+				fprintf(stderr, "Config includes nested too deeply.\n");
+				exit(1);
+			}
+			include_stack[include_stack_ptr++] = YY_CURRENT_BUFFER;
+			yyin = fopen(yytext, "r");
+			if ( !yyin ) {
+				fprintf(stderr, "Can't open included config file '%s'.\n", yytext);
+				exit(1);
+			}
+			yy_switch_to_buffer(yy_create_buffer(yyin, YY_BUF_SIZE));
+			BEGIN(0);
+		}
+<INCL>";"	BEGIN(0);
+<<EOF>>		{
+			if ( !include_stack_ptr )
+				yyterminate();
+			else
+			{
+				yy_delete_buffer(YY_CURRENT_BUFFER);
+				yy_switch_to_buffer(include_stack[--include_stack_ptr]);
+				BEGIN(INCL);
+			}
+		}
+
+\"		BEGIN(STRING);
+<STRING>[^\"]*	{ yylval.txt=strdup(yytext); return TK_STRING; }
+<STRING>\"	BEGIN(0);
+
 [ \n\t]+	/* whitespaces are just delimiters */
 #[^\n]*		/* this is a comment */
-[^ \n\t@;#]+	{ yylval.txt=strdup(yytext); return TK_STRING; }
+
+[^ \n\t@;#"]+	{ yylval.txt=strdup(yytext); return TK_STRING; }
 %%

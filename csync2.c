@@ -246,7 +246,7 @@ int main(int argc, char ** argv)
 					csync_check_usefullness(realnames[i-optind], recursive);
 					csync_check(realnames[i-optind], recursive);
 				}
-				csync_update(realnames, argc-optind, recursive, dry_run);
+				csync_update((const char**)realnames, argc-optind, recursive, dry_run);
 				for (i=optind; i < argc; i++)
 					free(realnames[i-optind]);
 			}
@@ -302,7 +302,7 @@ int main(int argc, char ** argv)
 					realnames[i-optind] = strdup(getrealfn(argv[i]));
 					csync_check_usefullness(realnames[i-optind], recursive);
 				}
-				csync_update(realnames, argc-optind, recursive, dry_run);
+				csync_update((const char**)realnames, argc-optind, recursive, dry_run);
 				for (i=optind; i < argc; i++)
 					free(realnames[i-optind]);
 			}

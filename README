@@ -39,6 +39,9 @@ group
 	exclude *~ .*;
 }
 
+config /etc/csync2.cfg_anotherone;
+config /etc/csync2.cfg_foo /etc/csync2.cfg_bar;
+
 The host statement adds the hosts. Note that the names used here must
 equal to the output of "hostname". If the hostname used for communication
 is different from the output of the "hostname" command (e.g. if a
@@ -55,6 +58,8 @@ basename patterns which do not.
 
 The last matching pattern for each of both categories is choosen. If
 both categories match, the file will be synchonized.
+
+The config keyword can be used to include another config file in this one.
 
 Changing the config files might imply some difficults if files are beeing
 excluded which are already in the database. On strategy to solve that is
