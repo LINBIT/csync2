@@ -1,6 +1,6 @@
 /*
- *  csync2 - cluster syncronisation tool, 2nd generation
- *  LINBIT Information Technologies <http://www.linbit.com>
+ *  csync2 - cluster synchronisation tool, 2nd generation
+ *  LINBIT Information Technologies GmbH <http://www.linbit.com>
  *  Copyright (C) 2004  Clifford Wolf <clifford@clifford.at>
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -58,6 +58,9 @@ enum {
 void help(char *cmd)
 {
 	printf(
+"\n"
+"csync2 SNAPSHOT - cluster synchronisation tool, 2nd generation\n"
+"LINBIT Information Technologies GmbH <http://www.linbit.com>\n"
 "\n"
 "Usage: %s [-v..] [-C config-file] [-D database-dir] [-N hostname] ..\n"
 "\n"

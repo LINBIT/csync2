@@ -1,6 +1,6 @@
 /*
- *  csync2 - cluster syncronisation tool, 2nd generation
- *  LINBIT Information Technologies <http://www.linbit.com>
+ *  csync2 - cluster synchronisation tool, 2nd generation
+ *  LINBIT Information Technologies GmbH <http://www.linbit.com>
  *  Copyright (C) 2004  Clifford Wolf <clifford@clifford.at>
  *
  *  This program is free software; you can redistribute it and/or modify
