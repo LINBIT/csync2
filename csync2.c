@@ -59,7 +59,7 @@ void help(char *cmd)
 "With file parameters:\n"
 "	-h [-r] file..		Add (recursive) hints for check to db\n"
 "	-c [-r] file..		Check files and maybe add to dirty db\n"
-"	-u [-d] [-r] file..		Updates files if listed in dirty db\n"
+"	-u [-d] [-r] file..	Updates files if listed in dirty db\n"
 "	-f file..		Force this file in sync (resolve conflict)\n"
 "	-m file..		Mark files in database as dirty\n"
 "\n"
