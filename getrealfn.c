@@ -65,6 +65,9 @@ char *getrealfn(const char *filename)
 					}
 					source += 2;
 					continue;
+				} else
+				if ( !strncmp(source, "/./", 3) ) {
+					source += 2;
 				}
 			}
 			*(target++) = *source;
@@ -76,15 +79,16 @@ char *getrealfn(const char *filename)
 	if ( !strcmp(tempfn, "/") )
 		goto return_filename;
 
-	/* find the last stat-able directory element */
-	while ( stat(tempfn, &st) || !S_ISDIR(st.st_mode) ) {
+	/* find the last stat-able directory element, but don't use the */
+	/* leaf-node because we do not want to resolve a symlink there. */
+	do {
 		char *tmp = st_mark;
 		st_mark = strrchr(tempfn, '/');
 		if ( tmp ) *tmp = '/';
 		assert( st_mark != 0 );
 		if ( st_mark == tempfn ) goto return_filename;
 		*st_mark = 0;
-	}
+	} while ( stat(tempfn, &st) || !S_ISDIR(st.st_mode) );
 
 	/* ok - this might be ugly, but who cares .. */
 	{
@@ -103,15 +107,25 @@ char *getrealfn(const char *filename)
 	}
 
 return_filename:
+	/* remove a possible "/." from the end */
+	{
+		int len = strlen(tempfn);
+		if ( len >= 2 && !strcmp(tempfn+len-2, "/.") ) {
+			if (len == 2) len++;
+			*(tempfn+len-2) = 0;
+		}
+	}
+
 	if (ret) free(ret);
 	return (ret=tempfn);
 }
 
-#if 0
+#ifdef DEBUG_GETREALFN_MAIN
 /* debugging main function to debug this code stand-alone */
 int main(int argc, char ** argv)
 {
-	for (int i=1; i<argc; i++)
+	int i;
+	for (i=1; i<argc; i++)
 		printf("%s -> %s\n", argv[i], getrealfn(argv[i]));
 	return 0;
 }
