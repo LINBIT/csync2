@@ -37,5 +37,6 @@
 "key"		{ return TK_KEY; }
 
 [ \n\t]+	/* whitespaces are just delimiters */
-[^ \n\t@;]+	{ yylval.txt=strdup(yytext); return TK_STRING; }
+#[^\n]*		/* this is a comment */
+[^ \n\t@;#]+	{ yylval.txt=strdup(yytext); return TK_STRING; }
 %%
