@@ -163,6 +163,9 @@ The VACUUM command cleans the database by copying its contents to a
 temporary database file and reloading the original database file from
 the copy.
 
+Especially consider running the VACUUM command after removing many files
+from a config (after you did run "csync2 -R").
+
 
 Bootstrapping large setups
 ==========================
