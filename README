@@ -1,4 +1,42 @@
 
+About csync2
+============
+
+Csync2 is a cluster synchronization tool. It can be used to keep files on
+multiple hosts in a cluster in sync. Csync2 can handle complex setup with
+much more than just 2 hosts, handle file deletions and can detect conflicts.
+
+It is expedient for HA-clusters, HPC-clusters, COWs and server farms. If
+you are looking for a tool to sync your laptop with your workstation, you
+better have a look at Unison (http://www.cis.upenn.edu/~bcpierce/unison/)
+too.
+
+See http://oss.linbit.com/ for more information on csync2. The csync2
+subversion tree can be found at http://svn.clifford.at/csync2/.
+
+
+Copyright
+=========
+
+csync2 - cluster synchronisation tool, 2nd generation
+LINBIT Information Technologies GmbH <http://www.linbit.com>
+Copyright (C) 2004  Clifford Wolf <clifford@clifford.at>
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+
 Installing csync2
 =================
 
