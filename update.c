@@ -28,6 +28,26 @@
 #include <unistd.h>
 #include <netdb.h>
 #include <fnmatch.h>
+#include <stdarg.h>
+
+int connprintf(FILE *stream, const char *format, ...)
+{
+	va_list ap;
+	int rc;
+
+	va_start(ap, format);
+	rc = vfprintf(stream, format, ap);
+	va_end(ap);
+
+	if ( csync_debug_level < 3 ) return rc;
+
+	va_start(ap, format);
+	fprintf(csync_debug_out, "TCP> ");
+	vfprintf(csync_debug_out, format, ap);
+	va_end(ap);
+
+	return rc;
+}
 
 int read_conn_status(FILE * conn, const char *file, const char *host)
 {
@@ -89,12 +109,12 @@ void csync_update_file_del(const char *hostname,
 	}
 
 	if ( force ) {
-		fprintf(conn, "FLUSH %s %s\n", url_encode(key), url_encode(filename));
+		connprintf(conn, "FLUSH %s %s\n", url_encode(key), url_encode(filename));
 		if ( read_conn_status(conn, filename, hostname) )
 			goto got_error;
 	}
 
-	fprintf(conn, "DEL %s %s\n", url_encode(key), url_encode(filename));
+	connprintf(conn, "DEL %s %s\n", url_encode(key), url_encode(filename));
 	if ( read_conn_status(conn, filename, hostname) ) goto got_error;
 
 	SQL("Remove dirty-file entry.",
@@ -129,14 +149,14 @@ void csync_update_file_mod(const char * hostname,
 	}
 
 	if ( force ) {
-		fprintf(conn, "FLUSH %s %s\n",
+		connprintf(conn, "FLUSH %s %s\n",
 				url_encode(key), url_encode(filename));
 		if ( read_conn_status(conn, filename, hostname) )
 			goto got_error;
 	}
 
 	if ( S_ISREG(st.st_mode) ) {
-		fprintf(conn, "PATCH %s %s\n",
+		connprintf(conn, "PATCH %s %s\n",
 				url_encode(key), url_encode(filename));
 		if ( read_conn_status(conn, filename, hostname) )
 			goto got_error;
@@ -145,25 +165,25 @@ void csync_update_file_mod(const char * hostname,
 			goto got_error;
 	} else
 	if ( S_ISDIR(st.st_mode) ) {
-		fprintf(conn, "MKDIR %s %s\n",
+		connprintf(conn, "MKDIR %s %s\n",
 				url_encode(key), url_encode(filename));
 		if ( read_conn_status(conn, filename, hostname) )
 			goto got_error;
 	} else
 	if ( S_ISCHR(st.st_mode) ) {
-		fprintf(conn, "MKCHR %s %s\n",
+		connprintf(conn, "MKCHR %s %s\n",
 				url_encode(key), url_encode(filename));
 		if ( read_conn_status(conn, filename, hostname) )
 			goto got_error;
 	} else
 	if ( S_ISBLK(st.st_mode) ) {
-		fprintf(conn, "MKBLK %s %s\n",
+		connprintf(conn, "MKBLK %s %s\n",
 				url_encode(key), url_encode(filename));
 		if ( read_conn_status(conn, filename, hostname) )
 			goto got_error;
 	} else
 	if ( S_ISFIFO(st.st_mode) ) {
-		fprintf(conn, "MKFIFO %s %s\n",
+		connprintf(conn, "MKFIFO %s %s\n",
 				url_encode(key), url_encode(filename));
 		if ( read_conn_status(conn, filename, hostname) )
 			goto got_error;
@@ -174,7 +194,7 @@ void csync_update_file_mod(const char * hostname,
 		rc = readlink(filename, target, 1023);
 		if ( rc >= 0 ) {
 			target[rc]=0;
-			fprintf(conn, "MKLINK %s %s %s\n",
+			connprintf(conn, "MKLINK %s %s %s\n",
 					url_encode(key), url_encode(filename),
 					url_encode(target));
 			if ( read_conn_status(conn, filename, hostname) )
@@ -182,25 +202,25 @@ void csync_update_file_mod(const char * hostname,
 		}
 	} else
 	if ( S_ISSOCK(st.st_mode) ) {
-		fprintf(conn, "MKSOCK %s %s\n",
+		connprintf(conn, "MKSOCK %s %s\n",
 				url_encode(key), url_encode(filename));
 		if ( read_conn_status(conn, filename, hostname) )
 			goto got_error;
 	}
 
-	fprintf(conn, "SETOWN %s %s %d %d\n",
+	connprintf(conn, "SETOWN %s %s %d %d\n",
 			url_encode(key), url_encode(filename),
 			st.st_uid, st.st_gid);
 	if ( read_conn_status(conn, filename, hostname) )
 		goto got_error;
 
 	if ( !S_ISLNK(st.st_mode) ) {
-		fprintf(conn, "SETMOD %s %s %d\n", url_encode(key),
+		connprintf(conn, "SETMOD %s %s %d\n", url_encode(key),
 				url_encode(filename), st.st_mode);
 		if ( read_conn_status(conn, filename, hostname) )
 			goto got_error;
 
-		fprintf(conn, "SETIME %s %s %Ld\n",
+		connprintf(conn, "SETIME %s %s %Ld\n",
 				url_encode(key), url_encode(filename),
 				(long long)st.st_mtime);
 		if ( read_conn_status(conn, filename, hostname) )
@@ -277,7 +297,7 @@ void csync_update_host(const char * hostname)
 	textlist_free(tl_mod);
 	textlist_free(tl);
 
-	fprintf(conn, "BYE\n");
+	connprintf(conn, "BYE\n");
 	read_conn_status(conn, 0, hostname);
 	fclose(conn);
 }

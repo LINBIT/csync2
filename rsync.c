@@ -19,7 +19,7 @@
  */
 
 #include "csync2.h"
-#include <rsync.h>
+#include <librsync.h>
 #include <unistd.h>
 
 void csync_send_file(FILE * in, FILE * out)

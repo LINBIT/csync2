@@ -5,12 +5,12 @@ Installing csync2
 Requirements:
 
 	- A linux system (or more/less compatible os)
-	- The librsync package (incl. dev headers)
-	- The sqlite package (incl. dev headers)
+	- The librsync package (incl. dev headers, at least version 0.9.5)
+	- The sqlite package (incl. dev headers, at least version 2.8.13)
 
 Build and install the binaries using:
 
-	* make install
+	make install
 
 Add the csync2 port to your /etc/services file:
 
