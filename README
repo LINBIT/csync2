@@ -146,15 +146,22 @@ Sorry, the rest of this section still needs to be written.
 The database backend
 ====================
 
-Sometimes it is neccessary to connect to the database backend; e.g. if
-you changed your config and want to flush now obsolate entries from the
-backend database. You need the sqlite command-line tool to open the
-database:
+Sometimes it is neccessary to connect to the database backend. The
+sqlite command-line tool is needed to open the database:
 
 	# sqlite /var/lib/csync2/$HOSTNAME.db
 
 This opens up an SQL shell where you can access the database using
-standard SQL queries.
+standard SQL queries. Over time the database may get fragmented or
+have big holes in it if many records are removed. This may slow down
+the database and can be fixed by running the VACUUM command on the
+database:
+
+	# sqlite /var/lib/csync2/$HOSTNAME.db vacuum
+
+The VACUUM command cleans the database by copying its contents to a
+temporary database file and reloading the original database file from
+the copy.
 
 
 Bootstrapping large setups
