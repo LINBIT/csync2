@@ -68,6 +68,7 @@ FILE *connect_to_host(const char *peername)
 {
 	struct sockaddr_in sin;
 	struct hostent *hp;
+	FILE *fp;
 	int s;
 
 	hp = gethostbyname(peername);
@@ -91,7 +92,18 @@ FILE *connect_to_host(const char *peername)
 		return 0;
 	}
 
-	return fdopen(s, "r+");
+	fp = fdopen(s, "r+");
+
+	if (active_grouplist) {
+		connprintf(fp, "GROUP %s\n", url_encode(active_grouplist));
+		if ( read_conn_status(fp, 0, peername) ) {
+			csync_debug(1, "Group command failed.\n");
+			fclose(fp);
+			return 0;
+		}
+	}
+
+	return fp;
 }
 
 void csync_update_file_del(const char *peername,

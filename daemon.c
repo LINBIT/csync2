@@ -96,8 +96,8 @@ struct csync_command {
 enum {
 	A_SIG, A_FLUSH, A_MARK, A_DEL, A_PATCH,
 	A_MKDIR, A_MKCHR, A_MKBLK, A_MKFIFO, A_MKLINK, A_MKSOCK,
-	A_SETOWN, A_SETMOD, A_SETIME,
-	A_LIST, A_DEBUG, A_HELLO, A_BYE
+	A_SETOWN, A_SETMOD, A_SETIME, A_LIST, A_GROUP,
+	A_DEBUG, A_HELLO, A_BYE
 };
 
 struct csync_command cmdtab[] = {
@@ -119,6 +119,7 @@ struct csync_command cmdtab[] = {
 #if 0
 	{ "debug",	0, 0, 0, 0, 1, A_DEBUG	},
 #endif
+	{ "group",	0, 0, 0, 0, 0, A_GROUP	},
 	{ "hello",	0, 0, 0, 0, 0, A_HELLO	},
 	{ "bye",	0, 0, 0, 0, 0, A_BYE	},
 	{ 0,		0, 0, 0, 0, 0, 0	}
@@ -293,6 +294,33 @@ void csync_daemon_session(FILE * in, FILE * out)
 			} else {
 				peer = 0;
 				cmd_error = "Identification failed!";
+			}
+			break;
+		case A_GROUP:
+			if (active_grouplist) {
+				cmd_error = "Group list already set!";
+			} else {
+				const struct csync_group *g;
+				int i, gnamelen;
+
+				active_grouplist = strdup(tag[1]);
+				for (g=csync_group; g; g=g->next) {
+					if (!g->myname) continue;
+
+					i=0;
+					gnamelen = strlen(csync_group->gname);
+					while (active_grouplist[i])
+					{
+						if ( !strncmp(active_grouplist+i, csync_group->gname, gnamelen) &&
+								(active_grouplist[i+gnamelen] == ',' ||
+								 !active_grouplist[i+gnamelen]) )
+							goto found_asactive;
+						while (active_grouplist[i])
+							if (active_grouplist[i++]==',') break;
+					}
+					csync_group->myname = 0;
+found_asactive: ;
+				}
 			}
 			break;
 		case A_BYE:
