@@ -78,7 +78,7 @@ Using csync2
 ============
 
 Simply calling csync2 without any parameters prints out a brief usage
-info.
+info. Running "csync2 -x" will sync local changes to the other hosts.
 
 Sorry, the rest of this section still needs to be written.
 
