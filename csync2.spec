@@ -42,7 +42,7 @@ Authors:
 %{?suse_update_config:%{suse_update_config}}
 
 %build
-export CFLAGS="$RPM_OPT_FLAGS"
+export CFLAGS="$RPM_OPT_FLAGS -I/usr/kerberos/include"
 if ! [ -f configure ]; then ./autogen.sh; fi
 ./configure --prefix=%{_prefix} \
 
