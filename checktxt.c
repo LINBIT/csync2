@@ -49,8 +49,8 @@ const char *csync_genchecktxt(const struct stat *st, const char *filename, int i
 	xxprintf("v1");
 
 	/* general data */
-	if ( !S_ISLNK(st->st_mode) ) xxprintf(":mtime=%Ld",
-			ign_mtime ? (long long)0 : (long long)st->st_mtime);
+	if ( !S_ISLNK(st->st_mode) && !S_ISDIR(st->st_mode) )
+		xxprintf(":mtime=%Ld", ign_mtime ? (long long)0 : (long long)st->st_mtime);
 	xxprintf(":mode=%d:uid=%d:gid=%d",
 			(int)st->st_mode, (int)st->st_uid, (int)st->st_gid);
 
