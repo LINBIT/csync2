@@ -381,6 +381,26 @@ int main(int argc, char ** argv)
 				char *realname = getrealfn(argv[i]);
 				csync_check_usefullness(realname, recursive);
 				csync_mark(realname, 0);
+
+				if ( recursive ) {
+					char *where_rec = "";
+
+					if ( !strcmp(realname, "/") )
+						asprintf(&where_rec, "or 1");
+					else
+						asprintf(&where_rec, "or (filename > '%s/' "
+							"and filename < '%s0')",
+							url_encode(realname), url_encode(realname));
+
+					SQL_BEGIN("Adding dirty entries recursively",
+						"SELECT filename FROM file WHERE filename = '%s' %s",
+						url_encode(realname), where_rec)
+					{
+						char *filename = strdup(url_encode(SQL_V[0]));
+						csync_mark(filename, 0);
+						free(filename);
+					} SQL_END;
+				}
 			}
 			break;
 
