@@ -410,9 +410,10 @@ int main(int argc, char ** argv)
 			SQL_BEGIN("DB Dump - File",
 				"SELECT checktxt, filename FROM file ORDER BY filename")
 			{
-				if (csync_find_next(0, url_decode(SQL_V[1])))
+				if (csync_find_next(0, url_decode(SQL_V[1]))) {
 					printf("%s\t%s\n", url_decode(SQL_V[0]), url_decode(SQL_V[1]));
-				retval = -1;
+					retval = -1;
+				}
 			} SQL_END;
 			break;
 
@@ -421,9 +422,10 @@ int main(int argc, char ** argv)
 			SQL_BEGIN("DB Dump - File",
 				"SELECT checktxt, filename FROM file ORDER BY filename")
 			{
-				if ( csync_match_file_host(url_decode(SQL_V[1]), argv[optind], argv[optind+1], 0) )
+				if ( csync_match_file_host(url_decode(SQL_V[1]), argv[optind], argv[optind+1], 0) ) {
 					printf("%s\t%s\n", url_decode(SQL_V[0]), url_decode(SQL_V[1]));
-				retval = -1;
+					retval = -1;
+				}
 			} SQL_END;
 			break;
 
@@ -437,10 +439,11 @@ int main(int argc, char ** argv)
 			SQL_BEGIN("DB Dump - Dirty",
 				"SELECT force, myname, peername, filename FROM dirty ORDER BY filename")
 			{
-				if (csync_find_next(0, url_decode(SQL_V[3])))
+				if (csync_find_next(0, url_decode(SQL_V[3]))) {
 					printf("%s\t%s\t%s\t%s\n", atoi(SQL_V[0]) ?  "force" : "chary",
 						url_decode(SQL_V[1]), url_decode(SQL_V[2]), url_decode(SQL_V[3]));
-				retval = -1;
+					retval = -1;
+				}
 			} SQL_END;
 			break;
 
