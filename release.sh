@@ -33,9 +33,10 @@ case "$1" in
 
 	cd ../$PACKAGE-$VERSION
 	perl -pi -e "s/SNAPSHOT/$VERSION/g" configure.ac
-	perl -pi -e "s/SNAPSHOT/$VERSION/g" csync2.spec; sleep 2
-	svn commit -m "Fixed version info in tag $VERSION" configure.ac
-	./autogen.sh; rm -rf release.sh autom4te.cache $( find -name .svn )
+	perl -pi -e "s/SNAPSHOT/$VERSION/g" csync2.spec
+	svn rm release.sh; sleep 2
+	svn commit -m "Fixed version info in tag $VERSION"
+	./autogen.sh; rm -rf autom4te.cache $( find -name .svn )
 
 	cd ..
 	tar cvzf $PACKAGE-$VERSION.tar.gz \
