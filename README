@@ -154,7 +154,15 @@ up operation and avoid problems with database locks.
 The synchronization method
 ==========================
 
-Sorry, this section still needs to be written.
+Csync2 manages a database on evert host which holds some state information
+about this hosts filesystem. Whenever a file is changed, the check run (-c)
+will compare the local filesystem with this database. Changes is the local
+filesystem are detected and scheduled for beeing pushed to the peer nodes.
+
+In the update run (-u) all locally scheduled files are beeing synced to the
+peers using an rsync-like protocol. If the file has also been modified on the
+peer, csync2 will detect this synchronization conflict and output an error
+message, leaving it to the administrator to resolve the conflict.
 
 
 Using csync2
