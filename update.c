@@ -409,7 +409,7 @@ void csync_update_host(const char *peername,
 	 */
 	for (t = tl; t != 0; t = next_t) {
 		next_t = t->next;
-		if ( !lstat(t->value, &st) != 0 ) {
+		if ( !lstat(t->value, &st) != 0 && !csync_check_pure(t->value)) {
 			*last_tn = next_t;
 			t->next = tl_mod;
 			tl_mod = t;

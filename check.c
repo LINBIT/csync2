@@ -58,7 +58,7 @@ void csync_mark(const char *file, const char *thispeer)
 }
 
 /* return 0 if path does not contain any symlinks */
-int check_pure(const char *filename)
+int csync_check_pure(const char *filename)
 {
 	struct stat sbuf;
 	int i=0;
@@ -97,7 +97,7 @@ void csync_check_del(const char *file, int recursive, int init_run)
 			"filename = '%s' %s ORDER BY filename", url_encode(file), where_rec)
 	{
 		const char *filename = url_decode(SQL_V[0]);
-		if ( lstat(filename, &st) != 0 || check_pure(filename) )
+		if ( lstat(filename, &st) != 0 || csync_check_pure(filename) )
 			textlist_add(&tl, filename, 0);
 	} SQL_END;
 

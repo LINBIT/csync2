@@ -34,6 +34,7 @@
 /* action.c */
 
 extern void csync_schedule_commands(const char *filename, int islocal);
+extern int csync_check_pure(const char *filename);
 extern void csync_run_commands();
 
 
