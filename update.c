@@ -174,9 +174,17 @@ void csync_update_file_mod(const char *peername,
 		if ( !fgets(chk1, 4096, conn) ) goto got_error;
 		chk2 = csync_genchecktxt(&st, filename, 1);
 		for (i=0; chk1[i] && chk1[i] != '\n' && chk2[i]; i++)
-			if ( chk1[i] != chk2[i] ) { found_diff=1; break; }
+			if ( chk1[i] != chk2[i] ) {
+				csync_debug(2, "File is different on peer (cktxt char #%d).\n", i);
+				csync_debug(2, ">>> PEER:  %s>>> LOCAL: %s\n", chk1, chk2);
+				found_diff=1;
+				break;
+			}
 
-		if ( csync_rs_check(filename, conn, S_ISREG(st.st_mode)) ) found_diff=1;
+		if ( csync_rs_check(filename, conn, S_ISREG(st.st_mode)) ) {
+			csync_debug(2, "File is different on peer (rsync sig).\n");
+			found_diff=1;
+		}
 		if ( read_conn_status(conn, filename, peername) ) goto got_error;
 
 		if ( !found_diff ) {

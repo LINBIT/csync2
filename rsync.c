@@ -109,8 +109,13 @@ int csync_rs_check(const char * filename, FILE * in_sig, int isreg)
 	if ( fscanf(in_sig, "octet-stream %ld\n", &size) != 1 )
 		csync_fatal("Format-error while receiving data.\n");
 
-	rewind(sig_file); fflush(sig_file);
-	if ( size != ftell(sig_file) ) found_diff = 1;
+	fflush(sig_file);
+	if ( size != ftell(sig_file) ) {
+		csync_debug(2, "Signature size differs: local=%d, peer=%d\n",
+				ftell(sig_file), size);
+		found_diff = 1;
+	}
+	rewind(sig_file);
 
 	csync_debug(3, "Receiving %ld bytes ..\n", size);
 
@@ -122,8 +127,15 @@ int csync_rs_check(const char * filename, FILE * in_sig, int isreg)
 			csync_fatal("Read-error while receiving data.\n");
 		chunk = rc;
 
-		if ( fread(buffer2, chunk, 1, sig_file) != 1 ) found_diff = 1;
-		if ( memcmp(buffer1, buffer2, chunk) ) found_diff = 1;
+		if ( fread(buffer2, chunk, 1, sig_file) != 1 ) {
+			csync_debug(2, "Found EOF in local sig file.\n");
+			found_diff = 1;
+		}
+		if ( memcmp(buffer1, buffer2, chunk) ) {
+			csync_debug(2, "Found diff in sig at -%d:-%d\n",
+					size, size-chunk);
+			found_diff = 1;
+		}
 
 		size -= chunk;
 		csync_debug(3, "Got %d bytes, %ld bytes left ..\n",
