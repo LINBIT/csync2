@@ -63,7 +63,7 @@ int csync_check_dirty(const char *filename)
 void csync_file_update(const char *filename)
 {
 	struct stat st;
-	if ( lstat(filename, &st) != 0 ) {
+	if ( lstat(filename, &st) != 0 || csync_check_pure(filename) ) {
 		SQL("Removing file from file db",
 			"delete from file where filename ='%s'",
 			url_encode(filename));
@@ -196,7 +196,11 @@ void csync_daemon_session(FILE * in, FILE * out)
 					else
 						cmd_error = strerror(errno);
 					break;
-				}
+				} else
+					if ( csync_check_pure(tag[2]) ) {
+						fprintf(out, "OK (not_found).\n---\noctet-stream 0\n");
+						break;
+					}
 				fprintf(out, "OK (data_follows).\n");
 				fprintf(out, "%s\n", csync_genchecktxt(&st, tag[2], 1));
 
