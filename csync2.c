@@ -34,6 +34,7 @@ static char *file_config = "/etc/csync2.cfg";
 
 char myhostname[256] = "";
 char *active_grouplist = 0;
+char *active_peerlist = 0;
 
 extern int yyparse();
 extern FILE *yyin;
@@ -117,6 +118,9 @@ void help(char *cmd)
 "	-G Group1,Group2,Group3,...\n"
 "		Only use this groups from config-file.\n"
 "\n"
+"	-P peer1,peer1,...\n"
+"		Only update this peers (still mark all as dirty).\n"
+"\n"
 "Creating key file:\n"
 "	%s -k filename\n"
 "\n",
@@ -172,10 +176,13 @@ int main(int argc, char ** argv)
 		return 1;
 	}
 
-	while ( (opt = getopt(argc, argv, "G:C:D:N:HBILSTMRvhcuimfxrd")) != -1 ) {
+	while ( (opt = getopt(argc, argv, "G:P:C:D:N:HBILSTMRvhcuimfxrd")) != -1 ) {
 		switch (opt) {
 			case 'G':
 				active_grouplist = optarg;
+				break;
+			case 'P':
+				active_peerlist = optarg;
 				break;
 			case 'B':
 				db_blocking_mode = 0;

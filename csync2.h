@@ -240,6 +240,7 @@ extern FILE *csync_debug_out;
 
 extern char myhostname[];
 extern char *active_grouplist;
+extern char *active_peerlist;
 
 
 #endif /* CSYNC2_H */

@@ -413,8 +413,22 @@ void csync_update(const char ** patlist, int patnum, int recursive, int dry_run)
 		textlist_add(&tl, url_decode(SQL_V[0]), 0);
 	} SQL_END;
 
-	for (t = tl; t != 0; t = t->next)
+	for (t = tl; t != 0; t = t->next) {
+		if (active_peerlist) {
+			int i=0, pnamelen = strlen(t->value);
+
+			while (active_peerlist[i]) {
+				if ( !strncmp(active_peerlist+i, t->value, pnamelen) &&
+				     (active_peerlist[i+pnamelen] == ',' || !active_peerlist[i+pnamelen]) )
+					goto found_asactive;
+				while (active_peerlist[i])
+					if (active_peerlist[i++]==',') break;
+			}
+			continue;
+		}
+found_asactive:
 		csync_update_host(t->value, patlist, patnum, recursive, dry_run);
+	}
 
 	textlist_free(tl);
 }
