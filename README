@@ -32,6 +32,7 @@ groups in the cluster:
 group
 {
 	host host1 host2 host3;
+	host host4@host4-eth2;
 	key Yushaidi6nohnooviagheexahyasai;
 	include /home/bob;
 	exclude /home/bob/temp;
@@ -39,8 +40,10 @@ group
 }
 
 The host statement adds the hosts. Note that the names used here must
-equal to the output of "hostname" and all the musts must be reachable
-using that names.
+equal to the output of "hostname". If the hostname used for communication
+is different from the output of the "hostname" command (e.g. if a
+crossover cable with other IP addresses should be used), the syntax
+"hostname@hostname-for-communication" can be used.
 
 The key statement must be used exactly once in each group and defines
 the shared secret for that host. Use something such as the output
