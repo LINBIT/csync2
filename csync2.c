@@ -63,6 +63,8 @@ void help(char *cmd)
 "\n"
 "csync2 SNAPSHOT - cluster synchronisation tool, 2nd generation\n"
 "LINBIT Information Technologies GmbH <http://www.linbit.com>\n"
+"Copyright (C) 2004  Clifford Wolf <clifford@clifford.at>\n"
+"This program is free software under the terms of the GNU GPL.\n"
 "\n"
 "Usage: %s [-v..] [-C config-file] [-D database-dir] [-N hostname] ..\n"
 "\n"
