@@ -5,7 +5,6 @@ Installing csync2
 Requirements:
 
 	- A linux system (or more/less compatible os)
-	- A gcc which does understand the -std=c99 switch
 	- The librsync package (incl. dev headers)
 	- The sqlite package (incl. dev headers)
 

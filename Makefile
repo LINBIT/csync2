@@ -1,7 +1,7 @@
 
 CC = gcc
 
-CFLAGS  = -Os -ggdb -Wall -Winline -std=c99
+CFLAGS  = -Os -ggdb -Wall -Winline
 LDFLAGS = -lsqlite -lrsync
 
 # let yacc create a t.tab.h
