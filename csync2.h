@@ -61,6 +61,19 @@ extern void csync_fatal(const char *fmt, ...);
 extern void csync_debug(int lv, const char *fmt, ...);
 
 
+/* conn.c */
+
+extern int conn_open(const char *peername);
+extern int conn_set(int infd, int outfd);
+extern int conn_close();
+
+extern int conn_read(void *buf, size_t count);
+extern int conn_write(const void *buf, size_t count);
+
+extern void conn_printf(const char *fmt, ...);
+extern int conn_fgets(char *s, int size);
+
+
 /* db.c */
 
 extern void csync_db_open(const char *file);
@@ -98,10 +111,10 @@ extern int db_blocking_mode;
 
 /* rsync.c */
 
-extern int csync_rs_check(const char * filename, FILE * in_sig, int isreg);
-extern void csync_rs_sig(const char * filename, FILE * out_sig);
-extern void csync_rs_delta(const char * filename, FILE * in_sig, FILE * out_delta);
-extern void csync_rs_patch(const char * filename, FILE * in_delta);
+extern int csync_rs_check(const char * filename, int isreg);
+extern void csync_rs_sig(const char * filename);
+extern void csync_rs_delta(const char * filename);
+extern void csync_rs_patch(const char * filename);
 
 
 /* checktxt.c */
@@ -128,7 +141,7 @@ extern void csync_remove_old();
 
 /* daemon.c */
 
-extern void csync_daemon_session(FILE * in, FILE * out);
+extern void csync_daemon_session();
 
 
 /* getrealfn.c */

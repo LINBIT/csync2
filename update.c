@@ -30,30 +30,10 @@
 #include <fnmatch.h>
 #include <stdarg.h>
 
-int connprintf(FILE *stream, const char *format, ...)
-{
-	va_list ap;
-	int rc;
-
-	va_start(ap, format);
-	rc = vfprintf(stream, format, ap);
-	va_end(ap);
-
-	if ( csync_debug_level < 3 ) return rc;
-
-	va_start(ap, format);
-	fprintf(csync_debug_out, "Local> ");
-	vfprintf(csync_debug_out, format, ap);
-	va_end(ap);
-
-	return rc;
-}
-
-int read_conn_status(FILE *conn, const char *file, const char *host)
+int read_conn_status(const char *file, const char *host)
 {
 	char line[4096];
-	if ( fgets(line, 4096, conn) ) {
-		csync_debug(3, "Peer> %s", line);
+	if ( conn_gets(line, 4096) ) {
 		if ( !strncmp(line, "OK (", 4) ) return 0;
 	} else 
 		strcpy(line, "Connection closed.\n");
@@ -64,57 +44,31 @@ int read_conn_status(FILE *conn, const char *file, const char *host)
 	return 1;
 }
 
-FILE *connect_to_host(const char *peername)
+int connect_to_host(const char *peername)
 {
-	struct sockaddr_in sin;
-	struct hostent *hp;
-	FILE *fp;
-	int s;
+	if ( conn_open(peername) ) return -1;
 
-	hp = gethostbyname(peername);
-	if ( ! hp ) {
-		csync_debug(1, "Can't resolve peername.\n");
-		return 0;
-	}
-
-	s = socket(hp->h_addrtype, SOCK_STREAM, 0);
-	if (s < 0) {
-		csync_debug(1, "Can't create socket.\n");
-		return 0;
-	}
-
-	sin.sin_family = hp->h_addrtype;
-	bcopy(hp->h_addr, &sin.sin_addr, hp->h_length);
-	sin.sin_port = htons(CSYNC_PORT);
-
-	if (connect(s, (struct sockaddr *)&sin, sizeof (sin)) < 0) {
-		csync_debug(1, "Can't connect to remote host.\n");
-		return 0;
-	}
-
-	fp = fdopen(s, "r+");
-
-	connprintf(fp, "CONFIG %s\n", url_encode(cfgname));
-	if ( read_conn_status(fp, 0, peername) ) {
+	conn_printf("CONFIG %s\n", url_encode(cfgname));
+	if ( read_conn_status(0, peername) ) {
 		csync_debug(1, "Config command failed.\n");
-		fclose(fp);
-		return 0;
+		conn_close();
+		return -1;
 	}
 
 	if (active_grouplist) {
-		connprintf(fp, "GROUP %s\n", url_encode(active_grouplist));
-		if ( read_conn_status(fp, 0, peername) ) {
+		conn_printf("GROUP %s\n", url_encode(active_grouplist));
+		if ( read_conn_status(0, peername) ) {
 			csync_debug(1, "Group command failed.\n");
-			fclose(fp);
-			return 0;
+			conn_close();
+			return -1;
 		}
 	}
 
-	return fp;
+	return 0;
 }
 
 void csync_update_file_del(const char *peername,
-		const char *filename, int force, FILE *conn, int dry_run)
+		const char *filename, int force, int dry_run)
 {
 	const char * key = csync_key(peername, filename);
 
@@ -130,19 +84,19 @@ void csync_update_file_del(const char *peername,
 			printf("!D: %-15s %s\n", peername, filename);
 			return;
 		}
-		connprintf(conn, "FLUSH %s %s\n", url_encode(key), url_encode(filename));
-		if ( read_conn_status(conn, filename, peername) )
+		conn_printf("FLUSH %s %s\n", url_encode(key), url_encode(filename));
+		if ( read_conn_status(filename, peername) )
 			goto got_error;
 	} else {
 		int i, found_diff = 0;
 		const char *chk2 = "---";
 		char chk1[4096];
 
-		connprintf(conn, "SIG %s %s\n",
+		conn_printf("SIG %s %s\n",
 				url_encode(key), url_encode(filename));
-		if ( read_conn_status(conn, filename, peername) ) goto got_error;
+		if ( read_conn_status(filename, peername) ) goto got_error;
 
-		if ( !fgets(chk1, 4096, conn) ) goto got_error;
+		if ( !conn_gets(chk1, 4096) ) goto got_error;
 		for (i=0; chk1[i] && chk1[i] != '\n' && chk2[i]; i++)
 			if ( chk1[i] != chk2[i] ) {
 				csync_debug(2, "File is different on peer (cktxt char #%d).\n", i);
@@ -151,11 +105,11 @@ void csync_update_file_del(const char *peername,
 				break;
 			}
 
-		if ( csync_rs_check(filename, conn, 0) ) {
+		if ( csync_rs_check(filename, 0) ) {
 			csync_debug(2, "File is different on peer (rsync sig).\n");
 			found_diff=1;
 		}
-		if ( read_conn_status(conn, filename, peername) ) goto got_error;
+		if ( read_conn_status(filename, peername) ) goto got_error;
 
 		if ( !found_diff ) {
 			csync_debug(1, "File is already up to date on peer.\n");
@@ -171,14 +125,14 @@ void csync_update_file_del(const char *peername,
 		}
 	}
 
-	connprintf(conn, "DEL %s %s\n",
+	conn_printf("DEL %s %s\n",
 			url_encode(key), url_encode(filename));
-	if ( read_conn_status(conn, filename, peername) )
+	if ( read_conn_status(filename, peername) )
 		goto got_error;
 
-	connprintf(conn, "MARK %s %s\n",
+	conn_printf("MARK %s %s\n",
 			url_encode(key), url_encode(filename));
-	if ( read_conn_status(conn, filename, peername) )
+	if ( read_conn_status(filename, peername) )
 		goto got_error;
 
 skip_action:
@@ -193,7 +147,7 @@ got_error:
 }
 
 void csync_update_file_mod(const char *peername,
-		const char *filename, int force, FILE *conn, int dry_run)
+		const char *filename, int force, int dry_run)
 {
 	struct stat st;
 	const char * key = csync_key(peername, filename);
@@ -216,20 +170,20 @@ void csync_update_file_mod(const char *peername,
 			printf("!M: %-15s %s\n", peername, filename);
 			return;
 		}
-		connprintf(conn, "FLUSH %s %s\n",
+		conn_printf("FLUSH %s %s\n",
 				url_encode(key), url_encode(filename));
-		if ( read_conn_status(conn, filename, peername) )
+		if ( read_conn_status(filename, peername) )
 			goto got_error;
 	} else {
 		int i, found_diff = 0;
 		char chk1[4096];
 		const char *chk2;
 
-		connprintf(conn, "SIG %s %s\n",
+		conn_printf("SIG %s %s\n",
 				url_encode(key), url_encode(filename));
-		if ( read_conn_status(conn, filename, peername) ) goto got_error;
+		if ( read_conn_status(filename, peername) ) goto got_error;
 
-		if ( !fgets(chk1, 4096, conn) ) goto got_error;
+		if ( !conn_gets(chk1, 4096) ) goto got_error;
 		chk2 = csync_genchecktxt(&st, filename, 1);
 		for (i=0; chk1[i] && chk1[i] != '\n' && chk2[i]; i++)
 			if ( chk1[i] != chk2[i] ) {
@@ -239,11 +193,11 @@ void csync_update_file_mod(const char *peername,
 				break;
 			}
 
-		if ( csync_rs_check(filename, conn, S_ISREG(st.st_mode)) ) {
+		if ( csync_rs_check(filename, S_ISREG(st.st_mode)) ) {
 			csync_debug(2, "File is different on peer (rsync sig).\n");
 			found_diff=1;
 		}
-		if ( read_conn_status(conn, filename, peername) ) goto got_error;
+		if ( read_conn_status(filename, peername) ) goto got_error;
 
 		if ( !found_diff ) {
 			csync_debug(1, "File is already up to date on peer.\n");
@@ -260,36 +214,36 @@ void csync_update_file_mod(const char *peername,
 	}
 
 	if ( S_ISREG(st.st_mode) ) {
-		connprintf(conn, "PATCH %s %s\n",
+		conn_printf("PATCH %s %s\n",
 				url_encode(key), url_encode(filename));
-		if ( read_conn_status(conn, filename, peername) )
+		if ( read_conn_status(filename, peername) )
 			goto got_error;
-		csync_rs_delta(filename, conn, conn);
-		if ( read_conn_status(conn, filename, peername) )
+		csync_rs_delta(filename);
+		if ( read_conn_status(filename, peername) )
 			goto got_error;
 	} else
 	if ( S_ISDIR(st.st_mode) ) {
-		connprintf(conn, "MKDIR %s %s\n",
+		conn_printf("MKDIR %s %s\n",
 				url_encode(key), url_encode(filename));
-		if ( read_conn_status(conn, filename, peername) )
+		if ( read_conn_status(filename, peername) )
 			goto got_error;
 	} else
 	if ( S_ISCHR(st.st_mode) ) {
-		connprintf(conn, "MKCHR %s %s\n",
+		conn_printf("MKCHR %s %s\n",
 				url_encode(key), url_encode(filename));
-		if ( read_conn_status(conn, filename, peername) )
+		if ( read_conn_status(filename, peername) )
 			goto got_error;
 	} else
 	if ( S_ISBLK(st.st_mode) ) {
-		connprintf(conn, "MKBLK %s %s\n",
+		conn_printf("MKBLK %s %s\n",
 				url_encode(key), url_encode(filename));
-		if ( read_conn_status(conn, filename, peername) )
+		if ( read_conn_status(filename, peername) )
 			goto got_error;
 	} else
 	if ( S_ISFIFO(st.st_mode) ) {
-		connprintf(conn, "MKFIFO %s %s\n",
+		conn_printf("MKFIFO %s %s\n",
 				url_encode(key), url_encode(filename));
-		if ( read_conn_status(conn, filename, peername) )
+		if ( read_conn_status(filename, peername) )
 			goto got_error;
 	} else
 	if ( S_ISLNK(st.st_mode) ) {
@@ -298,45 +252,45 @@ void csync_update_file_mod(const char *peername,
 		rc = readlink(filename, target, 1023);
 		if ( rc >= 0 ) {
 			target[rc]=0;
-			connprintf(conn, "MKLINK %s %s %s\n",
+			conn_printf("MKLINK %s %s %s\n",
 					url_encode(key), url_encode(filename),
 					url_encode(target));
-			if ( read_conn_status(conn, filename, peername) )
+			if ( read_conn_status(filename, peername) )
 				goto got_error;
 		}
 	} else
 	if ( S_ISSOCK(st.st_mode) ) {
-		connprintf(conn, "MKSOCK %s %s\n",
+		conn_printf("MKSOCK %s %s\n",
 				url_encode(key), url_encode(filename));
-		if ( read_conn_status(conn, filename, peername) )
+		if ( read_conn_status(filename, peername) )
 			goto got_error;
 	}
 
-	connprintf(conn, "SETOWN %s %s %d %d\n",
+	conn_printf("SETOWN %s %s %d %d\n",
 			url_encode(key), url_encode(filename),
 			st.st_uid, st.st_gid);
-	if ( read_conn_status(conn, filename, peername) )
+	if ( read_conn_status(filename, peername) )
 		goto got_error;
 
 	if ( !S_ISLNK(st.st_mode) ) {
-		connprintf(conn, "SETMOD %s %s %d\n", url_encode(key),
+		conn_printf("SETMOD %s %s %d\n", url_encode(key),
 				url_encode(filename), st.st_mode);
-		if ( read_conn_status(conn, filename, peername) )
+		if ( read_conn_status(filename, peername) )
 			goto got_error;
 	}
 
 skip_action:
 	if ( !S_ISLNK(st.st_mode) ) {
-		connprintf(conn, "SETIME %s %s %Ld\n",
+		conn_printf("SETIME %s %s %Ld\n",
 				url_encode(key), url_encode(filename),
 				(long long)st.st_mtime);
-		if ( read_conn_status(conn, filename, peername) )
+		if ( read_conn_status(filename, peername) )
 			goto got_error;
 	}
 
-	connprintf(conn, "MARK %s %s\n",
+	conn_printf("MARK %s %s\n",
 			url_encode(key), url_encode(filename));
-	if ( read_conn_status(conn, filename, peername) )
+	if ( read_conn_status(filename, peername) )
 		goto got_error;
 
 	SQL("Remove dirty-file entry.",
@@ -367,7 +321,6 @@ void csync_update_host(const char *peername,
 	struct textlist *tl_mod = 0, **last_tn=&tl;
 	char *current_name = 0;
 	struct stat st;
-	FILE *conn;
 
 	SQL_BEGIN("Get files for host from dirty table",
 		"SELECT filename, myname, force FROM dirty WHERE peername = '%s' "
@@ -386,7 +339,7 @@ void csync_update_host(const char *peername,
 
 	csync_debug(1, "Updating host %s ...\n", peername);
 
-	if ( (conn = connect_to_host(peername)) == 0 ) {
+	if ( connect_to_host(peername) ) {
 		csync_error_count++;
 		csync_debug(0, "ERROR: Connection to remote host failed.\n");
 		csync_debug(1, "Host stays in dirty state. "
@@ -415,13 +368,13 @@ void csync_update_host(const char *peername,
 			tl_mod = t;
 		} else {
 			if ( !current_name || strcmp(current_name, t->value2) ) {
-				connprintf(conn, "HELLO %s\n", url_encode(t->value2));
-				if ( read_conn_status(conn, t->value, peername) )
+				conn_printf("HELLO %s\n", url_encode(t->value2));
+				if ( read_conn_status(t->value, peername) )
 					goto ident_failed_1;
 				current_name = t->value2;
 			}
 			csync_update_file_del(peername,
-					t->value, t->intvalue, conn, dry_run);
+					t->value, t->intvalue, dry_run);
 ident_failed_1:
 			last_tn=&(t->next);
 		}
@@ -429,22 +382,22 @@ ident_failed_1:
 
 	for (t = tl_mod; t != 0; t = t->next) {
 		if ( !current_name || strcmp(current_name, t->value2) ) {
-			connprintf(conn, "HELLO %s\n", url_encode(t->value2));
-			if ( read_conn_status(conn, t->value, peername) )
+			conn_printf("HELLO %s\n", url_encode(t->value2));
+			if ( read_conn_status(t->value, peername) )
 				goto ident_failed_2;
 			current_name = t->value2;
 		}
 		csync_update_file_mod(peername,
-				t->value, t->intvalue, conn, dry_run);
+				t->value, t->intvalue, dry_run);
 ident_failed_2:	;
 	}
 
 	textlist_free(tl_mod);
 	textlist_free(tl);
 
-	connprintf(conn, "BYE\n");
-	read_conn_status(conn, 0, peername);
-	fclose(conn);
+	conn_printf("BYE\n");
+	read_conn_status(0, peername);
+	conn_close();
 }
 
 void csync_update(const char ** patlist, int patnum, int recursive, int dry_run)
@@ -479,7 +432,7 @@ found_asactive:
 
 int csync_diff(const char *myname, const char *peername, const char *filename)
 {
-	FILE *conn, *p;
+	FILE *p;
 	const struct csync_group *g = 0;
 	const struct csync_group_host *h;
 	char buffer[512];
@@ -495,17 +448,17 @@ int csync_diff(const char *myname, const char *peername, const char *filename)
 	return 0;
 found_host_check:
 
-	if ( (conn = connect_to_host(peername)) == 0 ) {
+	if ( connect_to_host(peername) ) {
 		csync_error_count++;
 		csync_debug(0, "ERROR: Connection to remote host failed.\n");
 		return 0;
 	}
 
-	connprintf(conn, "HELLO %s\n", myname);
-	if ( read_conn_status(conn, 0, peername) ) goto finish;
+	conn_printf("HELLO %s\n", myname);
+	if ( read_conn_status(0, peername) ) goto finish;
 
-	connprintf(conn, "TYPE %s %s\n", g->key, filename);
-	if ( read_conn_status(conn, 0, peername) ) goto finish;
+	conn_printf("TYPE %s %s\n", g->key, filename);
+	if ( read_conn_status(0, peername) ) goto finish;
 
 	printf("--- %s:%s\n+++ %s:%s\n", peername, filename, myname, filename);
 	fflush(stdout);
@@ -513,17 +466,17 @@ found_host_check:
 	snprintf(buffer, 512, "diff -u - '%s' | tail +3", filename);
 	p = popen(buffer, "w");
 
-	while ( (rc=fread(buffer, 1, 512, conn)) > 0 )
+	while ( (rc=conn_read(buffer, 512)) > 0 )
 		fwrite(buffer, rc, 1, p);
 
 	fclose(p);
 
 finish:
-	fclose(conn);
+	conn_close();
 	return 0;
 }
 
-int csync_insynctest_readline(FILE *conn, char **file, char **checktxt)
+int csync_insynctest_readline(char **file, char **checktxt)
 {
 	char inbuf[2048], *tmp;
 
@@ -531,7 +484,7 @@ int csync_insynctest_readline(FILE *conn, char **file, char **checktxt)
 	if (*checktxt) free(*checktxt);
 	*file = *checktxt = 0;
 
-	if ( !fgets(inbuf, 2048, conn) ) return 1;
+	if ( !conn_gets(inbuf, 2048) ) return 1;
 	if ( inbuf[0] != 'v' ) {
 		if ( !strncmp(inbuf, "OK (", 4) ) {
 			csync_debug(2, "End of query results: %s", inbuf);
@@ -565,7 +518,6 @@ int csync_insynctest_readline(FILE *conn, char **file, char **checktxt)
 
 int csync_insynctest(const char *myname, const char *peername, int init_run)
 {
-	FILE *conn;
 	const struct csync_group *g;
 	const struct csync_group_host *h;
 	char *r_file=0, *r_checktxt=0;
@@ -582,25 +534,25 @@ int csync_insynctest(const char *myname, const char *peername, int init_run)
 	return 0;
 found_host_check:
 
-	if ( (conn = connect_to_host(peername)) == 0 ) {
+	if ( connect_to_host(peername) ) {
 		csync_error_count++;
 		csync_debug(0, "ERROR: Connection to remote host failed.\n");
 		return 0;
 	}
 
-	connprintf(conn, "HELLO %s\n", myname);
-	read_conn_status(conn, 0, peername);
+	conn_printf("HELLO %s\n", myname);
+	read_conn_status(0, peername);
 
-	connprintf(conn, "LIST %s", peername);
+	conn_printf("LIST %s", peername);
 	for (g = csync_group; g; g = g->next) {
 		if ( !g->myname || strcmp(g->myname, myname) ) continue;
 		for (h = g->host; h; h = h->next)
 			if (!strcmp(h->hostname, peername)) goto found_host;
 		continue;
 found_host:
-		connprintf(conn, " %s", g->key);
+		conn_printf(" %s", g->key);
 	}
-	connprintf(conn, "\n");
+	conn_printf("\n");
 
 	SQL_BEGIN("DB Dump - File",
 		"SELECT checktxt, filename FROM file ORDER BY filename")
@@ -613,13 +565,13 @@ got_remote_eof:
 				if (init_run) csync_mark(l_file, 0);
 			} else {
 				if ( !remote_reuse )
-					if ( csync_insynctest_readline(conn, &r_file, &r_checktxt) )
+					if ( csync_insynctest_readline(&r_file, &r_checktxt) )
 						{ remote_eof = 1; goto got_remote_eof; }
 				rel = strcmp(l_file, r_file);
 
 				while ( rel > 0 ) {
 					printf("R %s\n", r_file); ret=0;
-					if ( csync_insynctest_readline(conn, &r_file, &r_checktxt) )
+					if ( csync_insynctest_readline(&r_file, &r_checktxt) )
 						{ remote_eof = 1; goto got_remote_eof; }
 					rel = strcmp(l_file, r_file);
 				}
@@ -644,15 +596,15 @@ got_remote_eof:
 	} SQL_END;
 
 	if ( !remote_eof )
-		while ( !csync_insynctest_readline(conn, &r_file, &r_checktxt) )
+		while ( !csync_insynctest_readline(&r_file, &r_checktxt) )
 			{ printf("R %s\n", r_file); ret=0; }
 
 	if (r_file) free(r_file);
 	if (r_checktxt) free(r_checktxt);
 
-	connprintf(conn, "BYE\n");
-	read_conn_status(conn, 0, peername);
-	fclose(conn);
+	conn_printf("BYE\n");
+	read_conn_status(0, peername);
+	conn_close();
 
 	return ret;
 }

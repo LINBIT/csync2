@@ -298,12 +298,15 @@ int main(int argc, char ** argv)
 	if ( mode == MODE_INETD ) {
 		char line[4096], *cmd, *para;
 
-		if ( !fgets(line, 4096, stdin) ) return 0;
+		/* configure conn.c for inetd mode */
+		conn_set(0, 1);
+
+		if ( !conn_gets(line, 4096) ) return 0;
 		cmd = strtok(line, "\t \r\n");
 		para = cmd ? strtok(0, "\t \r\n") : 0;
 
 		if (strcasecmp(cmd, "config")) {
-			printf("Expect CONFIG as first command.\n");
+			conn_printf("Expect CONFIG as first command.\n");
 			return 0;
 		}
 
@@ -320,8 +323,8 @@ int main(int argc, char ** argv)
 		for (i=0; cfgname[i]; i++)
 			if ( !(cfgname[i] >= '0' && cfgname[i] <= '9') &&
 			     !(cfgname[i] >= 'a' && cfgname[i] <= 'z') ) {
-				fprintf( mode == MODE_INETD ? stdout : stderr,
-						"Config names are limited to [a-z0-9]+.\n");
+				(mode == MODE_INETD ? conn_printf : csync_fatal)
+						("Config names are limited to [a-z0-9]+.\n");
 				return mode != MODE_INETD;
 			}
 
@@ -417,8 +420,9 @@ int main(int argc, char ** argv)
 			break;
 
 		case MODE_INETD:
-			printf("OK (cmd_finished).\n"); fflush(stdout);
-			csync_daemon_session(stdin, stdout);
+			conn_set(0, 1);
+			conn_printf("OK (cmd_finished).\n");
+			csync_daemon_session();
 			break;
 
 		case MODE_MARK:

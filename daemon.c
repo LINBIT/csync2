@@ -126,7 +126,7 @@ struct csync_command cmdtab[] = {
 	{ 0,		0, 0, 0, 0, 0, 0	}
 };
 
-void csync_daemon_session(FILE * in, FILE * out)
+void csync_daemon_session()
 {
 	struct sockaddr_in peername;
 	struct hostent *hp;
@@ -137,7 +137,7 @@ void csync_daemon_session(FILE * in, FILE * out)
 	if ( getpeername(0, (struct sockaddr*)&peername, &peerlen) == -1 )
 		csync_fatal("Can't run getpeername on fd 0: %s", strerror(errno));
 
-	while ( fgets(line, 4096, in) ) {
+	while ( conn_gets(line, 4096) ) {
 		int cmdnr;
 
 		tag[i=0] = strtok(line, "\t \r\n");
@@ -167,9 +167,8 @@ void csync_daemon_session(FILE * in, FILE * out)
 				unsigned char oct[4];
 			} tmp;
 			tmp.addr = peername.sin_addr.s_addr;
-			fprintf(out, "Dear %d.%d.%d.%d, please identify first.\n",
+			conn_printf("Dear %d.%d.%d.%d, please identify first.\n",
 					tmp.oct[0], tmp.oct[1], tmp.oct[2], tmp.oct[3]);
-			fflush(out);
 			goto next_cmd;
 		}
 
@@ -193,22 +192,22 @@ void csync_daemon_session(FILE * in, FILE * out)
 
 				if ( lstat(tag[2], &st) != 0 ) {
 					if ( errno == ENOENT )
-						fprintf(out, "OK (not_found).\n---\noctet-stream 0\n");
+						conn_printf("OK (not_found).\n---\noctet-stream 0\n");
 					else
 						cmd_error = strerror(errno);
 					break;
 				} else
 					if ( csync_check_pure(tag[2]) ) {
-						fprintf(out, "OK (not_found).\n---\noctet-stream 0\n");
+						conn_printf("OK (not_found).\n---\noctet-stream 0\n");
 						break;
 					}
-				fprintf(out, "OK (data_follows).\n");
-				fprintf(out, "%s\n", csync_genchecktxt(&st, tag[2], 1));
+				conn_printf("OK (data_follows).\n");
+				conn_printf("%s\n", csync_genchecktxt(&st, tag[2], 1));
 
 				if ( S_ISREG(st.st_mode) )
-					csync_rs_sig(tag[2], out);
+					csync_rs_sig(tag[2]);
 				else
-					fprintf(out, "octet-stream 0\n");
+					conn_printf("octet-stream 0\n");
 			}
 			break;
 		case A_FLUSH:
@@ -227,13 +226,12 @@ void csync_daemon_session(FILE * in, FILE * out)
 					char buffer[512];
 					size_t rc;
 
-					fprintf(out, "OK (data_follows).\n");
+					conn_printf("OK (data_follows).\n");
 					while ( (rc=fread(buffer, 1, 512, f)) > 0 )
-						if ( fwrite(buffer, rc, 1, out) != 1 ) {
-							fprintf(out, "[[ %s ]]", strerror(errno));
+						if ( conn_write(buffer, rc) != 1 ) {
+							conn_printf("[[ %s ]]", strerror(errno));
 							break;
 						}
-					fflush(out);
 					fclose(f);
 					return;
 				}
@@ -244,9 +242,9 @@ void csync_daemon_session(FILE * in, FILE * out)
 			csync_unlink(tag[2], 0);
 			break;
 		case A_PATCH:
-			fprintf(out, "OK (send_data).\n"); fflush(out);
-			csync_rs_sig(tag[2], out);
-			csync_rs_patch(tag[2], in);
+			conn_printf("OK (send_data).\n");
+			csync_rs_sig(tag[2]);
+			csync_rs_patch(tag[2]);
 			break;
 		case A_MKDIR:
 			/* ignore errors on creating directories if the
@@ -302,7 +300,7 @@ void csync_daemon_session(FILE * in, FILE * out)
 				"SELECT checktxt, filename FROM file ORDER BY filename")
 			{
 				if ( csync_match_file_host(SQL_V[1], tag[1], peer, (const char **)&tag[2]) )
-					fprintf(out, "%s\t%s\n", SQL_V[0], SQL_V[1]);
+					conn_printf("%s\t%s\n", SQL_V[0], SQL_V[1]);
 			} SQL_END;
 			break;
 
@@ -352,7 +350,7 @@ found_asactive: ;
 		case A_BYE:
 			for (i=0; i<32; i++)
 				tag[i] = strdup(url_decode(tag[i]));
-			fprintf(out, "OK (cu_later).\n"); fflush(out);
+			conn_printf("OK (cu_later).\n");
 			return;
 		}
 
@@ -361,10 +359,9 @@ found_asactive: ;
 
 abort_cmd:
 		if ( cmd_error )
-			fprintf(out, "%s\n", cmd_error);
+			conn_printf("%s\n", cmd_error);
 		else
-			fprintf(out, "OK (cmd_finished).\n");
-		fflush(out);
+			conn_printf("OK (cmd_finished).\n");
 
 next_cmd:
 		for (i=0; i<32; i++)

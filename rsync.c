@@ -22,7 +22,7 @@
 #include <librsync.h>
 #include <unistd.h>
 
-void csync_send_file(FILE * in, FILE * out)
+void csync_send_file(FILE * in)
 {
 	char buffer[512];
 	int rc, chunk;
@@ -32,7 +32,7 @@ void csync_send_file(FILE * in, FILE * out)
 	size = ftell(in);
 	rewind(in);
 
-	fprintf(out, "octet-stream %ld\n", size);
+	conn_printf("octet-stream %ld\n", size);
 
 	while ( size > 0 ) {
 		chunk = size > 512 ? 512 : size;
@@ -42,30 +42,28 @@ void csync_send_file(FILE * in, FILE * out)
 			csync_fatal("Read-error while sending data.\n");
 		chunk = rc;
 
-		rc = fwrite(buffer, chunk, 1, out);
-		if ( rc != 1 )
+		rc = conn_write(buffer, chunk);
+		if ( rc != chunk )
 			csync_fatal("Write-error while sending data.\n");
 
 		size -= chunk;
 	}
-
-	fflush(out);
 }
 
-void csync_recv_file(FILE * in, FILE * out)
+void csync_recv_file(FILE * out)
 {
 	char buffer[512];
 	int rc, chunk;
 	long size;
 
-	if ( fscanf(in, "octet-stream %ld\n", &size) != 1 )
+	if ( !conn_gets(buffer, 100) || sscanf(buffer, "octet-stream %ld\n", &size) != 1 )
 		csync_fatal("Format-error while receiving data.\n");
 
 	csync_debug(3, "Receiving %ld bytes ..\n", size);
 
 	while ( size > 0 ) {
 		chunk = size > 512 ? 512 : size;
-		rc = fread(buffer, 1, chunk, in);
+		rc = conn_read(buffer, chunk);
 
 		if ( rc <= 0 )
 			csync_fatal("Read-error while receiving data.\n");
@@ -84,7 +82,7 @@ void csync_recv_file(FILE * in, FILE * out)
 	rewind(out);
 }
 
-int csync_rs_check(const char * filename, FILE * in_sig, int isreg)
+int csync_rs_check(const char * filename, int isreg)
 {
 	FILE *basis_file, *sig_file;
 	char buffer1[512], buffer2[512];
@@ -106,8 +104,11 @@ int csync_rs_check(const char * filename, FILE * in_sig, int isreg)
 
 	fclose(basis_file);
 
-	if ( fscanf(in_sig, "octet-stream %ld\n", &size) != 1 )
-		csync_fatal("Format-error while receiving data.\n");
+	{
+		char line[100];
+		if ( !conn_gets(line, 100) || sscanf(line, "octet-stream %ld\n", &size) != 1 )
+			csync_fatal("Format-error while receiving data.\n");
+	}
 
 	fflush(sig_file);
 	if ( size != ftell(sig_file) ) {
@@ -121,7 +122,7 @@ int csync_rs_check(const char * filename, FILE * in_sig, int isreg)
 
 	while ( size > 0 ) {
 		chunk = size > 512 ? 512 : size;
-		rc = fread(buffer1, 1, chunk, in_sig);
+		rc = conn_read(buffer1, chunk);
 
 		if ( rc <= 0 )
 			csync_fatal("Read-error while receiving data.\n");
@@ -146,7 +147,7 @@ int csync_rs_check(const char * filename, FILE * in_sig, int isreg)
 	return found_diff;
 }
 
-void csync_rs_sig(const char * filename, FILE * out_sig)
+void csync_rs_sig(const char * filename)
 {
 	FILE *basis_file, *sig_file;
 	rs_stats_t stats;
@@ -161,13 +162,13 @@ void csync_rs_sig(const char * filename, FILE * out_sig)
 	if (result != RS_DONE)
 		csync_fatal("Got an error from librsync, too bad!\n");
 
-	csync_send_file(sig_file, out_sig);
+	csync_send_file(sig_file);
 
 	fclose(basis_file);
 	fclose(sig_file);
 }
 
-void csync_rs_delta(const char * filename, FILE * in_sig, FILE * out_delta)
+void csync_rs_delta(const char * filename)
 {
 	FILE *sig_file, *new_file, *delta_file;
 	rs_result result;
@@ -175,7 +176,7 @@ void csync_rs_delta(const char * filename, FILE * in_sig, FILE * out_delta)
 	rs_stats_t stats;
 
 	sig_file = tmpfile();
-	csync_recv_file(in_sig, sig_file);
+	csync_recv_file(sig_file);
 	result = rs_loadsig_file(sig_file, &sumset, &stats);
 	if (result != RS_DONE)
 		csync_fatal("Got an error from librsync, too bad!\n");
@@ -192,21 +193,21 @@ void csync_rs_delta(const char * filename, FILE * in_sig, FILE * out_delta)
 	if (result != RS_DONE)
 		csync_fatal("Got an error from librsync, too bad!\n");
 
-	csync_send_file(delta_file, out_delta);
+	csync_send_file(delta_file);
 
 	rs_free_sumset(sumset);
 	fclose(delta_file);
 	fclose(new_file);
 }
 
-void csync_rs_patch(const char * filename, FILE * in_delta)
+void csync_rs_patch(const char * filename)
 {
 	FILE *basis_file, *delta_file, *new_file;
 	rs_stats_t stats;
 	rs_result result;
 
 	delta_file = tmpfile();
-	csync_recv_file(in_delta, delta_file);
+	csync_recv_file(delta_file);
 
 	basis_file = fopen(filename, "r");
 	if ( basis_file ) unlink(filename);
