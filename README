@@ -132,6 +132,12 @@ the special token "%%" is present in the command text, it will be replaced
 by a list of the updated files.
 
 
+The synchronization method
+==========================
+
+Sorry, this section still needs to be written.
+
+
 Using csync2
 ============
 
@@ -153,4 +159,10 @@ database:
 
 This opens up an SQL shell where you can access the database using
 standard SQL queries.
+
+Csync2 is using single transactions for every database operations. So
+creating the database in the first place might take a huge amount of
+time and create some noticeable I/O load. It is possible to minimize
+this problem by creating the database on a tmpfs (using the -D option)
+and copying the database file to /var/lib/csync2/ afterwards.
 
