@@ -52,6 +52,12 @@ void csync_db_open(const char * file)
 		"	UNIQUE ( filename, recursive ) ON CONFLICT IGNORE"
 		")",
 		0, 0, 0);
+	sqlite_exec(db,
+		"CREATE TABLE action ("
+		"	filename, command,"
+		"	UNIQUE ( filename, command ) ON CONFLICT IGNORE"
+		")",
+		0, 0, 0);
 }
 
 void csync_db_close()

@@ -44,6 +44,7 @@ extern int csync_match_file_host(const char *file, const char *myname, const cha
 extern struct peer *csync_find_peers(const char *file, const char *thispeer);
 extern const char *csync_key(const char *hostname, const char *filename);
 extern int csync_perm(const char *filename, const char *key, const char *hostname);
+extern void csync_schedule_commands(const char *filename, int islocal);
 
 
 /* error.c */

@@ -195,3 +195,28 @@ found_host:
 	return 1;
 }
 
+void csync_schedule_commands(const char *filename, int islocal)
+{
+	const struct csync_group *g = NULL;
+	const struct csync_group_action *a = NULL;
+	const struct csync_group_action_pattern *p = NULL;
+	const struct csync_group_action_command *c = NULL;
+
+	while ( (g=csync_find_next(g, filename)) ) {
+		for (a=g->action; a; a=a->next) {
+			if ( islocal && !a->do_local )
+				continue;
+			for (p=a->pattern; p; p=p->next)
+				if ( !fnmatch(p->pattern, filename,
+						FNM_LEADING_DIR|FNM_PATHNAME) )
+					goto found_matching_pattern;
+			continue;
+found_matching_pattern:
+			for (c=a->command; c; c=c->next)
+				SQL("Add action to database",
+					"INSERT INTO action (filename, command) VALUES ('%s', '%s')",
+					url_encode(filename), url_encode(c->command));
+		}
+	}
+}
+

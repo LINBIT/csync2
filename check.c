@@ -39,6 +39,8 @@ void csync_mark(const char *file, const char *thispeer)
 	struct peer *pl = csync_find_peers(file, thispeer);
 	int pl_idx;
 
+	csync_schedule_commands(file, thispeer == 0);
+
 	if ( ! pl ) {
 		csync_debug(2, "Not in one of my groups: %s\n", file);
 		return;
