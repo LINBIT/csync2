@@ -101,6 +101,11 @@ void help(char *cmd)
 "	-r	Recursive operation over subdirectories\n"
 "	-d	Dry-run on all remote update operations\n"
 "\n"
+"	-B	Don't block everything into one big SQL transaction. This\n"
+"		slows down csync2 but allows multiple csync2 processes to\n"
+"		access the database at the same time. Use e.g. when slow\n"
+"		lines are used or huge files are transfered.\n"
+"\n"
 "	-I	Init-run. Use with care and read the documentation first!\n"
 "		You usually don't need this option unless you are\n"
 "		initializing groups with really large file lists.\n"
@@ -143,6 +148,7 @@ int main(int argc, char ** argv)
 {
 	struct textlist *tl = 0, *t;
 	int mode = MODE_NONE;
+	int block_trans = 1;
 	int init_run = 0;
 	int recursive = 0;
 	int retval = -1;
@@ -155,8 +161,11 @@ int main(int argc, char ** argv)
 		return create_keyfile(argv[2]);
 	}
 
-	while ( (opt = getopt(argc, argv, "C:D:N:HILSTMvhcuimfxrd")) != -1 ) {
+	while ( (opt = getopt(argc, argv, "C:D:N:HBILSTMvhcuimfxrd")) != -1 ) {
 		switch (opt) {
+			case 'B':
+				block_trans = 0;
+				break;
 			case 'I':
 				init_run = 1;
 				break;
@@ -260,6 +269,7 @@ int main(int argc, char ** argv)
 	yyparse();
 
 	csync_db_open(file_database);
+	if (block_trans) SQL("Transaction start", "BEGIN TRANSACTION");
 
 	switch (mode) {
 		case MODE_SIMPLE:
@@ -422,6 +432,7 @@ int main(int argc, char ** argv)
 	}
 
 	csync_run_commands();
+	if (block_trans) SQL("Transaction end", "COMMIT TRANSACTION");
 	csync_db_close();
 	csync_debug(csync_error_count != 0 ? 0 : 1,
 			"Finished with %d errors.\n", csync_error_count);
