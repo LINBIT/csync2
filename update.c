@@ -491,7 +491,7 @@ found_host:
 	SQL_BEGIN("DB Dump - File",
 		"SELECT checktxt, filename FROM file ORDER BY filename")
 	{
-		const char *l_file = url_decode(SQL_V[1]), *l_checktxt = url_decode(SQL_V[0]);
+		char *l_file = strdup(url_decode(SQL_V[1])), *l_checktxt = strdup(url_decode(SQL_V[0]));
 		if ( csync_match_file_host(l_file, myname, peername, 0) ) {
 			if ( remote_eof ) {
 got_remote_eof:
@@ -525,6 +525,8 @@ got_remote_eof:
 				}
 			}
 		}
+		free(l_checktxt);
+		free(l_file);
 	} SQL_END;
 
 	if ( !remote_eof )
