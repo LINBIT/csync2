@@ -46,8 +46,8 @@ crossover cable with other IP addresses should be used), the syntax
 "hostname@hostname-for-communication" can be used.
 
 The key statement must be used exactly once in each group and defines
-the the file containing shared secret for that group. The keyfile can
-be created using "csync2 -k keyfilename".
+the file containing shared secret for that group. The keyfile can be
+created using "csync2 -k keyfilename".
 
 The include and exclude pattern are a bit more complex. There are two
 kind of patterns: pathname-patterns starting with a slash character and
@@ -58,12 +58,21 @@ both categories match, the file will be synchonized.
 
 Changing the config files might imply some difficults if files are beeing
 excluded which are already in the database. On strategy to solve that is
-removing the files in question directly from the database (see next section).
-Another possible solution is the first synchronize all hosts, then make the
-changes and remove the database files from /var/lib/csync2/ and re-create
-them with "csync2 -x". This will try to re-sync all files between the host
-but wont actually re-transmit all the data because the files are already
-the same.
+removing the files in question directly from the database (see seperate
+section).  Another possible solution is the first synchronize all hosts,
+then make the changes and remove the database files from /var/lib/csync2/
+and re-create them with "csync2 -x". This will try to re-sync all files
+between the host but wont actually re-transmit all the data because the
+files are already the same.
+
+
+Using csync2
+============
+
+Simply calling csync2 without any parameters prints out a brief usage
+info.
+
+Sorry, the rest of this section still needs to be written.
 
 
 The database backend
