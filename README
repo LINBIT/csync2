@@ -179,3 +179,8 @@ opposite effect. While -T is usually only good for diagnostic purposes,
 it automatically creates entries in the dirty DB for unsynced files when
 running with the -I modifier.
 
+Sometimes it is usefull to disable the entire csync2 system on a node (e.g.
+for preparing new files for a cluster-wide update). This can be done by
+creating a file /etc/csync2.lock. When such a file exists, csync2 will
+simply refuse to start.
+
