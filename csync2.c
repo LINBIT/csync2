@@ -83,6 +83,8 @@ void help(char *cmd)
 "	-L	List all file-entries from status db\n"
 "	-M	List all dirty files from status db\n"
 "\n"
+"	The list modes (-H, -L and -M) return 2 if the requested db is empty.\n"
+"\n"
 "	-i	Run in inetd server mode.\n"
 "\n"
 "Modifiers:\n"
@@ -128,6 +130,7 @@ int main(int argc, char ** argv)
 	struct textlist *tl = 0, *t;
 	int mode = MODE_NONE;
 	int recursive = 0;
+	int retval = -1;
 	int dry_run = 0;
 	int opt, i;
 
@@ -326,25 +329,30 @@ int main(int argc, char ** argv)
 			break;
 
 		case MODE_LIST_HINT:
+			retval = 2;
 			SQL_BEGIN("DB Dump - Hint",
 				"SELECT recursive, filename FROM hint")
 			{
 				printf("%s\t%s\n", SQL_V[0],
 						url_decode(SQL_V[1]));
+				retval = -1;
 			} SQL_END;
 			break;
 
 		case MODE_LIST_FILE:
+			retval = 2;
 			SQL_BEGIN("DB Dump - File",
 				"SELECT checktxt, filename FROM file")
 			{
 				printf("%s\t%s\n",
 						url_decode(SQL_V[0]),
 						url_decode(SQL_V[1]));
+				retval = -1;
 			} SQL_END;
 			break;
 
 		case MODE_LIST_DIRTY:
+			retval = 2;
 			SQL_BEGIN("DB Dump - Dirty",
 				"SELECT force, myname, peername, filename FROM dirty")
 			{
@@ -354,6 +362,7 @@ int main(int argc, char ** argv)
 						url_decode(SQL_V[1]),
 						url_decode(SQL_V[2]),
 						url_decode(SQL_V[3]));
+				retval = -1;
 			} SQL_END;
 			break;
 	}
@@ -361,6 +370,7 @@ int main(int argc, char ** argv)
 	csync_db_close();
 	csync_debug(csync_error_count != 0 ? 0 : 1,
 			"Finished with %d errors.\n", csync_error_count);
+	if ( retval >= 0 && csync_error_count == 0 ) return retval;
 	return csync_error_count != 0;
 }
 
