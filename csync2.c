@@ -341,11 +341,26 @@ int main(int argc, char ** argv)
 			break;
 
 		case MODE_FORCE:
-			for (i=optind; i < argc; i++)
+			for (i=optind; i < argc; i++) {
+				char *realname = getrealfn(argv[i]);
+				char *where_rec = "";
+
+				if ( recursive ) {
+					if ( !strcmp(realname, "/") )
+						asprintf(&where_rec, "or 1");
+					else
+						asprintf(&where_rec, "or (filename > '%s/' "
+							"and filename < '%s0')",
+							url_encode(realname), url_encode(realname));
+				}
+
 				SQL("Mark file as to be forced",
-					"UPDATE dirty SET force = 1 "
-					"WHERE filename = '%s'",
-					url_encode(argv[i]));
+					"UPDATE dirty SET force = 1 WHERE filename = '%s' %s",
+					url_encode(realname), where_rec);
+
+				if ( recursive )
+					free(where_rec);
+			}
 			break;
 
 		case MODE_LIST_HINT:
