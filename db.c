@@ -47,10 +47,8 @@ void csync_db_maycommit()
 				(int)(now-lastcommit), commitcount-1);
 		SQL("COMMIT TRANSACTION", "COMMIT TRANSACTION");
 		SQL("BEGIN TRANSACTION", "BEGIN TRANSACTION");
-		commitcount = 0;
+		lastcommit = now; commitcount = 0;
 	}
-
-	lastcommit = now;
 
 	recursion--;
 }
