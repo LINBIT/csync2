@@ -106,7 +106,7 @@ void csync_check_mod(const char * file, int recursive)
 	{
 	case 2:
 		csync_debug(2, "Checking %s.\n", file);
-		checktxt = csync_genchecktxt(&st, file);
+		checktxt = csync_genchecktxt(&st, file, 0);
 
 		SQL_BEGIN("Checking File",
 			"SELECT checktxt FROM file WHERE "

@@ -84,6 +84,37 @@ void csync_recv_file(FILE * in, FILE * out)
 	rewind(out);
 }
 
+/* FIXME: This function does currently not compare the signatures!
+ * Instead it just skips the input and returns the the both streams
+ * are identical.
+ */
+int csync_rs_check(const char * filename, FILE * in_sig)
+{
+	char buffer[512];
+	int rc, chunk;
+	long size;
+
+	if ( fscanf(in_sig, "octet-stream %ld\n", &size) != 1 )
+		csync_fatal("Format-error while receiving data.\n");
+
+	csync_debug(3, "Receiving %ld bytes ..\n", size);
+
+	while ( size > 0 ) {
+		chunk = size > 512 ? 512 : size;
+		rc = fread(buffer, 1, chunk, in_sig);
+
+		if ( rc <= 0 )
+			csync_fatal("Read-error while receiving data.\n");
+		chunk = rc;
+
+		size -= chunk;
+		csync_debug(3, "Got %d bytes, %ld bytes left ..\n",
+				chunk, size);
+	}
+
+	return 0;
+}
+
 void csync_rs_sig(const char * filename, FILE * out_sig)
 {
 	FILE *basis_file, *sig_file;

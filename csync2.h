@@ -80,6 +80,7 @@ extern void csync_db_fin(void *vmx, const char *err);
 
 /* rsync.c */
 
+extern int csync_rs_check(const char * filename, FILE * in_sig);
 extern void csync_rs_sig(const char * filename, FILE * out_sig);
 extern void csync_rs_delta(const char * filename, FILE * in_sig, FILE * out_delta);
 extern void csync_rs_patch(const char * filename, FILE * in_delta);
@@ -87,7 +88,7 @@ extern void csync_rs_patch(const char * filename, FILE * in_delta);
 
 /* checktxt.c */
 
-extern const char *csync_genchecktxt(const struct stat *st, const char *filename);
+extern const char *csync_genchecktxt(const struct stat *st, const char *filename, int ign_mtime);
 extern int csync_cmpchecktxt(const char *a, const char *b);
 
 

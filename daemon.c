@@ -64,7 +64,7 @@ void csync_file_update(const char *filename)
 			"delete from file where filename ='%s'",
 			url_encode(filename));
 	} else {
-		const char *checktxt = csync_genchecktxt(&st, filename);
+		const char *checktxt = csync_genchecktxt(&st, filename, 0);
 		SQL("Insert record to file db",
 			"insert into file (filename, checktxt) values "
 			"('%s', '%s')", url_encode(filename),
@@ -160,7 +160,24 @@ void csync_daemon_session(FILE * in, FILE * out)
 		switch ( cmdtab[cmdnr].action )
 		{
 		case A_SIG:
-			csync_rs_sig(tag[2], out);
+			{
+				struct stat st;
+
+				if ( lstat(tag[2], &st) != 0 ) {
+					if ( errno == ENOENT )
+						fprintf(out, "OK (not_found).\n---\noctet-stream 0\n");
+					else
+						cmd_error = strerror(errno);
+					break;
+				}
+				fprintf(out, "OK (data_follows).\n");
+				fprintf(out, "%s\n", csync_genchecktxt(&st, tag[2], 1));
+
+				if ( S_ISREG(st.st_mode) )
+					csync_rs_sig(tag[2], out);
+				else
+					fprintf(out, "octet-stream 0\n");
+			}
 			break;
 		case A_FLUSH:
 			SQL("Flushing dirty entry (if any) for file",

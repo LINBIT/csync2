@@ -42,7 +42,7 @@ int connprintf(FILE *stream, const char *format, ...)
 	if ( csync_debug_level < 3 ) return rc;
 
 	va_start(ap, format);
-	fprintf(csync_debug_out, "TCP> ");
+	fprintf(csync_debug_out, "Local> ");
 	vfprintf(csync_debug_out, format, ap);
 	va_end(ap);
 
@@ -53,7 +53,7 @@ int read_conn_status(FILE * conn, const char *file, const char *host)
 {
 	char line[4096];
 	if ( fgets(line, 4096, conn) ) {
-		line[4095] = 0;
+		csync_debug(3, "Peer> %s", line);
 		if ( !strncmp(line, "OK (", 4) ) return 0;
 	} else 
 		strcpy(line, "Connection closed.\n");
@@ -153,6 +153,27 @@ void csync_update_file_mod(const char * hostname,
 				url_encode(key), url_encode(filename));
 		if ( read_conn_status(conn, filename, hostname) )
 			goto got_error;
+	} else {
+		int i, found_diff = 0;
+		char chk1[4096];
+		const char *chk2;
+
+		connprintf(conn, "SIG %s %s\n",
+				url_encode(key), url_encode(filename));
+		if ( read_conn_status(conn, filename, hostname) ) goto got_error;
+
+		if ( !fgets(chk1, 4096, conn) ) goto got_error;
+		chk2 = csync_genchecktxt(&st, filename, 1);
+		for (i=0; chk1[i] && chk1[i] != '\n' && chk2[i]; i++)
+			if ( chk1[i] != chk2[i] ) { found_diff=1; break; }
+
+		if ( csync_rs_check(filename, conn) ) found_diff=1;
+		if ( read_conn_status(conn, filename, hostname) ) goto got_error;
+
+		if ( !found_diff ) {
+			csync_debug(1, "File is already up to date on peer.\n");
+			goto skip_action;
+		}
 	}
 
 	if ( S_ISREG(st.st_mode) ) {
@@ -227,6 +248,7 @@ void csync_update_file_mod(const char * hostname,
 			goto got_error;
 	}
 
+skip_action:
 	SQL("Remove dirty-file entry.",
 		"DELETE FROM dirty WHERE filename = '%s' "
 		"AND hostname = '%s'", url_encode(filename),

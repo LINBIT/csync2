@@ -38,7 +38,7 @@
 	snprintf(elements[elidx], t+1, ##__VA_ARGS__);	\
 	len+=t; elidx++; }
 
-const char *csync_genchecktxt(const struct stat *st, const char *filename)
+const char *csync_genchecktxt(const struct stat *st, const char *filename, int ign_mtime)
 {
 	static char *buffer = 0;
 	char *elements[64];
@@ -49,8 +49,8 @@ const char *csync_genchecktxt(const struct stat *st, const char *filename)
 	xxprintf("v1");
 
 	/* general data */
-	xxprintf(":mtime=%Ld:ctime=%Ld:mode=%d:uid=%d:gid=%d",
-			(long long)st->st_mtime, (long long)st->st_ctime,
+	xxprintf(":mtime=%Ld:mode=%d:uid=%d:gid=%d",
+			ign_mtime ? (long long)0 : (long long)st->st_mtime,
 			(int)st->st_mode, (int)st->st_uid, (int)st->st_gid);
 
 	if ( S_ISREG(st->st_mode) )
