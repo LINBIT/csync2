@@ -118,15 +118,50 @@ void csync_update_file_del(const char *peername,
 
 	csync_debug(1, "Deleting %s on %s ...\n", filename, peername);
 
-	if ( dry_run ) {
-		printf("%cD: %-15s %s\n", force ? '!' : '?', peername, filename);
-		return;
-	}
-
 	if ( force ) {
+		if ( dry_run ) {
+			printf("!D: %-15s %s\n", peername, filename);
+			return;
+		}
 		connprintf(conn, "FLUSH %s %s\n", url_encode(key), url_encode(filename));
 		if ( read_conn_status(conn, filename, peername) )
 			goto got_error;
+	} else {
+		int i, found_diff = 0;
+		const char *chk2 = "---";
+		char chk1[4096];
+
+		connprintf(conn, "SIG %s %s\n",
+				url_encode(key), url_encode(filename));
+		if ( read_conn_status(conn, filename, peername) ) goto got_error;
+
+		if ( !fgets(chk1, 4096, conn) ) goto got_error;
+		for (i=0; chk1[i] && chk1[i] != '\n' && chk2[i]; i++)
+			if ( chk1[i] != chk2[i] ) {
+				csync_debug(2, "File is different on peer (cktxt char #%d).\n", i);
+				csync_debug(2, ">>> PEER:  %s>>> LOCAL: %s\n", chk1, chk2);
+				found_diff=1;
+				break;
+			}
+
+		if ( csync_rs_check(filename, conn, 0) ) {
+			csync_debug(2, "File is different on peer (rsync sig).\n");
+			found_diff=1;
+		}
+		if ( read_conn_status(conn, filename, peername) ) goto got_error;
+
+		if ( !found_diff ) {
+			csync_debug(1, "File is already up to date on peer.\n");
+			if ( dry_run ) {
+				printf("?S: %-15s %s\n", peername, filename);
+				return;
+			}
+			goto skip_action;
+		}
+		if ( dry_run ) {
+			printf("?D: %-15s %s\n", peername, filename);
+			return;
+		}
 	}
 
 	connprintf(conn, "DEL %s %s\n",
@@ -139,6 +174,7 @@ void csync_update_file_del(const char *peername,
 	if ( read_conn_status(conn, filename, peername) )
 		goto got_error;
 
+skip_action:
 	SQL("Remove dirty-file entry.",
 		"DELETE FROM dirty WHERE filename = '%s' "
 		"AND peername = '%s'", url_encode(filename),

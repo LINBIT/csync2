@@ -46,24 +46,17 @@ int csync_unlink(const char * filename, int ign)
 	return rc;
 }
 
-int csync_check_dirty(const char *filename, int del_mode)
+int csync_check_dirty(const char *filename)
 {
 	int rc = 0;
-
 	csync_check(filename, 0, 0);
-	if ( del_mode && access(filename, F_OK) ) {
-		SQL("Removing file from dirty db",
-			"delete from dirty where filename ='%s'",
-			url_encode(filename));
-	} else {
-		SQL_BEGIN("Check if file is dirty",
-			"SELECT 1 FROM dirty WHERE filename = '%s' LIMIT 1",
-			url_encode(filename))
-		{
-			rc = 1;
-			cmd_error = "File is also marked dirty here!";
-		} SQL_END;
-	}
+	SQL_BEGIN("Check if file is dirty",
+		"SELECT 1 FROM dirty WHERE filename = '%s' LIMIT 1",
+		url_encode(filename))
+	{
+		rc = 1;
+		cmd_error = "File is also marked dirty here!";
+	} SQL_END;
 	return rc;
 }
 
@@ -186,7 +179,7 @@ void csync_daemon_session(FILE * in, FILE * out)
 		}
 
 		if ( cmdtab[cmdnr].check_dirty &&
-				csync_check_dirty(tag[2], cmdtab[cmdnr].action == A_DEL) ) goto abort_cmd;
+				csync_check_dirty(tag[2]) ) goto abort_cmd;
 
 		if ( cmdtab[cmdnr].unlink )
 				csync_unlink(tag[2], cmdtab[cmdnr].unlink);
