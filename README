@@ -70,7 +70,7 @@ csync2.cfg syntax
 The config file contains the definitions for all the synchronisation
 groups in the cluster:
 
-group
+group mygroup
 {
 	host host1 host2 host3;
 	host host4@host4-eth2;
