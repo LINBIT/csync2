@@ -284,7 +284,7 @@ void csync_update_host(const char * hostname,
 		const char * filename = url_decode(SQL_V[0]);
 		int i, use_this = patnum == 0;
 		for (i=0; i<patnum && !use_this; i++)
-			if ( !compare_files(filename, patlist[i], recursive) ) use_this = 1;
+			if ( compare_files(filename, patlist[i], recursive) ) use_this = 1;
 		if (use_this)
 			textlist_add(&tl, filename, atoi(SQL_V[1]));
 	} SQL_END;
