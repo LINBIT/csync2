@@ -1,5 +1,5 @@
 
 Eventually improve config file format.
-Add SQL transactions to avoid races.
+Add SQL transactions to speed things up.
 Optimize repeated checks in daemon code.
 
