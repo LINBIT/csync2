@@ -196,12 +196,12 @@ struct csync_group_pattern {
 struct csync_group_action_pattern {
 	struct csync_group_action_pattern *next;
 	const char *pattern;
-}
+};
 
 struct csync_group_action_command {
 	struct csync_group_action_command *next;
 	const char *command;
-}
+};
 
 struct csync_group_action {
 	struct csync_group_action *next;
