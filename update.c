@@ -336,7 +336,7 @@ void csync_update_host(const char *peername,
 
 	if ( (conn = connect_to_host(peername)) == 0 ) {
 		csync_error_count++;
-		csync_debug(1, "ERROR: Connection to remote host failed.\n");
+		csync_debug(0, "ERROR: Connection to remote host failed.\n");
 		csync_debug(1, "Host stays in dirty state. "
 				"Try again later...\n");
 		return;
@@ -426,7 +426,7 @@ int csync_insynctest_readline(FILE *conn, char **file, char **checktxt)
 			return 1;
 		}
 		csync_error_count++;
-		csync_debug(1, "ERROR from peer: %s", inbuf);
+		csync_debug(0, "ERROR from peer: %s", inbuf);
 		return 1;
 	}
 
@@ -434,7 +434,7 @@ int csync_insynctest_readline(FILE *conn, char **file, char **checktxt)
 	if (tmp) *checktxt=strdup(url_decode(tmp));
 	else {
 		csync_error_count++;
-		csync_debug(1, "Format error in reply: \\t not found!\n");
+		csync_debug(0, "Format error in reply: \\t not found!\n");
 		return 1;
 	}
 
@@ -442,7 +442,7 @@ int csync_insynctest_readline(FILE *conn, char **file, char **checktxt)
 	if (tmp) *file=strdup(url_decode(tmp));
 	else {
 		csync_error_count++;
-		csync_debug(1, "Format error in reply: \\n not found!\n");
+		csync_debug(0, "Format error in reply: \\n not found!\n");
 		return 1;
 	}
 
@@ -460,9 +460,19 @@ int csync_insynctest(const char *myname, const char *peername)
 	int remote_reuse = 0, remote_eof = 0;
 	int rel, ret = 1;
 
+	for (g = csync_group; g; g = g->next) {
+		if ( !g->myname || strcmp(g->myname, myname) ) continue;
+		for (h = g->host; h; h = h->next)
+			if (!strcmp(h->hostname, peername)) goto found_host_check;
+	}
+	csync_debug(0, "Host pair not found in configuration.\n");
+	csync_error_count++;
+	return 0;
+found_host_check:
+
 	if ( (conn = connect_to_host(peername)) == 0 ) {
 		csync_error_count++;
-		csync_debug(1, "ERROR: Connection to remote host failed.\n");
+		csync_debug(0, "ERROR: Connection to remote host failed.\n");
 		csync_debug(1, "Host stays in dirty state. "
 				"Try again later...\n");
 		return 0;
