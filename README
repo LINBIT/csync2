@@ -22,6 +22,9 @@ Add csync2 to your /etc/inetd.conf file:
 
 Create your /etc/csync2.cfg and restart inetd.
 
+Maybe you also want to add csync2_locheck.sh to your /root/.bash_logout
+file to make sure that you never logout without syncing your changes.
+
 
 csync2.cfg syntax
 =================
