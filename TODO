@@ -1,4 +1,11 @@
+
+Better security concept:
+- Only allow requests from peer hosts
+- Allow using direct links using host-mappings
+- Load shared secrets from extra files
+
 Eventually improve config file format.
 Add SQL transactions to avoid races.
 Optimize repeated checks in daemon code.
 Add compare-mode to check if hosts are in sync.
+
