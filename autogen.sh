@@ -1,14 +1,15 @@
-#!/bin/bash
+#!/bin/bash -x
 
-aclocal
+aclocal-1.7
 autoheader
-automake --add-missing --copy
+automake-1.7 --add-missing --copy
 autoconf
 
 if [ "$1" = clean ]; then
-	./configure && make distclean; set -x
+	./configure && make distclean
 	rm -rf configure Makefile.in depcomp stamp-h.in
 	rm -rf mkinstalldirs config.h.in autom4te.cache
 	rm -rf missing aclocal.m4 install-sh *~
+	rm -rf config.guess config.sub
 fi
 

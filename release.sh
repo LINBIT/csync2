@@ -35,11 +35,11 @@ case "$1" in
 	perl -pi -e "s/SNAPSHOT/$VERSION/g" configure.ac
 	perl -pi -e "s/SNAPSHOT/$VERSION/g" csync2.spec; sleep 2
 	svn commit -m "Fixed version info in tag $VERSION" configure.ac
-	./autogen.sh; rm -rf aclocal.m4 autom4te.cache $( find -name .svn )
-	rm -f release.sh # don't include this script in the source tar
+	./autogen.sh; rm -rf release.sh autom4te.cache $( find -name .svn )
 
 	cd ..
-	tar cvzf $PACKAGE-$VERSION.tar.gz $PACKAGE-$VERSION
+	tar cvzf $PACKAGE-$VERSION.tar.gz \
+		--owner=0 --group=0 $PACKAGE-$VERSION
 	rm -rf $PACKAGE-$VERSION
 	;;
 esac
