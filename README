@@ -129,7 +129,9 @@ ligger around forever.
 
 It is also possible to have multiple configurations in parallel. A configuration
 named 'foobar' may be stored in /etc/csync2_foobar.cfg and is used whenever csync2
-is called with the option "-C foobar".
+is called with the option "-C foobar". Each configuration has it's own backend
+database. So splitting up the setups into various small configurations can speed
+up operation and avoid problems with database locks.
 
 
 The synchronization method
@@ -143,6 +145,35 @@ Using csync2
 
 Simply calling csync2 without any parameters prints out a brief usage
 info. Running "csync2 -x" will sync local changes to the other hosts.
+
+If not instructed otherwise, the default configuration, /etc/csync2.cfg
+is used. If csync2 is called with "-C foo", the configuration file
+/etc/csync2_foo.cfg is used instead.
+
+On default all groups in the active configuration are processed. This can
+be changed using the -G option. Simply pass -G a comma-seperated list of
+group names and all other groups will be ignored.
+
+Csync2 has three main modes:
+
+* Hint Mode (-h)
+
+	The hint mode does nothing impressive. It simply adds it's file
+	parameters to the hint database which is later on processed by -c.
+
+	This is usefull for environments where "csync2 -c" and "csync2 -u"
+	are automatically run by a cron job.
+
+* Check Mode (-c)
+
+	Checks for local changes and queues them for later updating on remote
+	hosts. If calles without file parameters, the entries from the hint
+	database are used. Otherwise the given files and directories are
+	checked.
+
+* Update Mode (-u)
+
+	Actually runs the updates on the peer nodes.
 
 Sorry, the rest of this section still needs to be written.
 
