@@ -17,6 +17,7 @@ AM_PROG_LEX
 # Checks for libraries.
 AC_CHECK_LIB([rsync], [rs_sig_file], , [AC_MSG_ERROR(librsync is required)])
 AC_CHECK_LIB([sqlite], [sqlite_exec], , [AC_MSG_ERROR(libsqlite is required)])
+AC_CHECK_LIB([ssl], [SSL_new], , [AC_MSG_ERROR(libssl is required)])
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

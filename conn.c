@@ -27,10 +27,18 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <netdb.h>
+#include <openssl/ssl.h>
+#include <errno.h>
+
 
 int conn_fd_in  = -1;
 int conn_fd_out = -1;
 int conn_clisok = 0;
+int conn_usessl = 0;
+
+SSL_METHOD *conn_ssl_meth;
+SSL_CTX *conn_ssl_ctx;
+SSL *conn_ssl;
 
 int conn_open(const char *peername)
 {
@@ -61,6 +69,7 @@ int conn_open(const char *peername)
 
 	conn_fd_out = conn_fd_in;
 	conn_clisok = 1;
+	conn_usessl = 0;
 
 	return 0;
 }
@@ -70,11 +79,57 @@ int conn_set(int infd, int outfd)
 	conn_fd_in  = infd;
 	conn_fd_out = outfd;
 	conn_clisok = 1;
+	conn_usessl = 0;
+
+	return 0;
+}
+
+char *ssl_keyfile = ETCDIR "/csync2_ssl_key.pem";
+char *ssl_certfile = ETCDIR "/csync2_ssl_cert.pem";
+
+int conn_activate_ssl(int role)
+{
+	static sslinit = 0;
+
+	if (conn_usessl)
+		return 0;
+
+	if (!sslinit) {
+		SSL_load_error_strings();
+		SSL_library_init();
+		sslinit=1;
+	}
+
+	conn_ssl_meth = SSLv23_method();
+	conn_ssl_ctx = SSL_CTX_new(conn_ssl_meth);
+
+	if (role) {
+		if (SSL_CTX_use_PrivateKey_file(conn_ssl_ctx, ssl_keyfile, SSL_FILETYPE_PEM) <= 0)
+			csync_fatal("SSL: failed to use key file %s.\n", ssl_keyfile);
+
+		if (SSL_CTX_use_certificate_file(conn_ssl_ctx, ssl_certfile, SSL_FILETYPE_PEM) <= 0)
+			csync_fatal("SSL: failed to use certificate file %s.\n", ssl_certfile);
+	}
+
+	if (! (conn_ssl = SSL_new(conn_ssl_ctx)) )
+		csync_fatal("Creating a new SSL handle failed.\n");
+
+	SSL_set_rfd(conn_ssl, conn_fd_in);
+	SSL_set_wfd(conn_ssl, conn_fd_out);
+
+	if ( (role ? SSL_accept : SSL_connect)(conn_ssl) < 1 )
+		csync_fatal("Establishing SSL connection failed.\n");
+
+	conn_usessl = 1;
+
+	return 0;
 }
 
 int conn_close()
 {
 	if ( !conn_clisok ) return -1;
+
+	if ( conn_usessl ) SSL_free(conn_ssl);
 
 	if ( conn_fd_in != conn_fd_out) close(conn_fd_in);
 	close(conn_fd_out);

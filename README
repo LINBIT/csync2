@@ -51,6 +51,10 @@ Build and install the binaries using:
 	./configure
 	make install
 
+Create and install an OpenSSL private key and certificate:
+
+	make cert
+
 Add the csync2 port to your /etc/services file:
 
 	csync2	30865/tcp
@@ -92,6 +96,9 @@ group mygroup
 	}
 }
 
+nossl host2 host3;
+nossl host3 host2;
+
 config /etc/csync2.cfg_anotherone;
 config /etc/csync2.cfg_foo /etc/csync2.cfg_bar;
 
@@ -122,6 +129,15 @@ the keyword "do-local" is present in the action section, the command will
 also be executed on the machine where the change has happened locally. If
 the special token "%%" is present in the command text, it will be replaced
 by a list of the updated files.
+
+Usually the hosts are communicating using ssl. The nossl statement can be used
+to force a communication tunnel between two hosts to be unencrypted. The 1st
+(left) parameter is a shell pattern which must match the client (initiator)
+hostname and the 2nd (right) parameter a shell pattern which must match the
+server (responder) interfacename. If all communication should be unencrypted,
+a simple "nossl * *;" is sufficient. If e.g. all interfaces for direct links
+between hosts do have the suffix "-x", the statement "nossl * *-x;" will cause
+all communication on such interfaces to be unencrypted.
 
 You might want to run "csync2 -R" after excluding some files from the config
 file. This will check the database and remove the old entries which are not

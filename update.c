@@ -46,7 +46,31 @@ int read_conn_status(const char *file, const char *host)
 
 int connect_to_host(const char *peername)
 {
+	int use_ssl = 1;
+	struct csync_nossl *t;
+
+	for (t = csync_nossl; t; t=t->next) {
+		if ( !fnmatch(t->pattern_from, myhostname, 0) &&
+		     !fnmatch(t->pattern_to, peername, 0) ) {
+			use_ssl = 0;
+			break;
+		}
+	}
+
+	csync_debug(1, "Connecting to host %s (%s) ...\n",
+			peername, use_ssl ? "SSL" : "PLAIN");
+
 	if ( conn_open(peername) ) return -1;
+
+	if ( use_ssl ) {
+		conn_printf("SSL\n");
+		if ( read_conn_status(0, peername) ) {
+			csync_debug(1, "SSL command failed.\n");
+			conn_close();
+			return -1;
+		}
+		conn_activate_ssl(0);
+	}
 
 	conn_printf("CONFIG %s\n", url_encode(cfgname));
 	if ( read_conn_status(0, peername) ) {
@@ -336,8 +360,6 @@ void csync_update_host(const char *peername,
 
 	/* just return if there are no files to update */
 	if ( !tl ) return;
-
-	csync_debug(1, "Updating host %s ...\n", peername);
 
 	if ( connect_to_host(peername) ) {
 		csync_error_count++;

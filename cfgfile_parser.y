@@ -25,6 +25,7 @@
 #include <string.h>
 
 struct csync_group *csync_group = 0;
+struct csync_nossl *csync_nossl = 0;
 
 extern void yyerror(char* text);
 extern int yylex();
@@ -210,6 +211,16 @@ static void set_action_dolocal()
 	csync_group->action->do_local = 1;
 }
 
+static void new_nossl(const char *from, const char *to)
+{
+	struct csync_nossl *t =
+		calloc(sizeof(struct csync_nossl), 1);
+	t->pattern_from = from;
+	t->pattern_to = to;
+	t->next = csync_nossl;
+	csync_nossl = t;
+}
+
 %}
 
 %union {
@@ -217,7 +228,7 @@ static void set_action_dolocal()
 }
 
 %token TK_BLOCK_BEGIN TK_BLOCK_END TK_STEND TK_AT
-%token TK_GROUP TK_HOST TK_EXCL TK_INCL TK_KEY
+%token TK_NOSSL TK_GROUP TK_HOST TK_EXCL TK_INCL TK_KEY
 %token TK_ACTION TK_PATTERN TK_EXEC TK_DOLOCAL TK_LOGFILE
 %token <txt> TK_STRING
 
@@ -228,6 +239,8 @@ config:		/* empty */
 		;
 
 config_block:	config_block_header config_block_body
+	|	TK_NOSSL TK_STRING TK_STRING TK_STEND
+					{ new_nossl($2, $3); }
 		;
 		
 config_block_header:

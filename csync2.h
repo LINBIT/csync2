@@ -65,6 +65,7 @@ extern void csync_debug(int lv, const char *fmt, ...);
 
 extern int conn_open(const char *peername);
 extern int conn_set(int infd, int outfd);
+extern int conn_activate_ssl(int role);
 extern int conn_close();
 
 extern int conn_read(void *buf, size_t count);
@@ -205,6 +206,7 @@ static inline void textlist_free(struct textlist *listhandle)
 
 /* config structures */
 
+struct csync_nossl;
 struct csync_group;
 struct csync_group_host;
 struct csync_group_pattern;
@@ -246,10 +248,17 @@ struct csync_group {
 	const char *key, *myname, *gname;
 };
 
+struct csync_nossl {
+	struct csync_nossl *next;
+	const char *pattern_from;
+	const char *pattern_to;
+};
+
 
 /* global variables */
 
 extern struct csync_group *csync_group;
+extern struct csync_nossl *csync_nossl;
 
 extern int csync_error_count;
 extern int csync_debug_level;

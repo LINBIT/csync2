@@ -305,8 +305,18 @@ int main(int argc, char ** argv)
 		cmd = strtok(line, "\t \r\n");
 		para = cmd ? strtok(0, "\t \r\n") : 0;
 
+		if (!strcasecmp(cmd, "ssl")) {
+			conn_printf("OK (activating_ssl).\n");
+			conn_activate_ssl(1);
+			/* FIXME: Do certificate checking, etc. */
+
+			if ( !conn_gets(line, 4096) ) return 0;
+			cmd = strtok(line, "\t \r\n");
+			para = cmd ? strtok(0, "\t \r\n") : 0;
+		}
+
 		if (strcasecmp(cmd, "config")) {
-			conn_printf("Expect CONFIG as first command.\n");
+			conn_printf("Expecting SSL (optional) and CONFIG as first commands.\n");
 			return 0;
 		}
 
@@ -420,7 +430,6 @@ int main(int argc, char ** argv)
 			break;
 
 		case MODE_INETD:
-			conn_set(0, 1);
 			conn_printf("OK (cmd_finished).\n");
 			csync_daemon_session();
 			break;

@@ -36,6 +36,8 @@ int include_stack_ptr = 0;
 ";"		{ return TK_STEND; }
 "@"		{ return TK_AT; }
 
+"nossl"		{ return TK_NOSSL; }
+
 "group"		{ return TK_GROUP; }
 "host"		{ return TK_HOST; }
 "exclude"	{ return TK_EXCL; }
