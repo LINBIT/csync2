@@ -131,17 +131,25 @@ const char *csync_key(const char *hostname, const char *filename)
 
 	while ( (g=csync_find_next(g, filename)) )
 		for (h = g->host; h; h = h->next)
-			if (!strcmp(h->hostname,hostname)) return g->key;
+			if (!strcmp(h->hostname, hostname)) return g->key;
 
 	return 0;
 }
 
-int csync_perm(const char * filename, const char * key)
+int csync_perm(const char * filename, const char * key, const char * hostname)
 {
 	const struct csync_group *g = NULL;
+	struct csync_group_host *h;
 
-	while ( (g=csync_find_next(g, filename)) )
+	while ( (g=csync_find_next(g, filename)) ) {
+		if ( hostname != 0 ) {
+			for (h = g->host; h; h = h->next)
+				if (!strcmp(h->hostname, hostname)) goto found_host;
+			continue;
+		}
+found_host:
 		if ( !strcmp(g->key, key) ) return 0;
+	}
 
 	return 1;
 }

@@ -21,12 +21,15 @@
 #include "csync2.h"
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 #include <string.h>
 #include <fnmatch.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <utime.h>
 #include <errno.h>
+#include <netdb.h>
 
 static char * cmd_error;
 
@@ -86,6 +89,7 @@ struct csync_command {
 	int check_dirty;
 	int unlink;
 	int update;
+	int need_ident;
 	int action;
 };
 
@@ -93,34 +97,42 @@ enum {
 	A_SIG, A_FLUSH, A_DEL, A_PATCH,
 	A_MKDIR, A_MKCHR, A_MKBLK, A_MKFIFO, A_MKLINK, A_MKSOCK,
 	A_SETOWN, A_SETMOD, A_SETIME,
-	A_DEBUG, A_BYE
+	A_DEBUG, A_HELLO, A_BYE
 };
 
 
 struct csync_command cmdtab[] = {
-	{ "sig",	1, 0, 0, 0, A_SIG	},
-	{ "flush",	1, 0, 0, 0, A_FLUSH	},
-	{ "del",	1, 1, 0, 1, A_DEL	},
-	{ "patch",	1, 1, 2, 1, A_PATCH	},
-	{ "mkdir",	1, 1, 1, 1, A_MKDIR	},
-	{ "mkchr",	1, 1, 1, 1, A_MKCHR	},
-	{ "mkblk",	1, 1, 1, 1, A_MKBLK	},
-	{ "mkfifo",	1, 1, 1, 1, A_MKFIFO	},
-	{ "mklink",	1, 1, 1, 1, A_MKLINK	},
-	{ "mksock",	1, 1, 1, 1, A_MKSOCK	},
-	{ "setown",	1, 1, 0, 1, A_SETOWN	},
-	{ "setmod",	1, 1, 0, 1, A_SETMOD	},
-	{ "setime",	1, 1, 0, 1, A_SETIME	},
-	{ "debug",	0, 0, 0, 0, A_DEBUG	},
-	{ "bye",	0, 0, 0, 0, A_BYE	},
-	{ 0,		0, 0, 0, 0, 0		}
+	{ "sig",	1, 0, 0, 0, 1, A_SIG	},
+	{ "flush",	1, 0, 0, 0, 1, A_FLUSH	},
+	{ "del",	1, 1, 0, 1, 1, A_DEL	},
+	{ "patch",	1, 1, 2, 1, 1, A_PATCH	},
+	{ "mkdir",	1, 1, 1, 1, 1, A_MKDIR	},
+	{ "mkchr",	1, 1, 1, 1, 1, A_MKCHR	},
+	{ "mkblk",	1, 1, 1, 1, 1, A_MKBLK	},
+	{ "mkfifo",	1, 1, 1, 1, 1, A_MKFIFO	},
+	{ "mklink",	1, 1, 1, 1, 1, A_MKLINK	},
+	{ "mksock",	1, 1, 1, 1, 1, A_MKSOCK	},
+	{ "setown",	1, 1, 0, 1, 1, A_SETOWN	},
+	{ "setmod",	1, 1, 0, 1, 1, A_SETMOD	},
+	{ "setime",	1, 1, 0, 1, 1, A_SETIME	},
+#if 0
+	{ "debug",	0, 0, 0, 0, 1, A_DEBUG	},
+#endif
+	{ "hello",	0, 0, 0, 0, 0, A_HELLO	},
+	{ "bye",	0, 0, 0, 0, 0, A_BYE	},
+	{ 0,		0, 0, 0, 0, 0, 0	}
 };
 
 void csync_daemon_session(FILE * in, FILE * out)
 {
-	char line[4096];
-	char * tag[32];
+	struct sockaddr_in peername;
+	struct hostent *hp;
+	int peerlen = sizeof(struct sockaddr_in);
+	char line[4096], *peer=0, *tag[32];
 	int i;
+
+	if ( getpeername(0, (struct sockaddr*)&peername, &peerlen) == -1 )
+		csync_fatal("Can't run getpeername on fd 0: %s", strerror(errno));
 
 	while ( fgets(line, 4096, in) ) {
 		int cmdnr;
@@ -146,9 +158,21 @@ void csync_daemon_session(FILE * in, FILE * out)
 
 		cmd_error = 0;
 
+		if ( cmdtab[cmdnr].need_ident && !peer ) {
+			union {
+				in_addr_t addr;
+				unsigned char oct[4];
+			} tmp;
+			tmp.addr = peername.sin_addr.s_addr;
+			fprintf(out, "Dear %d.%d.%d.%d, please identify first.\n",
+					tmp.oct[0], tmp.oct[1], tmp.oct[2], tmp.oct[3]);
+			fflush(out);
+			goto next_cmd;
+		}
+
 		if ( cmdtab[cmdnr].check_perm &&
-				csync_perm(tag[2], tag[1]) ) {
-			cmd_error = "Wrong key or filename!";
+				csync_perm(tag[2], tag[1], peer) ) {
+			cmd_error = "Permission denied!";
 			goto abort_cmd;
 		}
 
@@ -244,6 +268,19 @@ void csync_daemon_session(FILE * in, FILE * out)
 			break;
 		case A_DEBUG:
 			csync_debug_out = stdout;
+			if ( tag[1][0] )
+				csync_debug_level = atoi(tag[1]);
+			break;
+		case A_HELLO:
+			if (peer) free(peer);
+			hp = gethostbyname(tag[1]);
+			if ( hp != 0 && peername.sin_family == hp->h_addrtype &&
+			     !memcmp(hp->h_addr, &peername.sin_addr, hp->h_length) ) {
+				peer = strdup(tag[1]);
+			} else {
+				peer = 0;
+				cmd_error = "Identification failed!";
+			}
 			break;
 		case A_BYE:
 			for (i=0; i<32; i++)
@@ -262,6 +299,7 @@ abort_cmd:
 			fprintf(out, "OK (cmd_finished).\n");
 		fflush(out);
 
+next_cmd:
 		for (i=0; i<32; i++)
 			tag[i] = strdup(url_decode(tag[i]));
 	}

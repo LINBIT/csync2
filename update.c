@@ -302,6 +302,10 @@ void csync_update_host(const char * hostname,
 		return;
 	}
 
+	connprintf(conn, "HELLO %s\n", url_encode(myhostname));
+	if ( read_conn_status(conn, 0, hostname) )
+		goto ident_failed;
+
 	/*
 	 * The SQL statement above creates a linked list. Due to the
 	 * way the linked list is created, it has the reversed order
@@ -333,6 +337,7 @@ void csync_update_host(const char * hostname,
 				t->value, t->intvalue, conn);
 	}
 
+ident_failed:
 	textlist_free(tl_mod);
 	textlist_free(tl);
 

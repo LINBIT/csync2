@@ -36,7 +36,7 @@
 extern int csync_match_file(const char *file);
 extern const char **csync_find_hosts(const char *file);
 extern const char * csync_key(const char *hostname, const char *filename);
-extern int csync_perm(const char * filename, const char * key);
+extern int csync_perm(const char * filename, const char * key, const char * hostname);
 
 
 /* error.c */
