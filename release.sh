@@ -19,7 +19,7 @@ case "$1" in
 	set -ex
 
 	date "+csync2 ($VERSION-1) unstable; urgency=low%n%n`
-		`* New Upstream Version.%n%n -- Clifford Wolf `
+		`  * New Upstream Version.%n%n -- Clifford Wolf `
 		`<clifford.wolf@linbit.com>  %a, %d %b %Y `
 		`%H:%M:%S %z%n" > debian/changelog.new
 	cat debian/changelog >> debian/changelog.new
