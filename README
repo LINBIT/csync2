@@ -164,12 +164,6 @@ standard SQL queries.
 Bootstrapping large setups
 ==========================
 
-Csync2 is using single transactions for every database operations. So
-creating the database in the first place might take a huge amount of
-time and create some noticeable I/O load. It is possible to minimize
-this problem by creating the database on a tmpfs (using the -D option)
-and copying the database file to /var/lib/csync2/ afterwards.
-
 Usually when you are running csync2 the first time after adding files
 to the configuration, csync2 will detect that files as new and add them
 to the dirty database. When running the first update, those files are
@@ -186,6 +180,6 @@ not mentioned in the dirty table!
 
 The test mode -T also supports the -I modifier - But here it has the
 opposite effect. While -T is usually only good for diagnostic purposes,
-it automatically creates entries in the dirty DB for unsynced file when
+it automatically creates entries in the dirty DB for unsynced files when
 running with the -I modifier.
 
