@@ -54,7 +54,7 @@ void csync_db_open(const char * file)
 		0, 0, 0);
 	sqlite_exec(db,
 		"CREATE TABLE action ("
-		"	filename, command,"
+		"	filename, command, logfile,"
 		"	UNIQUE ( filename, command ) ON CONFLICT IGNORE"
 		")",
 		0, 0, 0);

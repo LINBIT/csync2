@@ -413,6 +413,7 @@ int main(int argc, char ** argv)
 			break;
 	}
 
+	csync_run_commands();
 	csync_db_close();
 	csync_debug(csync_error_count != 0 ? 0 : 1,
 			"Finished with %d errors.\n", csync_error_count);

@@ -154,6 +154,7 @@ static void new_action()
 	struct csync_group_action *t =
 		calloc(sizeof(struct csync_group_action), 1);
 	t->next = csync_group->action;
+	t->logfile = "/dev/null";
 	csync_group->action = t;
 }
 
@@ -175,6 +176,11 @@ static void add_action_exec(const char *command)
 	csync_group->action->command = t;
 }
 
+static void set_action_logfile(const char *logfile)
+{
+	csync_group->action->logfile = logfile;
+}
+
 static void set_action_dolocal()
 {
 	csync_group->action->do_local = 1;
@@ -188,7 +194,7 @@ static void set_action_dolocal()
 
 %token TK_BLOCK_BEGIN TK_BLOCK_END TK_STEND TK_AT
 %token TK_GROUP TK_HOST TK_EXCL TK_INCL TK_KEY
-%token TK_ACTION TK_PATTERN TK_EXEC TK_DOLOCAL
+%token TK_ACTION TK_PATTERN TK_EXEC TK_DOLOCAL TK_LOGFILE
 %token <txt> TK_STRING
 
 %%
@@ -247,6 +253,7 @@ config_action_stmts:
 config_action_stmt:
 		TK_PATTERN pattern_list
 	|	TK_EXEC exec_list
+	|	TK_LOGFILE TK_STRING	{ set_action_logfile($2); }
 	|	TK_DOLOCAL		{ set_action_dolocal(); }
 		;
 

@@ -45,6 +45,7 @@ int include_stack_ptr = 0;
 "action"	{ return TK_ACTION; }
 "pattern"	{ return TK_PATTERN; }
 "exec"		{ return TK_EXEC; }
+"logfile"	{ return TK_LOGFILE; }
 "do-local"	{ return TK_DOLOCAL; }
 
 "config"	BEGIN(INCL);
