@@ -99,14 +99,12 @@ void csync_update_file_del(const char *peername,
 {
 	const char * key = csync_key(peername, filename);
 
-	csync_debug(1, "Deleting %s on %s ...\n", filename, peername);
-
 	if ( !key ) {
-		csync_debug(0, "ERROR: No key for %s on %s.n",
-				filename, peername);
-		csync_error_count++;
-		goto got_error;
+		csync_debug(2, "Skipping deletion %s on %s - not in my groups.\n", filename, peername);
+		return;
 	}
+
+	csync_debug(1, "Deleting %s on %s ...\n", filename, peername);
 
 	if ( dry_run ) {
 		printf("%cD: %-15s %s\n", force ? '!' : '?', peername, filename);
@@ -145,14 +143,12 @@ void csync_update_file_mod(const char *peername,
 	struct stat st;
 	const char * key = csync_key(peername, filename);
 
-	csync_debug(1, "Updating %s on %s ...\n", filename, peername);
-
 	if ( !key ) {
-		csync_debug(0, "ERROR: No key for %s on %s.\n",
-				filename, peername);
-		csync_error_count++;
-		goto got_error;
+		csync_debug(2, "Skipping file update %s on %s - not in my groups.\n", filename, peername);
+		return;
 	}
+
+	csync_debug(1, "Updating %s on %s ...\n", filename, peername);
 
 	if ( lstat(filename, &st) != 0 ) {
 		csync_debug(0, "ERROR: Cant stat %s.\n", filename);
