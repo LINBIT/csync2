@@ -1,0 +1,31 @@
+
+Installing csync2
+=================
+
+Requirements:
+
+	- A linux system (or more/less compatible os)
+	- A gcc which does understand the -std=c99 switch
+	- The librsync package (incl. dev headers)
+	- The sqlite package (incl. dev headers)
+
+Build and install the binaries using:
+
+	* make install
+
+Add the csync2 port to your /etc/services file:
+
+	csync2	30865/tcp
+
+Add csync2 to your /etc/inetd.conf file:
+
+	csync2 stream tcp nowait root /usr/local/sbin/csync2 csync2 -i
+
+Create your /etc/csync2.cfg and restart inetd.
+
+
+csync2.cfg syntax
+=================
+
+Not yet documented. See the example csync2.cfg for a basic overview.
+
