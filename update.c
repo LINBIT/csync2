@@ -451,7 +451,7 @@ int csync_insynctest_readline(FILE *conn, char **file, char **checktxt)
 	return 0;
 }
 
-int csync_insynctest(const char *myname, const char *peername)
+int csync_insynctest(const char *myname, const char *peername, int init_run)
 {
 	FILE *conn;
 	const struct csync_group *g;
@@ -500,6 +500,7 @@ found_host:
 			if ( remote_eof ) {
 got_remote_eof:
 				printf("L %s\n", l_file); ret=0;
+				if (init_run) csync_mark(l_file, 0);
 			} else {
 				if ( !remote_reuse )
 					if ( csync_insynctest_readline(conn, &r_file, &r_checktxt) )
@@ -515,12 +516,15 @@ got_remote_eof:
 
 				if ( rel < 0 ) {
 					printf("L %s\n", l_file); ret=0;
+					if (init_run) csync_mark(l_file, 0);
 					remote_reuse = 1;
 				} else {
 					remote_reuse = 0;
 					if ( !rel ) {
-						if ( strcmp(l_checktxt, r_checktxt) )
-							{ printf("X %s\n", l_file); ret=0; }
+						if ( strcmp(l_checktxt, r_checktxt) ) {
+							printf("X %s\n", l_file); ret=0;
+							if (init_run) csync_mark(l_file, 0);
+						}
 					}
 				}
 			}

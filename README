@@ -160,9 +160,32 @@ database:
 This opens up an SQL shell where you can access the database using
 standard SQL queries.
 
+
+Bootstrapping large setups
+==========================
+
 Csync2 is using single transactions for every database operations. So
 creating the database in the first place might take a huge amount of
 time and create some noticeable I/O load. It is possible to minimize
 this problem by creating the database on a tmpfs (using the -D option)
 and copying the database file to /var/lib/csync2/ afterwards.
+
+Usually when you are running csync2 the first time after adding files
+to the configuration, csync2 will detect that files as new and add them
+to the dirty database. When running the first update, those files are
+silently removed from the dirty DB if they exist already on the peer.
+
+In large setups this is a significant overhead. So you might instead
+choose to sync the files somehow else (e.g. using rsync) in the first
+place and then just add them to the local database without adding them
+to the dirty table. This can be done by running "csyncs2 -crI /".
+
+But use the -I option with care! If the files on the machines are not
+in sync, they won't be synced atomatically by csync2 because they are
+not mentioned in the dirty table!
+
+The test mode -T also supports the -I modifier - But here it has the
+opposite effect. While -T is usually only good for diagnostic purposes,
+it automatically creates entries in the dirty DB for unsynced file when
+running with the -I modifier.
 

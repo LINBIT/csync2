@@ -109,14 +109,14 @@ extern int csync_cmpchecktxt(const char *a, const char *b);
 /* check.c */
 
 extern void csync_hint(const char *file, int recursive);
-extern void csync_check(const char * filename, int recursive);
+extern void csync_check(const char * filename, int recursive, int init_run);
 extern void csync_mark(const char *file, const char *thispeer);
 
 
 /* update.c */
 
 extern void csync_update(const char **patlist, int patnum, int recursive, int dry_run);
-extern int csync_insynctest(const char *myname, const char *peername);
+extern int csync_insynctest(const char *myname, const char *peername, int init_run);
 
 
 /* daemon.c */

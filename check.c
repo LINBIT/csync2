@@ -57,7 +57,7 @@ void csync_mark(const char *file, const char *thispeer)
 	free(pl);
 }
 
-void csync_check_del(const char * file, int recursive)
+void csync_check_del(const char * file, int recursive, int init_run)
 {
 	char * where_rec = "";
 	struct textlist *tl = 0, *t;
@@ -81,7 +81,7 @@ void csync_check_del(const char * file, int recursive)
 	} SQL_END;
 
 	for (t = tl; t != 0; t = t->next) {
-		csync_mark(t->value, 0);
+		if (!init_run) csync_mark(t->value, 0);
 		SQL("Removing file from DB. It isn't with us anymore.",
 		    "DELETE FROM file WHERE filename = '%s'",
 		    url_encode(t->value));
@@ -93,7 +93,7 @@ void csync_check_del(const char * file, int recursive)
 		free(where_rec);
 }
 
-void csync_check_mod(const char * file, int recursive, int ignnoent)
+void csync_check_mod(const char * file, int recursive, int ignnoent, int init_run)
 {
 	int check_type = csync_match_file(file);
 	struct dirent **namelist;
@@ -134,7 +134,7 @@ void csync_check_mod(const char * file, int recursive, int ignnoent)
 			    "INSERT INTO file (filename, checktxt) "
 			    "VALUES ('%s', '%s')",
 			    url_encode(file), url_encode(checktxt));
-			csync_mark(file, 0);
+			if (!init_run) csync_mark(file, 0);
 		}
 		/* fall thru */
 	case 1:
@@ -153,7 +153,7 @@ void csync_check_mod(const char * file, int recursive, int ignnoent)
 				sprintf(fn, "%s/%s",
 					!strcmp(file, "/") ? "" : file,
 					namelist[n]->d_name);
-				csync_check_mod(fn, recursive, 0);
+				csync_check_mod(fn, recursive, 0, init_run);
 			  }
 			  free(namelist[n]);
 			}
@@ -166,11 +166,11 @@ void csync_check_mod(const char * file, int recursive, int ignnoent)
 	}
 }
 
-void csync_check(const char * filename, int recursive)
+void csync_check(const char * filename, int recursive, int init_run)
 {
 	csync_debug(2, "Running%s check for %s ...\n",
 			recursive ? " recursive" : "", filename);
-	csync_check_del(filename, recursive);
-	csync_check_mod(filename, recursive, 1);
+	csync_check_del(filename, recursive, init_run);
+	csync_check_mod(filename, recursive, 1, init_run);
 }
 

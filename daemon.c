@@ -49,7 +49,7 @@ int csync_unlink(const char * filename, int ign)
 int csync_check_dirty(const char *filename)
 {
 	int rc = 0;
-	csync_check(filename, 0);
+	csync_check(filename, 0, 0);
 	SQL_BEGIN("Check if file is dirty",
 		"SELECT 1 FROM dirty WHERE filename = '%s' LIMIT 1",
 		url_encode(filename))

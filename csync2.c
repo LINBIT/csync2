@@ -101,6 +101,10 @@ void help(char *cmd)
 "	-r	Recursive operation over subdirectories\n"
 "	-d	Dry-run on all remote update operations\n"
 "\n"
+"	-I	Init-run. Use with care and read the documentation first!\n"
+"		You usually don't need this option unless you are\n"
+"		initializing groups with really large file lists.\n"
+"\n"
 "Creating key file:\n"
 "	%s -k filename\n"
 "\n",
@@ -139,6 +143,7 @@ int main(int argc, char ** argv)
 {
 	struct textlist *tl = 0, *t;
 	int mode = MODE_NONE;
+	int init_run = 0;
 	int recursive = 0;
 	int retval = -1;
 	int dry_run = 0;
@@ -150,8 +155,11 @@ int main(int argc, char ** argv)
 		return create_keyfile(argv[2]);
 	}
 
-	while ( (opt = getopt(argc, argv, "C:D:N:HLSTMvhcuimfxrd")) != -1 ) {
+	while ( (opt = getopt(argc, argv, "C:D:N:HILSTMvhcuimfxrd")) != -1 ) {
 		switch (opt) {
+			case 'I':
+				init_run = 1;
+				break;
 			case 'C':
 				file_config = optarg;
 				break;
@@ -257,7 +265,7 @@ int main(int argc, char ** argv)
 		case MODE_SIMPLE:
 			if ( argc == optind )
 			{
-				csync_check("/", 1);
+				csync_check("/", 1, init_run);
 				csync_update(0, 0, 0, dry_run);
 			}
 			else
@@ -266,7 +274,7 @@ int main(int argc, char ** argv)
 				for (i=optind; i < argc; i++) {
 					realnames[i-optind] = strdup(getrealfn(argv[i]));
 					csync_check_usefullness(realnames[i-optind], recursive);
-					csync_check(realnames[i-optind], recursive);
+					csync_check(realnames[i-optind], recursive, init_run);
 				}
 				csync_update((const char**)realnames, argc-optind, recursive, dry_run);
 				for (i=optind; i < argc; i++)
@@ -293,7 +301,7 @@ int main(int argc, char ** argv)
 				} SQL_END;
 
 				for (t = tl; t != 0; t = t->next) {
-					csync_check(t->value, t->intvalue);
+					csync_check(t->value, t->intvalue, init_run);
 					SQL("Remove processed hint.",
 					    "DELETE FROM hint WHERE filename = '%s' "
 					    "and recursive = %d",
@@ -307,7 +315,7 @@ int main(int argc, char ** argv)
 				for (i=optind; i < argc; i++) {
 					char *realname = getrealfn(argv[i]);
 					csync_check_usefullness(realname, recursive);
-					csync_check(realname, recursive);
+					csync_check(realname, recursive, init_run);
 				}
 			}
 			break;
@@ -397,7 +405,7 @@ int main(int argc, char ** argv)
 			break;
 
 		case MODE_TEST_SYNC:
-			if ( csync_insynctest(argv[optind], argv[optind+1]) )
+			if ( csync_insynctest(argv[optind], argv[optind+1], init_run) )
 				retval = 2;
 			break;
 
