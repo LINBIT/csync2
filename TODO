@@ -1,0 +1,6 @@
+Eventually improve config file format.
+Add SQL transactions to avoid races.
+Testing all types of non-regular files.
+Optimize repeated checks in daemon code.
+Add compare-mode to check if hosts are in sync.
+Add filename-parameters to -c and -u.
