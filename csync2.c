@@ -33,6 +33,7 @@ static char *file_database = "/var/lib/csync2";
 static char *file_config = "/etc/csync2.cfg";
 
 char myhostname[256] = "";
+char *active_grouplist = 0;
 
 extern int yyparse();
 extern FILE *yyin;
@@ -110,6 +111,9 @@ void help(char *cmd)
 "		You usually don't need this option unless you are\n"
 "		initializing groups with really large file lists.\n"
 "\n"
+"	-G Group1,Group2,Group3,...\n"
+"		Only use this groups from config-file.\n"
+"\n"
 "Creating key file:\n"
 "	%s -k filename\n"
 "\n",
@@ -148,7 +152,6 @@ int main(int argc, char ** argv)
 {
 	struct textlist *tl = 0, *t;
 	int mode = MODE_NONE;
-	int block_trans = 1;
 	int init_run = 0;
 	int recursive = 0;
 	int retval = -1;
@@ -161,10 +164,13 @@ int main(int argc, char ** argv)
 		return create_keyfile(argv[2]);
 	}
 
-	while ( (opt = getopt(argc, argv, "C:D:N:HBILSTMvhcuimfxrd")) != -1 ) {
+	while ( (opt = getopt(argc, argv, "G:C:D:N:HBILSTMvhcuimfxrd")) != -1 ) {
 		switch (opt) {
+			case 'G':
+				active_grouplist = optarg;
+				break;
 			case 'B':
-				block_trans = 0;
+				db_blocking_mode = 0;
 				break;
 			case 'I':
 				init_run = 1;
@@ -269,7 +275,6 @@ int main(int argc, char ** argv)
 	yyparse();
 
 	csync_db_open(file_database);
-	if (block_trans) SQL("Transaction start", "BEGIN TRANSACTION");
 
 	switch (mode) {
 		case MODE_SIMPLE:
@@ -432,7 +437,6 @@ int main(int argc, char ** argv)
 	}
 
 	csync_run_commands();
-	if (block_trans) SQL("Transaction end", "COMMIT TRANSACTION");
 	csync_db_close();
 	csync_debug(csync_error_count != 0 ? 0 : 1,
 			"Finished with %d errors.\n", csync_error_count);

@@ -91,6 +91,8 @@ extern void csync_db_fin(void *vmx, const char *err);
 	csync_db_fin(SQL_VM, SQL_ERR); \
 }
 
+extern int db_blocking_mode;
+
 
 /* rsync.c */
 
@@ -223,7 +225,7 @@ struct csync_group {
 	struct csync_group_host *host;
 	struct csync_group_pattern *pattern;
 	struct csync_group_action *action;
-	const char *key, *myname;
+	const char *key, *myname, *gname;
 };
 
 
@@ -236,6 +238,7 @@ extern int csync_debug_level;
 extern FILE *csync_debug_out;
 
 extern char myhostname[];
+extern char *active_grouplist;
 
 
 #endif /* CSYNC2_H */

@@ -35,11 +35,17 @@ void yyerror(char *text)
 	csync_fatal("Near line %d: %s\n", yylineno, text);
 }
 
-static void new_group()
+static void new_group(char * name)
 {
+	int static autonum = 1;
 	struct csync_group *t =
 		calloc(sizeof(struct csync_group), 1);
+
+	if (name == 0)
+		asprintf(&name, "group_%d", autonum++);
+
 	t->next = csync_group;
+	t->gname = name;
 	csync_group = t;
 }
 
@@ -125,12 +131,30 @@ static void check_group()
 			t = next;
 		}
 	}
+	if (active_grouplist && csync_group->myname)
+	{
+		int i=0, gnamelen = strlen(csync_group->gname);
+
+		while (active_grouplist[i])
+		{
+			if ( !strncmp(active_grouplist+i, csync_group->gname, gnamelen) &&
+			     (active_grouplist[i+gnamelen] == ',' || !active_grouplist[i+gnamelen]) )
+				goto found_asactive;
+			while (active_grouplist[i])
+				if (active_grouplist[i++]==',') break;
+		}
+
+		csync_group->myname = 0;
+found_asactive:	;
+	}
 
 	/* dump config for debugging */
 	if ( csync_debug_level >= 2 ) {
 		struct csync_group_host *h = csync_group->host;
 		struct csync_group_pattern *p = csync_group->pattern;
-		csync_debug(2, "group {\n\tkey\tkeyfile;\n");
+		csync_debug(2, "group %s {\n", csync_group->gname);
+		if ( csync_group->myname )
+			csync_debug(2, "# I'm member of this group.\n");
 		while (h) {
 			csync_debug(2, "\thost\twhocares@%s;\n",
 				h->hostname);
@@ -145,7 +169,7 @@ static void check_group()
 				p->pattern);
 			p = p->next;
 		}
-		csync_debug(2, "}\n");
+		csync_debug(2, "\tkey\tkeyfile;\n}\n");
 	}
 }
 
@@ -207,7 +231,8 @@ config_block:	config_block_header config_block_body
 		;
 		
 config_block_header:
-		TK_GROUP		{ new_group(); }
+		TK_GROUP		{ new_group(0);  }
+	|	TK_GROUP TK_STRING	{ new_group($2); }
 		;
 
 config_block_body:

@@ -24,8 +24,36 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <time.h>
 
+int db_blocking_mode = 1;
 static sqlite * db = 0;
+
+void csync_db_maycommit()
+{
+	static time_t lastcommit = 0;
+	static int commitcount = 0;
+	static int recursion = 0;
+	time_t now;
+
+	if ( !db_blocking_mode || recursion ) return;
+	recursion++;
+
+	now = time(0);
+	if ( !lastcommit ) lastcommit = now;
+
+	if ( now-lastcommit >= 10 || commitcount++ >= 1000 ) {
+		csync_debug(2, "Commiting current transaction (time=%d, count=%d).\n",
+				(int)(now-lastcommit), commitcount-1);
+		SQL("COMMIT TRANSACTION", "COMMIT TRANSACTION");
+		SQL("BEGIN TRANSACTION", "BEGIN TRANSACTION");
+		commitcount = 0;
+	}
+
+	lastcommit = now;
+
+	recursion--;
+}
 
 void csync_db_open(const char * file)
 {
@@ -58,10 +86,15 @@ void csync_db_open(const char * file)
 		"	UNIQUE ( filename, command ) ON CONFLICT IGNORE"
 		")",
 		0, 0, 0);
+
+	if (db_blocking_mode)
+		SQL("BEGIN TRANSACTION", "BEGIN TRANSACTION");
 }
 
 void csync_db_close()
 {
+	if (db_blocking_mode)
+		SQL("COMMIT TRANSACTION", "COMMIT TRANSACTION");
 	sqlite_close(db);
 	db = 0;
 }
@@ -88,6 +121,8 @@ void csync_db_sql(const char *err, const char *fmt, ...)
 	if ( rc != SQLITE_OK && err )
 		csync_fatal("Database Error: %s [%d]:\n%s\n", err, rc, sql);
 	free(sql);
+
+	csync_db_maycommit();
 }
 
 void* csync_db_begin(const char *err, const char *fmt, ...)
@@ -123,7 +158,7 @@ int csync_db_next(void *vmx, const char *err,
 	sqlite_vm *vm = vmx;
 	int rc;
 	
-	csync_debug(2, "Trying to fetch a row from the database.\n");
+	csync_debug(4, "Trying to fetch a row from the database.\n");
 
 	while (1) {
 		rc = sqlite_step(vm, pN, pazValue, pazColName);
@@ -155,5 +190,7 @@ void csync_db_fin(void *vmx, const char *err)
 
 	if ( rc != SQLITE_OK && err )
 		csync_fatal("Database Error: %s [%d].\n", err, rc);
+
+	csync_db_maycommit();
 }
 
