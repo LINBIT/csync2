@@ -51,5 +51,19 @@ kind of patterns: pathname-patterns starting with a slash character and
 basename patterns which do not.
 
 The last matching pattern for each of both categories is choosen. If
-both cathegories match, the file will be synchonized.
+both categories match, the file will be synchonized.
+
+
+The database backend
+====================
+
+Sometimes it is neccessary to connect to the database backend; e.g. if
+you changed your config and want to flush now obsolate entries from the
+backend database. You need the sqlite command-line tool to open the
+database:
+
+	# sqlite /var/lib/csync2/$HOSTNAME.db
+
+This opens up an SQL shell where you can access the database using
+standard SQL queries.
 
