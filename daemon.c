@@ -228,7 +228,7 @@ void csync_daemon_session()
 
 					conn_printf("OK (data_follows).\n");
 					while ( (rc=fread(buffer, 1, 512, f)) > 0 )
-						if ( conn_write(buffer, rc) != 1 ) {
+						if ( conn_write(buffer, rc) != rc ) {
 							conn_printf("[[ %s ]]", strerror(errno));
 							break;
 						}

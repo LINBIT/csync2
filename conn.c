@@ -141,6 +141,22 @@ int conn_close()
 	return 0;
 }
 
+static inline READ(void *buf, size_t count)
+{
+	if (conn_usessl)
+		return SSL_read(conn_ssl, buf, count);
+	else
+		return read(conn_fd_in, buf, count);
+}
+
+static inline WRITE(const void *buf, size_t count)
+{
+	if (conn_usessl)
+		return SSL_write(conn_ssl, buf, count);
+	else
+		return write(conn_fd_out, buf, count);
+}
+
 int conn_raw_read(void *buf, size_t count)
 {
 	static char buffer[512];
@@ -148,10 +164,10 @@ int conn_raw_read(void *buf, size_t count)
 
 	if ( buf_start == buf_end ) {
 		if (count > 128)
-			return read(conn_fd_in, buf, count);
+			return READ(buf, count);
 		else {
 			buf_start = 0;
-			buf_end = read(conn_fd_in, buffer, 512);
+			buf_end = READ(buffer, 512);
 			if (buf_end < 0) { buf_end=0; return -1; }
 		}
 	}
@@ -208,7 +224,7 @@ int conn_read(void *buf, size_t count)
 int conn_write(const void *buf, size_t count)
 {
 	conn_debug("Local", buf, count);
-	return write(conn_fd_out, buf, count);
+	return WRITE(buf, count);
 }
 
 void conn_printf(const char *fmt, ...)

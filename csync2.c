@@ -305,7 +305,7 @@ int main(int argc, char ** argv)
 		cmd = strtok(line, "\t \r\n");
 		para = cmd ? strtok(0, "\t \r\n") : 0;
 
-		if (!strcasecmp(cmd, "ssl")) {
+		if (cmd && !strcasecmp(cmd, "ssl")) {
 			conn_printf("OK (activating_ssl).\n");
 			conn_activate_ssl(1);
 			/* FIXME: Do certificate checking, etc. */
@@ -315,7 +315,7 @@ int main(int argc, char ** argv)
 			para = cmd ? strtok(0, "\t \r\n") : 0;
 		}
 
-		if (strcasecmp(cmd, "config")) {
+		if (!cmd || strcasecmp(cmd, "config")) {
 			conn_printf("Expecting SSL (optional) and CONFIG as first commands.\n");
 			return 0;
 		}
