@@ -242,6 +242,8 @@ extern char myhostname[];
 extern char *active_grouplist;
 extern char *active_peerlist;
 
+extern char *cfgname;
+
 
 #endif /* CSYNC2_H */
 

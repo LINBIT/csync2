@@ -94,6 +94,13 @@ FILE *connect_to_host(const char *peername)
 
 	fp = fdopen(s, "r+");
 
+	connprintf(fp, "CONFIG %s\n", url_encode(cfgname));
+	if ( read_conn_status(fp, 0, peername) ) {
+		csync_debug(1, "Config command failed.\n");
+		fclose(fp);
+		return 0;
+	}
+
 	if (active_grouplist) {
 		connprintf(fp, "GROUP %s\n", url_encode(active_grouplist));
 		if ( read_conn_status(fp, 0, peername) ) {

@@ -29,8 +29,10 @@
 #include <assert.h>
 #include <errno.h>
 
-static char *file_database = "/var/lib/csync2";
-static char *file_config = "/etc/csync2.cfg";
+static char *file_database = 0;
+static char *file_config = 0;
+static char *dbdir = "/var/lib/csync2";
+char *cfgname = "";
 
 char myhostname[256] = "";
 char *active_grouplist = 0;
@@ -69,7 +71,7 @@ void help(char *cmd)
 "Copyright (C) 2004  Clifford Wolf <clifford@clifford.at>\n"
 "This program is free software under the terms of the GNU GPL.\n"
 "\n"
-"Usage: %s [-v..] [-C config-file] [-D database-dir] [-N hostname] ..\n"
+"Usage: %s [-v..] [-C config-name] [-D database-dir] [-N hostname] ..\n"
 "\n"
 "With file parameters:\n"
 "	-h [-r] file..		Add (recursive) hints for check to db\n"
@@ -191,10 +193,10 @@ int main(int argc, char ** argv)
 				init_run = 1;
 				break;
 			case 'C':
-				file_config = optarg;
+				cfgname = optarg;
 				break;
 			case 'D':
-				file_database = optarg;
+				dbdir = optarg;
 				break;
 			case 'N':
 				snprintf(myhostname, 256, "%s", optarg);
@@ -283,11 +285,46 @@ int main(int argc, char ** argv)
 		myhostname[255] = 0;
 	}
 
-	asprintf(&file_database, "%s/%s.db", file_database, myhostname);
+	/* In inetd mode we need to read the module name from the peer
+	 * before we open the config file and database
+	 */
+	if ( mode == MODE_INETD ) {
+		char line[4096], *cmd, *para;
+
+		if ( !fgets(line, 4096, stdin) ) return 0;
+		cmd = strtok(line, "\t \r\n");
+		para = cmd ? strtok(0, "\t \r\n") : 0;
+
+		if (strcasecmp(cmd, "config")) {
+			printf("Expect CONFIG as first command.\n");
+			return 0;
+		}
+
+		if (para)
+			cfgname = strdup(url_decode(para));
+	}
+
+	if ( !*cfgname ) {
+		asprintf(&file_database, "%s/%s.db", dbdir, myhostname);
+		asprintf(&file_config, "/etc/csync2.cfg");
+	} else {
+		int i;
+
+		for (i=0; cfgname[i]; i++)
+			if ( !(cfgname[i] >= '0' && cfgname[i] <= '9') &&
+			     !(cfgname[i] >= 'a' && cfgname[i] <= 'z') ) {
+				fprintf( mode == MODE_INETD ? stdout : stderr,
+						"Config names are limited to [a-z0-9]+.\n");
+				return mode != MODE_INETD;
+			}
+
+		asprintf(&file_database, "%s/%s_%s.db", dbdir, myhostname, cfgname);
+		asprintf(&file_config, "/etc/csync2_%s.cfg", cfgname);
+	}
 
 	csync_debug(2, "My hostname is %s.\n", myhostname);
-	csync_debug(2, "Config-File:   %s\n", file_config);
 	csync_debug(2, "Database-File: %s\n", file_database);
+	csync_debug(2, "Config-File:   %s\n", file_config);
 
 	yyin = fopen(file_config, "r");
 	if ( !yyin ) csync_fatal("Can't open config file.\n");
@@ -373,6 +410,7 @@ int main(int argc, char ** argv)
 			break;
 
 		case MODE_INETD:
+			printf("OK (cmd_finished).\n"); fflush(stdout);
 			csync_daemon_session(stdin, stdout);
 			break;
 

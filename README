@@ -127,6 +127,10 @@ file. This will check the database and remove the old entries which are not
 matched by the config file anymore. Without that, those database entries would
 ligger around forever.
 
+It is also possible to have multiple configurations in parallel. A configuration
+named 'foobar' may be stored in /etc/csync2_foobar.cfg and is used whenever csync2
+is called with the option "-C foobar".
+
 
 The synchronization method
 ==========================
