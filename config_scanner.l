@@ -22,15 +22,12 @@
 #include "y.tab.h"
 #include <string.h>
 
-/* yyunput() is unused */
-#define YY_NO_UNPUT
-
 #define MAX_INCLUDE_DEPTH 10
 YY_BUFFER_STATE include_stack[MAX_INCLUDE_DEPTH];
 int include_stack_ptr = 0;
 %}
 
-%option noyywrap
+%option noyywrap yylineno
 %x STRING INCL
 
 %%
@@ -44,6 +41,11 @@ int include_stack_ptr = 0;
 "exclude"	{ return TK_EXCL; }
 "include"	{ return TK_INCL; }
 "key"		{ return TK_KEY; }
+
+"action"	{ return TK_ACTION; }
+"pattern"	{ return TK_PATTERN; }
+"exec"		{ return TK_EXEC; }
+"do-local"	{ return TK_DOLOCAL; }
 
 "config"	BEGIN(INCL);
 <INCL>[ \t]*	/* eat the whitespaces */

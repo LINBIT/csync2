@@ -28,10 +28,11 @@ struct csync_group *csync_group = 0;
 
 extern void yyerror(char* text);
 extern int yylex();
+extern int yylineno;
 
 void yyerror(char *text)
 {
-	csync_fatal("Parse error: %s\n", text);
+	csync_fatal("Near line %d: %s\n", yylineno, text);
 }
 
 static void new_group()
@@ -148,6 +149,22 @@ static void check_group()
 	}
 }
 
+static void new_action()
+{
+}
+
+static void add_action_pattern(const char *pattern)
+{
+}
+
+static void add_action_exec(const char *command)
+{
+}
+
+static void set_action_dolocal()
+{
+}
+
 %}
 
 %union {
@@ -156,6 +173,7 @@ static void check_group()
 
 %token TK_BLOCK_BEGIN TK_BLOCK_END TK_STEND TK_AT
 %token TK_GROUP TK_HOST TK_EXCL TK_INCL TK_KEY
+%token TK_ACTION TK_PATTERN TK_EXEC TK_DOLOCAL
 %token <txt> TK_STRING
 
 %%
@@ -178,6 +196,7 @@ config_block_body:
 
 config_stmts:	/* empty */
 	|	config_stmt TK_STEND config_stmts
+	|	config_action config_stmts
 		;
 
 config_stmt:	TK_HOST host_list
@@ -199,4 +218,28 @@ excl_list:	/* empty */
 incl_list:	/* empty */
 	|	incl_list TK_STRING	{ add_patt(1, $2); }
 		;
+
+config_action:	TK_ACTION		{ new_action(); }
+		TK_BLOCK_BEGIN config_action_stmts TK_BLOCK_END
+		;
+
+		
+config_action_stmts:
+		/* empty */
+	|	config_action_stmt TK_STEND config_action_stmts
+		;
+
+config_action_stmt:
+		TK_PATTERN pattern_list
+	|	TK_EXEC exec_list
+	|	TK_DOLOCAL		{ set_action_dolocal(); }
+		;
+
+pattern_list:	/* empty */
+	|	pattern_list TK_STRING	{ add_action_pattern($2); }
+	;
+
+exec_list:	/* empty */
+	|	exec_list TK_STRING	{ add_action_exec($2); }
+	;
 
