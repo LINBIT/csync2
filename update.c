@@ -477,6 +477,52 @@ found_asactive:
 	textlist_free(tl);
 }
 
+int csync_diff(const char *myname, const char *peername, const char *filename)
+{
+	FILE *conn, *p;
+	const struct csync_group *g = 0;
+	const struct csync_group_host *h;
+	char buffer[512];
+	size_t rc;
+
+	while ( (g=csync_find_next(g, filename)) ) {
+		if ( !g->myname || strcmp(g->myname, myname) ) continue;
+		for (h = g->host; h; h = h->next)
+			if (!strcmp(h->hostname, peername)) goto found_host_check;
+	}
+	csync_debug(0, "Host pair + file not found in configuration.\n");
+	csync_error_count++;
+	return 0;
+found_host_check:
+
+	if ( (conn = connect_to_host(peername)) == 0 ) {
+		csync_error_count++;
+		csync_debug(0, "ERROR: Connection to remote host failed.\n");
+		return 0;
+	}
+
+	connprintf(conn, "HELLO %s\n", myname);
+	if ( read_conn_status(conn, 0, peername) ) goto finish;
+
+	connprintf(conn, "TYPE %s %s\n", g->key, filename);
+	if ( read_conn_status(conn, 0, peername) ) goto finish;
+
+	printf("--- %s:%s\n+++ %s:%s\n", peername, filename, myname, filename);
+	fflush(stdout);
+
+	snprintf(buffer, 512, "diff -u - '%s' | tail +3", filename);
+	p = popen(buffer, "w");
+
+	while ( (rc=fread(buffer, 1, 512, conn)) > 0 )
+		fwrite(buffer, rc, 1, p);
+
+	fclose(p);
+
+finish:
+	fclose(conn);
+	return 0;
+}
+
 int csync_insynctest_readline(FILE *conn, char **file, char **checktxt)
 {
 	char inbuf[2048], *tmp;
@@ -539,8 +585,6 @@ found_host_check:
 	if ( (conn = connect_to_host(peername)) == 0 ) {
 		csync_error_count++;
 		csync_debug(0, "ERROR: Connection to remote host failed.\n");
-		csync_debug(1, "Host stays in dirty state. "
-				"Try again later...\n");
 		return 0;
 	}
 
@@ -609,6 +653,49 @@ got_remote_eof:
 	connprintf(conn, "BYE\n");
 	read_conn_status(conn, 0, peername);
 	fclose(conn);
+
+	return ret;
+}
+
+int csync_insynctest_all(int init_run)
+{
+	struct textlist *myname_list = 0, *myname;
+	struct csync_group *g;
+	int ret = 1;
+
+	for (g = csync_group; g; g = g->next) {
+		if ( !g->myname ) continue;
+		for (myname=myname_list; myname; myname=myname->next)
+			if ( !strcmp(g->myname, myname->value) ) goto skip_this_myname;
+		textlist_add(&myname_list, g->myname, 0);
+skip_this_myname: ;
+	}
+
+	for (myname=myname_list; myname; myname=myname->next)
+	{
+		struct textlist *peername_list = 0, *peername;
+		struct csync_group_host *h;
+
+		for (g = csync_group; g; g = g->next) {
+			if ( !g->myname || strcmp(myname->value, g->myname) ) continue;
+
+			for (h=g->host; h; h=h->next) {
+				for (peername=peername_list; peername; peername=peername->next)
+					if ( !strcmp(h->hostname, peername->value) ) goto skip_this_peername;
+				textlist_add(&peername_list, h->hostname, 0);
+skip_this_peername:		;
+			}
+		}
+
+		for (peername=peername_list; peername; peername=peername->next) {
+			csync_debug(1, "Running in-sync check for %s <-> %s.\n", myname->value, peername->value);
+			if ( !csync_insynctest(myname->value, peername->value, init_run) ) ret=0;
+		}
+
+		textlist_free(peername_list);
+	}
+
+	textlist_free(myname_list);
 
 	return ret;
 }

@@ -94,7 +94,7 @@ struct csync_command {
 };
 
 enum {
-	A_SIG, A_FLUSH, A_MARK, A_DEL, A_PATCH,
+	A_SIG, A_FLUSH, A_MARK, A_TYPE, A_DEL, A_PATCH,
 	A_MKDIR, A_MKCHR, A_MKBLK, A_MKFIFO, A_MKLINK, A_MKSOCK,
 	A_SETOWN, A_SETMOD, A_SETIME, A_LIST, A_GROUP,
 	A_DEBUG, A_HELLO, A_BYE
@@ -104,6 +104,7 @@ struct csync_command cmdtab[] = {
 	{ "sig",	1, 0, 0, 0, 1, A_SIG	},
 	{ "flush",	1, 0, 0, 0, 1, A_FLUSH	},
 	{ "mark",	1, 0, 0, 0, 1, A_MARK	},
+	{ "type",	1, 0, 0, 0, 1, A_TYPE	},
 	{ "del",	1, 1, 0, 1, 1, A_DEL	},
 	{ "patch",	1, 1, 2, 1, 1, A_PATCH	},
 	{ "mkdir",	1, 1, 1, 1, 1, A_MKDIR	},
@@ -217,6 +218,27 @@ void csync_daemon_session(FILE * in, FILE * out)
 			break;
 		case A_MARK:
 			csync_mark(tag[2], peer);
+			break;
+		case A_TYPE:
+			{
+				FILE *f = fopen(tag[2], "r");
+
+				if (f) {
+					char buffer[512];
+					size_t rc;
+
+					fprintf(out, "OK (data_follows).\n");
+					while ( (rc=fread(buffer, 1, 512, f)) > 0 )
+						if ( fwrite(buffer, rc, 1, out) != 1 ) {
+							fprintf(out, "[[ %s ]]", strerror(errno));
+							break;
+						}
+					fflush(out);
+					fclose(f);
+					return;
+				}
+				cmd_error = strerror(errno);
+			}
 			break;
 		case A_DEL:
 			csync_unlink(tag[2], 0);
