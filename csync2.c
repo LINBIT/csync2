@@ -59,23 +59,27 @@ void help(char *cmd)
 "With file parameters:\n"
 "	-h [-r] file..		Add (recursive) hints for check to db\n"
 "	-c [-r] file..		Check files and maybe add to dirty db\n"
-"	-u [-r] file..		Updates files if listed in dirty db\n"
+"	-u [-d] [-r] file..		Updates files if listed in dirty db\n"
 "	-f file..		Force this file in sync (resolve conflict)\n"
 "	-m file..		Mark files in database as dirty\n"
 "\n"
 "Simple mode:\n"
-"	-x [[-r] file..]	Run checks for all given files and update\n"
+"	-x [-d] [[-r] file..]	Run checks for all given files and update\n"
 "				remote hosts.\n"
 "\n"
 "Without file parameters:\n"
 "	-c	Check all hints in db and eventually mark files as dirty\n"
-"	-u	Update (transfer dirty files to peers and mark as clear)\n"
+"	-u [-d]	Update (transfer dirty files to peers and mark as clear)\n"
 "\n"
 "	-H	List all pending hints from status db\n"
 "	-L	List all file-entries from status db\n"
 "	-M	List all dirty files from status db\n"
 "\n"
 "	-i	Run in inetd server mode.\n"
+"\n"
+"Modifiers:\n"
+"	-r	Recursive operation over subdirectories\n"
+"	-d	Dry-run on all remote update operations\n"
 "\n",
 		cmd);
 	exit(1);
@@ -86,11 +90,12 @@ int main(int argc, char ** argv)
 	struct textlist *tl = 0, *t;
 	int mode = MODE_NONE;
 	int recursive = 0;
+	int dry_run = 0;
 	int opt, i;
 
 	csync_debug_out = stderr;
 
-	while ( (opt = getopt(argc, argv, "C:D:N:HLMvhcuimrfx")) != -1 ) {
+	while ( (opt = getopt(argc, argv, "C:D:N:HLMvhcuimfxrd")) != -1 ) {
 		switch (opt) {
 			case 'C':
 				file_config = optarg;
@@ -147,6 +152,9 @@ int main(int argc, char ** argv)
 			case 'r':
 				recursive = 1;
 				break;
+			case 'd':
+				dry_run = 1;
+				break;
 			default:
 				help(argv[0]);
 		}
@@ -182,7 +190,7 @@ int main(int argc, char ** argv)
 			if ( argc == optind )
 			{
 				csync_check("/", 1);
-				csync_update(0, 0, 0);
+				csync_update(0, 0, 0, dry_run);
 			}
 			else
 			{
@@ -191,7 +199,7 @@ int main(int argc, char ** argv)
 					realnames[i-optind] = strdup(getrealfn(argv[i]));
 					csync_check(realnames[i-optind], recursive);
 				}
-				csync_update(realnames, argc-optind, recursive);
+				csync_update(realnames, argc-optind, recursive, dry_run);
 				for (i=optind; i < argc; i++)
 					free(realnames[i-optind]);
 			}
@@ -232,14 +240,14 @@ int main(int argc, char ** argv)
 		case MODE_UPDATE:
 			if ( argc == optind )
 			{
-				csync_update(0, 0, 0);
+				csync_update(0, 0, 0, dry_run);
 			}
 			else
 			{
 				char *realnames[argc-optind];
 				for (i=optind; i < argc; i++)
 					realnames[i-optind] = strdup(getrealfn(argv[i]));
-				csync_update(realnames, argc-optind, recursive);
+				csync_update(realnames, argc-optind, recursive, dry_run);
 				for (i=optind; i < argc; i++)
 					free(realnames[i-optind]);
 			}

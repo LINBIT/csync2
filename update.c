@@ -95,7 +95,7 @@ FILE *connect_to_host(const char *peername)
 }
 
 void csync_update_file_del(const char *peername,
-		const char *filename, int force, FILE *conn)
+		const char *filename, int force, FILE *conn, int dry_run)
 {
 	const char * key = csync_key(peername, filename);
 
@@ -106,6 +106,11 @@ void csync_update_file_del(const char *peername,
 				filename, peername);
 		csync_error_count++;
 		goto got_error;
+	}
+
+	if ( dry_run ) {
+		printf("%cD: %-15s %s\n", force ? '!' : '?', peername, filename);
+		return;
 	}
 
 	if ( force ) {
@@ -128,7 +133,7 @@ got_error:
 }
 
 void csync_update_file_mod(const char *peername,
-		const char *filename, int force, FILE *conn)
+		const char *filename, int force, FILE *conn, int dry_run)
 {
 	struct stat st;
 	const char * key = csync_key(peername, filename);
@@ -149,6 +154,10 @@ void csync_update_file_mod(const char *peername,
 	}
 
 	if ( force ) {
+		if ( dry_run ) {
+			printf("!M: %-15s %s\n", peername, filename);
+			return;
+		}
 		connprintf(conn, "FLUSH %s %s\n",
 				url_encode(key), url_encode(filename));
 		if ( read_conn_status(conn, filename, peername) )
@@ -172,7 +181,15 @@ void csync_update_file_mod(const char *peername,
 
 		if ( !found_diff ) {
 			csync_debug(1, "File is already up to date on peer.\n");
+			if ( dry_run ) {
+				printf("?S: %-15s %s\n", peername, filename);
+				return;
+			}
 			goto skip_action;
+		}
+		if ( dry_run ) {
+			printf("?M: %-15s %s\n", peername, filename);
+			return;
 		}
 	}
 
@@ -270,7 +287,7 @@ int compare_files(const char *filename, const char *pattern, int recursive)
 }
 
 void csync_update_host(const char *peername,
-		const char **patlist, int patnum, int recursive)
+		const char **patlist, int patnum, int recursive, int dry_run)
 {
 	struct textlist *tl = 0, *t, *next_t;
 	struct textlist *tl_mod = 0, **last_tn=&tl;
@@ -330,7 +347,7 @@ void csync_update_host(const char *peername,
 				current_name = t->value2;
 			}
 			csync_update_file_del(peername,
-					t->value, t->intvalue, conn);
+					t->value, t->intvalue, conn, dry_run);
 ident_failed_1:
 			last_tn=&(t->next);
 		}
@@ -344,7 +361,7 @@ ident_failed_1:
 			current_name = t->value2;
 		}
 		csync_update_file_mod(peername,
-				t->value, t->intvalue, conn);
+				t->value, t->intvalue, conn, dry_run);
 ident_failed_2:
 	}
 
@@ -356,7 +373,7 @@ ident_failed_2:
 	fclose(conn);
 }
 
-void csync_update(const char ** patlist, int patnum, int recursive)
+void csync_update(const char ** patlist, int patnum, int recursive, int dry_run)
 {
 	struct textlist *tl = 0, *t;
 
@@ -367,7 +384,7 @@ void csync_update(const char ** patlist, int patnum, int recursive)
 	} SQL_END;
 
 	for (t = tl; t != 0; t = t->next)
-		csync_update_host(t->value, patlist, patnum, recursive);
+		csync_update_host(t->value, patlist, patnum, recursive, dry_run);
 
 	textlist_free(tl);
 }

@@ -106,7 +106,7 @@ extern void csync_mark(const char *file);
 
 /* update.c */
 
-extern void csync_update(const char **patlist, int patnum, int recursive);
+extern void csync_update(const char **patlist, int patnum, int recursive, int dry_run);
 
 
 /* daemon.c */
