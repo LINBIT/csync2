@@ -303,7 +303,7 @@ int compare_files(const char *filename, const char *pattern, int recursive)
 	int i;
 	for (i=0; filename[i] && pattern[i]; i++)
 		if (filename[i] != pattern[i]) return 0;
-	if ( filename[i] == '\n' && !pattern[i] && recursive) return 1;
+	if ( filename[i] == '/' && !pattern[i] && recursive) return 1;
 	if ( !filename[i] && !pattern[i]) return 1;
 	return 0;
 }
