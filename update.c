@@ -545,3 +545,34 @@ got_remote_eof:
 	return ret;
 }
 
+void csync_remove_old()
+{
+	struct textlist *tl = 0, *t;
+
+	SQL_BEGIN("Query dirty DB",
+	          "SELECT filename FROM dirty GROUP BY filename")
+	{
+		if (!csync_find_next(0, url_decode(SQL_V[0])))
+			textlist_add(&tl, SQL_V[0], 0);
+	} SQL_END;
+	for (t = tl; t != 0; t = t->next) {
+		csync_debug(1, "Removing %s from file db.\n", t->value);
+		SQL("Remove old file from dirty db",
+		    "DELETE FROM dirty WHERE filename = '%s'", t->value);
+	}
+	textlist_free(tl);
+
+	SQL_BEGIN("Query file DB",
+	          "SELECT filename FROM file GROUP BY filename")
+	{
+		if (!csync_find_next(0, url_decode(SQL_V[0])))
+			textlist_add(&tl, SQL_V[0], 0);
+	} SQL_END;
+	for (t = tl; t != 0; t = t->next) {
+		csync_debug(1, "Removing %s from file db.\n", t->value);
+		SQL("Remove old file from file db",
+		    "DELETE FROM file WHERE filename = '%s'", t->value);
+	}
+	textlist_free(tl);
+}
+

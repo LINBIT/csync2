@@ -119,6 +119,7 @@ extern void csync_mark(const char *file, const char *thispeer);
 
 extern void csync_update(const char **patlist, int patnum, int recursive, int dry_run);
 extern int csync_insynctest(const char *myname, const char *peername, int init_run);
+extern void csync_remove_old();
 
 
 /* daemon.c */

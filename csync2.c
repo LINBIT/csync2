@@ -55,6 +55,7 @@ enum {
 	MODE_LIST_SYNC,
 	MODE_TEST_SYNC,
 	MODE_LIST_DIRTY,
+	MODE_REMOVE_OLD,
 	MODE_SIMPLE
 };
 
@@ -97,6 +98,8 @@ void help(char *cmd)
 "	The mode -T returns 2 if both hosts are in sync.\n"
 "\n"
 "	-i	Run in inetd server mode.\n"
+"\n"
+"	-R	Remove files from database which don't match config entries.\n"
 "\n"
 "Modifiers:\n"
 "	-r	Recursive operation over subdirectories\n"
@@ -164,7 +167,7 @@ int main(int argc, char ** argv)
 		return create_keyfile(argv[2]);
 	}
 
-	while ( (opt = getopt(argc, argv, "G:C:D:N:HBILSTMvhcuimfxrd")) != -1 ) {
+	while ( (opt = getopt(argc, argv, "G:C:D:N:HBILSTMRvhcuimfxrd")) != -1 ) {
 		switch (opt) {
 			case 'G':
 				active_grouplist = optarg;
@@ -234,6 +237,10 @@ int main(int argc, char ** argv)
 			case 'M':
 				if ( mode != MODE_NONE ) help(argv[0]);
 				mode = MODE_LIST_DIRTY;
+				break;
+			case 'R':
+				if ( mode != MODE_NONE ) help(argv[0]);
+				mode = MODE_REMOVE_OLD;
 				break;
 			case 'r':
 				recursive = 1;
@@ -433,6 +440,10 @@ int main(int argc, char ** argv)
 						url_decode(SQL_V[1]), url_decode(SQL_V[2]), url_decode(SQL_V[3]));
 				retval = -1;
 			} SQL_END;
+			break;
+
+		case MODE_REMOVE_OLD:
+			csync_remove_old();
 			break;
 	}
 
