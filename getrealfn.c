@@ -25,6 +25,18 @@
 #include <unistd.h>
 #include <assert.h>
 
+static char *my_get_current_dir_name()
+{
+#ifdef __CYGWIN__
+	char *r = malloc(1024);
+	if (!getcwd(r, 1024))
+		strcpy(r, "/__PATH_TO_LONG__");
+	return r;
+#else
+	return get_current_dir_name();
+#endif
+}
+
 /*
  * glibc's realpath() is broken - so don't use it!
  */
@@ -40,7 +52,7 @@ char *getrealfn(const char *filename)
 
 	/* make the path absolute */
 	if ( *tempfn != '/' ) {
-		char *t2, *t1 = get_current_dir_name();
+		char *t2, *t1 = my_get_current_dir_name();
 		asprintf(&t2, "%s/%s", t1, tempfn);
 		free(t1); free(tempfn); tempfn = t2;
 	}
@@ -92,9 +104,9 @@ char *getrealfn(const char *filename)
 
 	/* ok - this might be ugly, but who cares .. */
 	{
-		char *oldpwd = get_current_dir_name();
+		char *oldpwd = my_get_current_dir_name();
 		if ( !chdir(tempfn) ) {
-			char *t2, *t1 = get_current_dir_name();
+			char *t2, *t1 = my_get_current_dir_name();
 			if ( st_mark ) {
 				asprintf(&t2, "%s/%s", t1, st_mark+1);
 				free(tempfn); free(t1); tempfn = t2;
