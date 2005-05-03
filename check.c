@@ -60,6 +60,13 @@ void csync_mark(const char *file, const char *thispeer)
 /* return 0 if path does not contain any symlinks */
 int csync_check_pure(const char *filename)
 {
+#ifdef __CYGWIN__
+	// For some reason or another does this function __kills__
+	// the performance when using large directories with cygwin.
+	// And there are no symlinks in windows anyways..
+	return 0;
+#else
+
 	struct stat sbuf;
 	int i=0;
 
@@ -75,6 +82,7 @@ int csync_check_pure(const char *filename)
 			if ( lstat(myfilename, &sbuf) || S_ISLNK(sbuf.st_mode) ) return 1;
 		}
 	}
+#endif
 }
 
 void csync_check_del(const char *file, int recursive, int init_run)
