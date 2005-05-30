@@ -7,7 +7,25 @@ csync2_SOURCES = action.c cfgfile_parser.y cfgfile_scanner.l check.c	\
 
 AM_YFLAGS = -d
 BUILT_SOURCES = cfgfile_parser.h
-CLEANFILES = cfgfile_parser.c cfgfile_parser.h cfgfile_scanner.c
+CLEANFILES = cfgfile_parser.c cfgfile_parser.h cfgfile_scanner.c \
+             private_librsync private_libsqlite
+
+AM_CFLAGS=
+AM_LDFLAGS=
+
+if PRIVATE_LIBRSYNC
+  BUILT_SOURCES += private_librsync
+  AM_CFLAGS += -I$(shell test -f librsync.dir && cat librsync.dir || echo ==librsync==)
+  AM_LDFLAGS += -L$(shell test -f librsync.dir && cat librsync.dir || echo ==librsync==)
+  LIBS += -lprivatersync
+endif
+
+if PRIVATE_LIBSQLITE
+  BUILT_SOURCES += private_libsqlite
+  AM_CFLAGS += -I$(shell test -f libsqlite.dir && cat libsqlite.dir || echo ==libsqlite==)
+  AM_LDFLAGS += -L$(shell test -f libsqlite.dir && cat libsqlite.dir || echo ==libsqlite==)
+  LIBS += -lprivatesqlite
+endif
 
 AM_CPPFLAGS  = -D'DBDIR="$(localstatedir)/lib/csync2"'
 AM_CPPFLAGS += -D'ETCDIR="$(sysconfdir)"'
@@ -20,4 +38,21 @@ cert:
 	openssl req -new -key $(sysconfdir)/csync2_ssl_key.pem -out $(sysconfdir)/csync2_ssl_cert.csr
 	openssl x509 -req -days 600 -in $(sysconfdir)/csync2_ssl_cert.csr \
 		-signkey $(sysconfdir)/csync2_ssl_key.pem -out $(sysconfdir)/csync2_ssl_cert.pem
+
+
+## hack for building private librsync and private libsqlite ##
+
+private_librsync:
+	tar xvzf $(librsync_source_file) | cut -f1 -d/ | head -n1 > librsync.dir
+	test -s librsync.dir && cd $$( cat librsync.dir ) && ./configure --enable-static --disable-shared
+	make -C $$( cat librsync.dir )
+	mv $$( cat librsync.dir )/.libs/librsync.a $$( cat librsync.dir )/libprivatersync.a
+	touch private_librsync
+
+private_libsqlite:
+	tar xvzf $(libsqlite_source_file) | cut -f1 -d/ | head -n1 > libsqlite.dir
+	test -s libsqlite.dir && cd $$( cat libsqlite.dir ) && ./configure --enable-static --disable-shared
+	make -C $$( cat libsqlite.dir )
+	mv $$( cat libsqlite.dir )/.libs/libsqlite.a $$( cat libsqlite.dir )/libprivatesqlite.a
+	touch private_libsqlite
 
