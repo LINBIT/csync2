@@ -7,6 +7,7 @@ autoconf
 
 if [ "$1" = clean ]; then
 	./configure && make distclean
+	rm -rf librsync[.-]* libsqlite.* sqlite-*
 	rm -rf configure Makefile.in depcomp stamp-h.in
 	rm -rf mkinstalldirs config.h.in autom4te.cache
 	rm -rf missing aclocal.m4 install-sh *~
