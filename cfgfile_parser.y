@@ -46,6 +46,7 @@ static void new_group(char * name)
 		asprintf(&name, "group_%d", autonum++);
 
 	t->next = csync_group;
+	t->auto_method = -1;
 	t->gname = name;
 	csync_group = t;
 }
@@ -106,10 +107,53 @@ static void set_key(const char *keyfilename)
 	fclose(keyfile);
 }
 
+static void set_auto(const char *auto_method)
+{
+	int method_id = -1;
+
+	if (csync_group->auto_method < 0)
+		csync_fatal("Config error: a group might only have one auto-setting.\n");
+
+	if (!strcmp(auto_method, "none"))
+		method_id = CSYNC_AUTO_METHOD_NONE;
+
+	if (!strcmp(auto_method, "first"))
+		method_id = CSYNC_AUTO_METHOD_FIRST;
+
+	if (!strcmp(auto_method, "younger"))
+		method_id = CSYNC_AUTO_METHOD_YOUNGER;
+
+	if (!strcmp(auto_method, "older"))
+		method_id = CSYNC_AUTO_METHOD_OLDER;
+
+	if (!strcmp(auto_method, "bigger"))
+		method_id = CSYNC_AUTO_METHOD_BIGGER;
+
+	if (!strcmp(auto_method, "smaller"))
+		method_id = CSYNC_AUTO_METHOD_SMALLER;
+
+	if (!strcmp(auto_method, "left"))
+		method_id = CSYNC_AUTO_METHOD_LEFT;
+
+	if (!strcmp(auto_method, "right"))
+		method_id = CSYNC_AUTO_METHOD_RIGHT;
+
+	if (method_id < 0)
+		csync_fatal("Config error: Unknown auto-setting '%s' (use "
+			"'none', 'younger', 'older', 'bigger', 'smaller', "
+			"'left' or 'right').\n", auto_method);
+
+	csync_group->auto_method = method_id;
+	free((void*)auto_method);
+}
+
 static void check_group()
 {
 	if ( ! csync_group->key )
 		csync_fatal("Config error: every group must have a key.\n");
+	
+	if ( csync_group->auto_method < 0 )
+		csync_group->auto_method = CSYNC_AUTO_METHOD_NONE;
 
 	/* re-order hosts and pattern */
 	{
@@ -227,79 +271,102 @@ static void new_nossl(const char *from, const char *to)
 	char *txt;
 }
 
-%token TK_BLOCK_BEGIN TK_BLOCK_END TK_STEND TK_AT
+%token TK_BLOCK_BEGIN TK_BLOCK_END TK_STEND TK_AT TK_AUTO
 %token TK_NOSSL TK_GROUP TK_HOST TK_EXCL TK_INCL TK_KEY
 %token TK_ACTION TK_PATTERN TK_EXEC TK_DOLOCAL TK_LOGFILE
 %token <txt> TK_STRING
 
 %%
 
-config:		/* empty */
-	|	config_block config
-		;
+config:
+	/* empty */
+|	block config
+;
 
-config_block:	config_block_header config_block_body
-	|	TK_NOSSL TK_STRING TK_STRING TK_STEND
-					{ new_nossl($2, $3); }
-		;
+block:
+	block_header block_body
+|	TK_NOSSL TK_STRING TK_STRING TK_STEND
+		{ new_nossl($2, $3); }
+;
 		
-config_block_header:
-		TK_GROUP		{ new_group(0);  }
-	|	TK_GROUP TK_STRING	{ new_group($2); }
-		;
+block_header:
+	TK_GROUP
+		{ new_group(0);  }
+|	TK_GROUP TK_STRING
+		{ new_group($2); }
+;
 
-config_block_body:
-		TK_BLOCK_BEGIN config_stmts TK_BLOCK_END
-					{ check_group(); }
-		;
+block_body:
+	TK_BLOCK_BEGIN stmts TK_BLOCK_END
+		{ check_group(); }
+;
 
-config_stmts:	/* empty */
-	|	config_stmt TK_STEND config_stmts
-	|	config_action config_stmts
-		;
+stmts:
+	/* empty */
+|	stmt TK_STEND stmts
+|	action stmts
+;
 
-config_stmt:	TK_HOST host_list
-	|	TK_EXCL excl_list
-	|	TK_INCL incl_list
-	|	TK_KEY  TK_STRING	{ set_key($2); }
-		;
+stmt:
+	TK_HOST host_list
+|	TK_EXCL excl_list
+|	TK_INCL incl_list
+|	TK_KEY TK_STRING
+		{ set_key($2); }
+|	TK_AUTO TK_STRING
+		{ set_auto($2); }
+;
 
-host_list:	/* empty */
-	|	host_list TK_STRING	{ add_host($2, strdup($2)); }
-	|	host_list TK_STRING TK_AT TK_STRING
-					{ add_host($2, $4); }
-		;
+host_list:
+	/* empty */
+|	host_list TK_STRING
+		{ add_host($2, strdup($2)); }
+|	host_list TK_STRING TK_AT TK_STRING
+		{ add_host($2, $4); }
+;
 		
-excl_list:	/* empty */
-	|	excl_list TK_STRING	{ add_patt(0, $2); }
-		;
+excl_list:
+	/* empty */
+|	excl_list TK_STRING
+		{ add_patt(0, $2); }
+;
 		
-incl_list:	/* empty */
-	|	incl_list TK_STRING	{ add_patt(1, $2); }
-		;
+incl_list:
+	/* empty */
+|	incl_list TK_STRING
+		{ add_patt(1, $2); }
+;
 
-config_action:	TK_ACTION		{ new_action(); }
-		TK_BLOCK_BEGIN config_action_stmts TK_BLOCK_END
-		;
+action:
+	TK_ACTION
+		{ new_action(); }
+	TK_BLOCK_BEGIN action_stmts TK_BLOCK_END
+;
 
 		
-config_action_stmts:
-		/* empty */
-	|	config_action_stmt TK_STEND config_action_stmts
-		;
+action_stmts:
+	/* empty */
+|	action_stmt TK_STEND action_stmts
+;
 
-config_action_stmt:
-		TK_PATTERN pattern_list
-	|	TK_EXEC exec_list
-	|	TK_LOGFILE TK_STRING	{ set_action_logfile($2); }
-	|	TK_DOLOCAL		{ set_action_dolocal(); }
-		;
+action_stmt:
+	TK_PATTERN action_pattern_list
+|	TK_EXEC action_exec_list
+|	TK_LOGFILE TK_STRING
+		{ set_action_logfile($2); }
+|	TK_DOLOCAL
+		{ set_action_dolocal(); }
+;
 
-pattern_list:	/* empty */
-	|	pattern_list TK_STRING	{ add_action_pattern($2); }
-	;
+action_pattern_list:
+	/* empty */
+|	action_pattern_list TK_STRING
+		{ add_action_pattern($2); }
+;
 
-exec_list:	/* empty */
-	|	exec_list TK_STRING	{ add_action_exec($2); }
-	;
+action_exec_list:
+	/* empty */
+|	action_exec_list TK_STRING
+		{ add_action_exec($2); }
+;
 

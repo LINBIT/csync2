@@ -246,12 +246,27 @@ struct csync_group {
 	struct csync_group_pattern *pattern;
 	struct csync_group_action *action;
 	const char *key, *myname, *gname;
+	int auto_method;
 };
 
 struct csync_nossl {
 	struct csync_nossl *next;
 	const char *pattern_from;
 	const char *pattern_to;
+};
+
+enum CSYNC_AUTO_METHOD {
+	CSYNC_AUTO_METHOD_NONE,
+	CSYNC_AUTO_METHOD_FIRST,
+
+	CSYNC_AUTO_METHOD_YOUNGER,
+	CSYNC_AUTO_METHOD_OLDER,
+
+	CSYNC_AUTO_METHOD_BIGGER,
+	CSYNC_AUTO_METHOD_SMALLER,
+
+	CSYNC_AUTO_METHOD_LEFT,
+	CSYNC_AUTO_METHOD_RIGHT
 };
 
 

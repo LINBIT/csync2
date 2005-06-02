@@ -94,6 +94,8 @@ group mygroup
 		logfile "/var/log/csync2_action.log";
 		do-local;
 	}
+
+	auto none;
 }
 
 nossl host2 host3;
@@ -138,6 +140,15 @@ server (responder) interfacename. If all communication should be unencrypted,
 a simple "nossl * *;" is sufficient. If e.g. all interfaces for direct links
 between hosts do have the suffix "-x", the statement "nossl * *-x;" will cause
 all communication on such interfaces to be unencrypted.
+
+Usually, if a file is modified on more than one host, a conflict is detected
+and an administrator must resolve this conflist manually using 'csync2 -f'.
+The 'auto' keyword can be used to enable an automatic conflict resolving
+algorithm. The available algorithms are: 'none' (the default behavior), 'first'
+(the host on which 'csync2' is executed first wins), 'younger' and 'older'
+(the younger or older file wins), 'bigger' and 'smaller' (the bigger or
+smaller file wins), 'left' and 'right' (the host on the left side or the right
+side in the host list wins).
 
 You might want to run "csync2 -R" after excluding some files from the config
 file. This will check the database and remove the old entries which are not

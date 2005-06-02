@@ -43,6 +43,7 @@ int include_stack_ptr = 0;
 "exclude"	{ return TK_EXCL; }
 "include"	{ return TK_INCL; }
 "key"		{ return TK_KEY; }
+"auto"		{ return TK_AUTO; }
 
 "action"	{ return TK_ACTION; }
 "pattern"	{ return TK_PATTERN; }
