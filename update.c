@@ -828,15 +828,30 @@ void csync_remove_old()
 	struct textlist *tl = 0, *t;
 
 	SQL_BEGIN("Query dirty DB",
-	          "SELECT filename FROM dirty GROUP BY filename")
+	          "SELECT filename, myname, peername FROM dirty GROUP BY filename")
 	{
-		if (!csync_find_next(0, url_decode(SQL_V[0])))
-			textlist_add(&tl, SQL_V[0], 0);
+		const struct csync_group *g = 0;
+		const struct csync_group_host *h;
+
+		const char *filename = url_decode(SQL_V[0]); 
+
+		while ((g=csync_find_next(g, filename)) != 0) {
+			if (!strcmp(g->myname, SQL_V[1]))
+				for (h = g->host; h; h = h->next) {
+					if (!strcmp(h->hostname, SQL_V[2]))
+						goto this_dirty_record_is_ok;
+				}
+		}
+
+		textlist_add2(&tl, SQL_V[0], SQL_V[2], 0);
+
+this_dirty_record_is_ok:
+		;
 	} SQL_END;
 	for (t = tl; t != 0; t = t->next) {
-		csync_debug(1, "Removing %s from file db.\n", t->value);
+		csync_debug(1, "Removing %s (%s) from dirty db.\n", t->value, t->value2);
 		SQL("Remove old file from dirty db",
-		    "DELETE FROM dirty WHERE filename = '%s'", t->value);
+		    "DELETE FROM dirty WHERE filename = '%s' AND peername = '%s'", t->value, t->value2);
 	}
 	textlist_free(tl);
 
