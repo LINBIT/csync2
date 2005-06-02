@@ -241,27 +241,16 @@ void csync_daemon_session()
 			}
 			break;
 		case A_GETTM:
-			{
-				struct stat sbuf;
-
-				if (!lstat(tag[2], &sbuf)) {
-					conn_printf("OK (data_follows).\n");
-					conn_printf("%ld\n", (long)sbuf.st_mtime);
-					goto next_cmd;
-				}
-				cmd_error = strerror(errno);
-			}
-			break;
 		case A_GETSZ:
 			{
 				struct stat sbuf;
-
-				if (!lstat(tag[2], &sbuf)) {
-					conn_printf("OK (data_follows).\n");
-					conn_printf("%ld\n", (long)sbuf.st_size);
-					goto next_cmd;
-				}
-				cmd_error = strerror(errno);
+				conn_printf("OK (data_follows).\n");
+				if (!lstat(tag[2], &sbuf))
+					conn_printf("%ld\n", cmdtab[cmdnr].action == A_GETTM ?
+							(long)sbuf.st_mtime : (long)sbuf.st_size);
+				else
+					conn_printf("-1\n");
+				goto next_cmd;
 			}
 			break;
 		case A_DEL:

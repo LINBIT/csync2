@@ -114,6 +114,7 @@ static int get_auto_method(const char *peername, const char *filename)
 void csync_update_file_del(const char *peername,
 		const char *filename, int force, int dry_run)
 {
+	int last_conn_status = 0, auto_resolve_run = 0;
 	const char * key = csync_key(peername, filename);
 
 	if ( !key ) {
@@ -121,6 +122,7 @@ void csync_update_file_del(const char *peername,
 		return;
 	}
 
+auto_resolve_entry_point:
 	csync_debug(1, "Deleting %s on %s ...\n", filename, peername);
 
 	if ( force ) {
@@ -171,8 +173,8 @@ void csync_update_file_del(const char *peername,
 
 	conn_printf("DEL %s %s\n",
 			url_encode(key), url_encode(filename));
-	if ( read_conn_status(filename, peername) )
-		goto got_error;
+	if ( (last_conn_status=read_conn_status(filename, peername)) )
+		goto maybe_auto_resolve;
 
 	conn_printf("MARK %s %s\n",
 			url_encode(key), url_encode(filename));
@@ -184,9 +186,52 @@ skip_action:
 		"DELETE FROM dirty WHERE filename = '%s' "
 		"AND peername = '%s'", url_encode(filename),
 		url_encode(peername));
+
+	if (auto_resolve_run)
+		csync_error_count--;
+
 	return;
 
+maybe_auto_resolve:
+	if (!auto_resolve_run && last_conn_status == 2)
+	{
+		int auto_method = get_auto_method(peername, filename);
+
+		switch (auto_method)
+		{
+		case CSYNC_AUTO_METHOD_FIRST:
+			auto_resolve_run = 1;
+			csync_debug(0, "Auto-resolving conflict: Won 'first' test.\n");
+			break;
+
+		case CSYNC_AUTO_METHOD_LEFT:
+		case CSYNC_AUTO_METHOD_RIGHT:
+			auto_resolve_run = 1;
+			csync_debug(0, "Auto-resolving conflict: Won 'left/right' test.\n");
+			break;
+
+		case CSYNC_AUTO_METHOD_LEFT_RIGHT_LOST:
+			csync_debug(0, "Do not auto-resolve conflict: Lost 'left/right' test.\n");
+			break;
+
+		case CSYNC_AUTO_METHOD_YOUNGER:
+		case CSYNC_AUTO_METHOD_OLDER:
+		case CSYNC_AUTO_METHOD_BIGGER:
+		case CSYNC_AUTO_METHOD_SMALLER:
+			csync_debug(0, "Do not auto-resolve conflict: This is a removal.\n");
+			break;
+		}
+
+		if (auto_resolve_run) {
+			force = 1;
+			goto auto_resolve_entry_point;
+		}
+	}
+
 got_error:
+	if (auto_resolve_run)
+got_error_in_autoresolve:
+		csync_debug(0, "ERROR: Auto-resolving failed. Giving up.\n");
 	csync_debug(1, "File stays in dirty state. Try again later...\n");
 }
 
@@ -202,6 +247,7 @@ void csync_update_file_mod(const char *peername,
 		return;
 	}
 
+auto_resolve_entry_point:
 	csync_debug(1, "Updating %s on %s ...\n", filename, peername);
 
 	if ( lstat(filename, &st) != 0 ) {
@@ -210,7 +256,6 @@ void csync_update_file_mod(const char *peername,
 		goto got_error;
 	}
 
-auto_resolve_entry_point:
 	if ( force ) {
 		if ( dry_run ) {
 			printf("!M: %-15s %s\n", peername, filename);
@@ -395,6 +440,9 @@ maybe_auto_resolve:
 				if ( !conn_gets(buffer, 4096) ) goto got_error_in_autoresolve;
 				remotedata = atol(buffer);
 
+				if (remotedata == -1)
+					goto remote_file_has_been_removed;
+
 				if ( lstat(filename, &sbuf) ) goto got_error_in_autoresolve;
 
 				if (auto_method == CSYNC_AUTO_METHOD_YOUNGER ||
@@ -406,6 +454,7 @@ maybe_auto_resolve:
 				if ((localdata > remotedata) ==
 						(auto_method == CSYNC_AUTO_METHOD_YOUNGER ||
 						 auto_method == CSYNC_AUTO_METHOD_BIGGER)) {
+remote_file_has_been_removed:
 					auto_resolve_run = 1;
 					csync_debug(0, "Auto-resolving conflict: Won '%s' test.\n", type);
 				} else
