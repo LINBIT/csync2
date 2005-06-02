@@ -41,7 +41,7 @@ int read_conn_status(const char *file, const char *host)
 		csync_debug(0, "While syncing file %s:\n", file);
 	csync_debug(0, "ERROR from peer %s: %s", host, line);
 	csync_error_count++;
-	return 1;
+	return !strcmp(line, "File is also marked dirty here!") ? 1 : 2;
 }
 
 int connect_to_host(const char *peername)
@@ -89,6 +89,26 @@ int connect_to_host(const char *peername)
 	}
 
 	return 0;
+}
+
+static int get_auto_method(const char *peername, const char *filename)
+{
+	const struct csync_group *g = 0;
+	const struct csync_group_host *h;
+
+	while ( (g=csync_find_next(g, filename)) ) {
+		for (h = g->host; h; h = h->next) {
+			if (!strcmp(h->hostname, peername)) {
+				if (g->auto_method == CSYNC_AUTO_METHOD_LEFT && h->on_left_side)
+					return CSYNC_AUTO_METHOD_NONE;
+				if (g->auto_method == CSYNC_AUTO_METHOD_RIGHT && !h->on_left_side)
+					return CSYNC_AUTO_METHOD_NONE;
+				return g->auto_method;
+			}
+		}
+	}
+
+	return CSYNC_AUTO_METHOD_NONE;
 }
 
 void csync_update_file_del(const char *peername,
@@ -174,6 +194,7 @@ void csync_update_file_mod(const char *peername,
 		const char *filename, int force, int dry_run)
 {
 	struct stat st;
+	int last_conn_status = 0, auto_resolve_run = 0;
 	const char * key = csync_key(peername, filename);
 
 	if ( !key ) {
@@ -189,6 +210,7 @@ void csync_update_file_mod(const char *peername,
 		goto got_error;
 	}
 
+auto_resolve_entry_point:
 	if ( force ) {
 		if ( dry_run ) {
 			printf("!M: %-15s %s\n", peername, filename);
@@ -240,8 +262,8 @@ void csync_update_file_mod(const char *peername,
 	if ( S_ISREG(st.st_mode) ) {
 		conn_printf("PATCH %s %s\n",
 				url_encode(key), url_encode(filename));
-		if ( read_conn_status(filename, peername) )
-			goto got_error;
+		if ( (last_conn_status = read_conn_status(filename, peername)) )
+			goto maybe_auto_resolve;
 		csync_rs_delta(filename);
 		if ( read_conn_status(filename, peername) )
 			goto got_error;
@@ -249,26 +271,26 @@ void csync_update_file_mod(const char *peername,
 	if ( S_ISDIR(st.st_mode) ) {
 		conn_printf("MKDIR %s %s\n",
 				url_encode(key), url_encode(filename));
-		if ( read_conn_status(filename, peername) )
-			goto got_error;
+		if ( (last_conn_status = read_conn_status(filename, peername)) )
+			goto maybe_auto_resolve;
 	} else
 	if ( S_ISCHR(st.st_mode) ) {
 		conn_printf("MKCHR %s %s\n",
 				url_encode(key), url_encode(filename));
-		if ( read_conn_status(filename, peername) )
-			goto got_error;
+		if ( (last_conn_status = read_conn_status(filename, peername)) )
+			goto maybe_auto_resolve;
 	} else
 	if ( S_ISBLK(st.st_mode) ) {
 		conn_printf("MKBLK %s %s\n",
 				url_encode(key), url_encode(filename));
-		if ( read_conn_status(filename, peername) )
-			goto got_error;
+		if ( (last_conn_status = read_conn_status(filename, peername)) )
+			goto maybe_auto_resolve;
 	} else
 	if ( S_ISFIFO(st.st_mode) ) {
 		conn_printf("MKFIFO %s %s\n",
 				url_encode(key), url_encode(filename));
-		if ( read_conn_status(filename, peername) )
-			goto got_error;
+		if ( (last_conn_status = read_conn_status(filename, peername)) )
+			goto maybe_auto_resolve;
 	} else
 	if ( S_ISLNK(st.st_mode) ) {
 		char target[1024];
@@ -279,15 +301,15 @@ void csync_update_file_mod(const char *peername,
 			conn_printf("MKLINK %s %s %s\n",
 					url_encode(key), url_encode(filename),
 					url_encode(target));
-			if ( read_conn_status(filename, peername) )
-				goto got_error;
+			if ( (last_conn_status = read_conn_status(filename, peername)) )
+				goto maybe_auto_resolve;
 		}
 	} else
 	if ( S_ISSOCK(st.st_mode) ) {
 		conn_printf("MKSOCK %s %s\n",
 				url_encode(key), url_encode(filename));
-		if ( read_conn_status(filename, peername) )
-			goto got_error;
+		if ( (last_conn_status = read_conn_status(filename, peername)) )
+			goto maybe_auto_resolve;
 	}
 
 	conn_printf("SETOWN %s %s %d %d\n",
@@ -321,9 +343,43 @@ skip_action:
 		"DELETE FROM dirty WHERE filename = '%s' "
 		"AND peername = '%s'", url_encode(filename),
 		url_encode(peername));
+
+	if (auto_resolve_run)
+		csync_error_count--;
+
 	return;
 
+maybe_auto_resolve:
+	if (!auto_resolve_run && last_conn_status == 2)
+	{
+		int auto_method = get_auto_method(peername, filename);
+
+		switch (auto_method)
+		{
+		case CSYNC_AUTO_METHOD_FIRST:
+		case CSYNC_AUTO_METHOD_LEFT:
+		case CSYNC_AUTO_METHOD_RIGHT:
+			auto_resolve_run = 1;
+			break;
+
+		case CSYNC_AUTO_METHOD_YOUNGER:
+		case CSYNC_AUTO_METHOD_OLDER:
+		case CSYNC_AUTO_METHOD_BIGGER:
+		case CSYNC_AUTO_METHOD_SMALLER:
+			csync_debug(0, "This Auto-resolve method is unimplemented.\n");
+			break;
+		}
+
+		if (auto_resolve_run) {
+			force = 1;
+			csync_debug(0, "Auto-resolving conflict: Updating in force-mode now.\n");
+			goto auto_resolve_entry_point;
+		}
+	}
+
 got_error:
+	if (auto_resolve_run)
+		csync_debug(0, "ERROR: Auto-resolving failed. Giving up.\n");
 	csync_debug(1, "File stays in dirty state. Try again later...\n");
 }
 

@@ -214,6 +214,7 @@ struct csync_group_pattern;
 struct csync_group_host {
 	struct csync_group_host *next;
 	const char *hostname;
+	int on_left_side;
 };
 
 struct csync_group_pattern {

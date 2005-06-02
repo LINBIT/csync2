@@ -60,6 +60,7 @@ static void add_host(const char *hostname, const char *peername)
 		struct csync_group_host *t =
 			calloc(sizeof(struct csync_group_host), 1);
 		t->hostname = peername;
+		t->on_left_side = !csync_group->myname;
 		t->next = csync_group->host;
 		csync_group->host = t;
 		free((void*)hostname);
@@ -111,7 +112,7 @@ static void set_auto(const char *auto_method)
 {
 	int method_id = -1;
 
-	if (csync_group->auto_method < 0)
+	if (csync_group->auto_method >= 0)
 		csync_fatal("Config error: a group might only have one auto-setting.\n");
 
 	if (!strcmp(auto_method, "none"))
