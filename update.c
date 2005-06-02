@@ -100,9 +100,9 @@ static int get_auto_method(const char *peername, const char *filename)
 		for (h = g->host; h; h = h->next) {
 			if (!strcmp(h->hostname, peername)) {
 				if (g->auto_method == CSYNC_AUTO_METHOD_LEFT && h->on_left_side)
-					return CSYNC_AUTO_METHOD_NONE;
+					return CSYNC_AUTO_METHOD_LEFT_RIGHT_LOST;
 				if (g->auto_method == CSYNC_AUTO_METHOD_RIGHT && !h->on_left_side)
-					return CSYNC_AUTO_METHOD_NONE;
+					return CSYNC_AUTO_METHOD_LEFT_RIGHT_LOST;
 				return g->auto_method;
 			}
 		}
@@ -357,28 +357,72 @@ maybe_auto_resolve:
 		switch (auto_method)
 		{
 		case CSYNC_AUTO_METHOD_FIRST:
+			auto_resolve_run = 1;
+			csync_debug(0, "Auto-resolving conflict: Won 'first' test.\n");
+			break;
+
 		case CSYNC_AUTO_METHOD_LEFT:
 		case CSYNC_AUTO_METHOD_RIGHT:
 			auto_resolve_run = 1;
+			csync_debug(0, "Auto-resolving conflict: Won 'left/right' test.\n");
+			break;
+
+		case CSYNC_AUTO_METHOD_LEFT_RIGHT_LOST:
+			csync_debug(0, "Do not auto-resolve conflict: Lost 'left/right' test.\n");
 			break;
 
 		case CSYNC_AUTO_METHOD_YOUNGER:
 		case CSYNC_AUTO_METHOD_OLDER:
 		case CSYNC_AUTO_METHOD_BIGGER:
 		case CSYNC_AUTO_METHOD_SMALLER:
-			csync_debug(0, "This Auto-resolve method is unimplemented.\n");
-			break;
+			{
+				char buffer[1024], *type, *cmd;
+				long remotedata, localdata;
+				struct stat sbuf;
+
+				if (auto_method == CSYNC_AUTO_METHOD_YOUNGER ||
+				    auto_method == CSYNC_AUTO_METHOD_OLDER) {
+					type = "younger/older";
+					cmd = "GETTM";
+				} else {
+					type = "bigger/smaller";
+					cmd = "GETSZ";
+				}
+
+				conn_printf("%s %s %s\n", cmd, url_encode(key), url_encode(filename));
+				if ( read_conn_status(filename, peername) ) goto got_error_in_autoresolve;
+
+				if ( !conn_gets(buffer, 4096) ) goto got_error_in_autoresolve;
+				remotedata = atol(buffer);
+
+				if ( lstat(filename, &sbuf) ) goto got_error_in_autoresolve;
+
+				if (auto_method == CSYNC_AUTO_METHOD_YOUNGER ||
+				    auto_method == CSYNC_AUTO_METHOD_OLDER)
+					localdata = sbuf.st_mtime;
+				else
+					localdata = sbuf.st_size;
+
+				if ((localdata > remotedata) ==
+						(auto_method == CSYNC_AUTO_METHOD_YOUNGER ||
+						 auto_method == CSYNC_AUTO_METHOD_BIGGER)) {
+					auto_resolve_run = 1;
+					csync_debug(0, "Auto-resolving conflict: Won '%s' test.\n", type);
+				} else
+					csync_debug(0, "Do not auto-resolve conflict: Lost '%s' test.\n", type);
+				break;
+			}
 		}
 
 		if (auto_resolve_run) {
 			force = 1;
-			csync_debug(0, "Auto-resolving conflict: Updating in force-mode now.\n");
 			goto auto_resolve_entry_point;
 		}
 	}
 
 got_error:
 	if (auto_resolve_run)
+got_error_in_autoresolve:
 		csync_debug(0, "ERROR: Auto-resolving failed. Giving up.\n");
 	csync_debug(1, "File stays in dirty state. Try again later...\n");
 }

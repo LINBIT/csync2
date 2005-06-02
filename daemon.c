@@ -94,7 +94,7 @@ struct csync_command {
 };
 
 enum {
-	A_SIG, A_FLUSH, A_MARK, A_TYPE, A_DEL, A_PATCH,
+	A_SIG, A_FLUSH, A_MARK, A_TYPE, A_GETTM, A_GETSZ, A_DEL, A_PATCH,
 	A_MKDIR, A_MKCHR, A_MKBLK, A_MKFIFO, A_MKLINK, A_MKSOCK,
 	A_SETOWN, A_SETMOD, A_SETIME, A_LIST, A_GROUP,
 	A_DEBUG, A_HELLO, A_BYE
@@ -105,6 +105,8 @@ struct csync_command cmdtab[] = {
 	{ "flush",	1, 0, 0, 0, 1, A_FLUSH	},
 	{ "mark",	1, 0, 0, 0, 1, A_MARK	},
 	{ "type",	1, 0, 0, 0, 1, A_TYPE	},
+	{ "gettm",	1, 0, 0, 0, 1, A_GETTM	},
+	{ "getsz",	1, 0, 0, 0, 1, A_GETSZ	},
 	{ "del",	1, 1, 0, 1, 1, A_DEL	},
 	{ "patch",	1, 1, 2, 1, 1, A_PATCH	},
 	{ "mkdir",	1, 1, 1, 1, 1, A_MKDIR	},
@@ -234,6 +236,30 @@ void csync_daemon_session()
 						}
 					fclose(f);
 					return;
+				}
+				cmd_error = strerror(errno);
+			}
+			break;
+		case A_GETTM:
+			{
+				struct stat sbuf;
+
+				if (!lstat(tag[2], &sbuf)) {
+					conn_printf("OK (data_follows).\n");
+					conn_printf("%ld\n", (long)sbuf.st_mtime);
+					goto next_cmd;
+				}
+				cmd_error = strerror(errno);
+			}
+			break;
+		case A_GETSZ:
+			{
+				struct stat sbuf;
+
+				if (!lstat(tag[2], &sbuf)) {
+					conn_printf("OK (data_follows).\n");
+					conn_printf("%ld\n", (long)sbuf.st_size);
+					goto next_cmd;
 				}
 				cmd_error = strerror(errno);
 			}
