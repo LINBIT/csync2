@@ -197,6 +197,11 @@ void csync_check_mod(const char * file, int recursive, int ignnoent, int init_ru
 
 void csync_check(const char * filename, int recursive, int init_run)
 {
+#if __CYGWIN__
+	if (!strcmp(filename, "/")) {
+		filename = "/cygdrive";
+	}
+#endif
 	csync_debug(2, "Running%s check for %s ...\n",
 			recursive ? " recursive" : "", filename);
 	csync_check_del(filename, recursive, init_run);

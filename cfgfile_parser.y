@@ -72,6 +72,18 @@ static void add_patt(int isinclude, const char *pattern)
 	struct csync_group_pattern *t =
 		calloc(sizeof(struct csync_group_pattern), 1);
 	t->isinclude = isinclude;
+#if __CYGWIN__
+	if (isalpha(pattern[0]) && pattern[1] == ':' &&
+	    (pattern[2] == '/' || pattern[2] == '\\')) {
+		char *new_pattern, *p;
+		asprintf(&new_pattern, "/cygdrive/%c/%s",
+			tolower(pattern[0]), pattern+3);
+		for (p = new_pattern; *p; p++)
+			if (*p == '\\') *p = '/';
+		free((void*)pattern);
+		pattern = new_pattern;
+	}
+#endif
 	t->pattern = pattern;
 	t->next = csync_group->pattern;
 	csync_group->pattern = t;
