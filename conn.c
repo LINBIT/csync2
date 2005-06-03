@@ -197,6 +197,9 @@ void conn_debug(const char *name, const unsigned char*buf, size_t count)
 			case '\n':
 				fprintf(csync_debug_out, "\\n");
 				break;
+			case '\r':
+				fprintf(csync_debug_out, "\\r");
+				break;
 			default:
 				if (buf[i] < 32 || buf[i] >= 127)
 					fprintf(csync_debug_out, "\\%03o", buf[i]);

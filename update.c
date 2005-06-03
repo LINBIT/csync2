@@ -151,7 +151,10 @@ auto_resolve_entry_point:
 				break;
 			}
 
-		if ( csync_rs_check(filename, 0) ) {
+		int rs_check_result = csync_rs_check(filename, 0);
+		if ( rs_check_result < 0 )
+			goto got_error;
+		if ( rs_check_result ) {
 			csync_debug(2, "File is different on peer (rsync sig).\n");
 			found_diff=1;
 		}
@@ -284,7 +287,10 @@ auto_resolve_entry_point:
 				break;
 			}
 
-		if ( csync_rs_check(filename, S_ISREG(st.st_mode)) ) {
+		int rs_check_result = csync_rs_check(filename, S_ISREG(st.st_mode));
+		if ( rs_check_result < 0 )
+			goto got_error;
+		if ( rs_check_result ) {
 			csync_debug(2, "File is different on peer (rsync sig).\n");
 			found_diff=1;
 		}

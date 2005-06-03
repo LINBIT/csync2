@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -ex
 
 TRGDIR=/cygdrive/c/csync2
 
@@ -18,6 +18,8 @@ mkdir -p $TRGDIR
 	--with-libsqlite-source=cygwin/sqlite-2.8.16.tar.gz \
 	--sysconfdir=$TRGDIR
 
+make private_librsync
+make private_libsqlite
 make CFLAGS='-DREAL_DBDIR=\".\"'
 
 ignore_dlls="KERNEL32.dll"

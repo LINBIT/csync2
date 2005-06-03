@@ -24,6 +24,17 @@
 #include <string.h>
 #include <errno.h>
 
+static FILE *paranoid_tmpfile()
+{
+	if ( access(P_tmpdir, R_OK|W_OK|X_OK) < 0 )
+		csync_fatal("Temp directory '%s' does not exist!\n", P_tmpdir);
+
+	FILE *f = tmpfile();
+	if ( !f ) csync_debug(0, "ERROR: tmpfile() didn't return a valid file handle!\n");
+
+	return f;
+}
+
 void csync_send_file(FILE * in)
 {
 	char buffer[512];
@@ -93,18 +104,24 @@ int csync_rs_check(const char * filename, int isreg)
 	rs_result result;
 	long size;
 
-	sig_file = tmpfile();
+	sig_file = paranoid_tmpfile();
+	if ( !sig_file ) goto io_error;
+
 	basis_file = fopen(filename, "r");
-	if ( !basis_file ) basis_file = fopen("/dev/null", "r");
+	if ( !basis_file ) basis_file = paranoid_tmpfile();
+	if ( !basis_file ) goto io_error;
 
 	if ( isreg ) {
 		result = rs_sig_file(basis_file, sig_file,
 				RS_DEFAULT_BLOCK_LEN, RS_DEFAULT_STRONG_LEN, &stats);
-		if (result != RS_DONE)
-			csync_fatal("Got an error from librsync, too bad!\n");
+		if (result != RS_DONE) {
+			csync_debug(0, "Internal error from rsync library!\n");
+			goto error;
+		}
 	}
 
 	fclose(basis_file);
+	basis_file = 0;
 
 	{
 		char line[100];
@@ -147,6 +164,16 @@ int csync_rs_check(const char * filename, int isreg)
 
 	fclose(sig_file);
 	return found_diff;
+
+io_error:
+	csync_debug(0, "I/O Error '%s' in rsync-check: %s\n",
+			strerror(errno), filename);
+
+error:
+	if ( basis_file ) fclose(basis_file);
+	if ( sig_file )   fclose(sig_file);
+
+	return -1;
 }
 
 void csync_rs_sig(const char * filename)
@@ -155,7 +182,7 @@ void csync_rs_sig(const char * filename)
 	rs_stats_t stats;
 	rs_result result;
 
-	sig_file = tmpfile();
+	sig_file = paranoid_tmpfile();
 	basis_file = fopen(filename, "r");
 	if ( !basis_file ) basis_file = fopen("/dev/null", "r");
 
@@ -177,7 +204,7 @@ void csync_rs_delta(const char * filename)
 	rs_signature_t *sumset;
 	rs_stats_t stats;
 
-	sig_file = tmpfile();
+	sig_file = paranoid_tmpfile();
 	csync_recv_file(sig_file);
 	result = rs_loadsig_file(sig_file, &sumset, &stats);
 	if (result != RS_DONE)
@@ -185,7 +212,7 @@ void csync_rs_delta(const char * filename)
 	fclose(sig_file);
 
 	new_file = fopen(filename, "r");
-	delta_file = tmpfile();
+	delta_file = paranoid_tmpfile();
 
 	result = rs_build_hash_table(sumset);
 	if (result != RS_DONE)
@@ -208,17 +235,15 @@ int csync_rs_patch(const char * filename)
 	rs_stats_t stats;
 	rs_result result;
 
-	delta_file = tmpfile();
+	delta_file = paranoid_tmpfile();
 	if ( !delta_file ) goto io_error;
 	csync_recv_file(delta_file);
 
 	basis_file = fopen(filename, "r");
-	if ( !basis_file ) basis_file = tmpfile();
+	if ( !basis_file ) basis_file = paranoid_tmpfile();
 	if ( !basis_file ) goto io_error;
 
-	else basis_file = fopen("/dev/null", "r");
-
-	new_file = tmpfile();
+	new_file = paranoid_tmpfile();
 	if ( !new_file ) goto io_error;
 
 	result = rs_patch_file(basis_file, delta_file, new_file, &stats);
@@ -253,6 +278,6 @@ error:
 	if ( basis_file ) fclose(basis_file);
 	if ( new_file )   fclose(new_file);
 
-	return 1;
+	return -1;
 }
 

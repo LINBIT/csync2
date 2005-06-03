@@ -60,6 +60,9 @@ extern int csync_perm(const char *filename, const char *key, const char *hostnam
 extern void csync_fatal(const char *fmt, ...);
 extern void csync_debug(int lv, const char *fmt, ...);
 
+#define csync_debug_ping(N) \
+csync_debug(N, "--> %s %d\n", __FILE__, __LINE__)
+
 
 /* conn.c */
 
