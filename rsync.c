@@ -21,6 +21,8 @@
 #include "csync2.h"
 #include <librsync.h>
 #include <unistd.h>
+#include <string.h>
+#include <errno.h>
 
 void csync_send_file(FILE * in)
 {
@@ -200,27 +202,57 @@ void csync_rs_delta(const char * filename)
 	fclose(new_file);
 }
 
-void csync_rs_patch(const char * filename)
+int csync_rs_patch(const char * filename)
 {
-	FILE *basis_file, *delta_file, *new_file;
+	FILE *basis_file = 0, *delta_file = 0, *new_file = 0;
 	rs_stats_t stats;
 	rs_result result;
 
 	delta_file = tmpfile();
+	if ( !delta_file ) goto io_error;
 	csync_recv_file(delta_file);
 
 	basis_file = fopen(filename, "r");
-	if ( basis_file ) unlink(filename);
+	if ( !basis_file ) basis_file = tmpfile();
+	if ( !basis_file ) goto io_error;
+
 	else basis_file = fopen("/dev/null", "r");
 
-	new_file = fopen(filename, "w");
+	new_file = tmpfile();
+	if ( !new_file ) goto io_error;
 
 	result = rs_patch_file(basis_file, delta_file, new_file, &stats);
-	if (result != RS_DONE)
-		csync_fatal("Got an error from librsync, too bad!\n");
+	if (result != RS_DONE) {
+		csync_debug(0, "Internal error from rsync library!\n");
+		goto error;
+	}
 
-	fclose(delta_file);
 	fclose(basis_file);
+	basis_file = fopen(filename, "w");
+	if ( !basis_file ) goto io_error;
+
+	rewind(new_file);
+	char buffer[512];
+	int rc;
+
+	while ( (rc = fread(buffer, 1, 512, new_file)) > 0 )
+		fwrite(buffer, rc, 1, basis_file);
+
+	fclose(basis_file);
+	fclose(delta_file);
 	fclose(new_file);
+
+	return 0;
+
+io_error:
+	csync_debug(0, "I/O Error '%s' in rsync-patch: %s\n",
+			strerror(errno), filename);
+
+error:
+	if ( delta_file ) fclose(delta_file);
+	if ( basis_file ) fclose(basis_file);
+	if ( new_file )   fclose(new_file);
+
+	return 1;
 }
 

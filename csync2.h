@@ -115,7 +115,7 @@ extern int db_blocking_mode;
 extern int csync_rs_check(const char * filename, int isreg);
 extern void csync_rs_sig(const char * filename);
 extern void csync_rs_delta(const char * filename);
-extern void csync_rs_patch(const char * filename);
+extern int csync_rs_patch(const char * filename);
 
 
 /* checktxt.c */

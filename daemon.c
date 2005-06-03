@@ -259,7 +259,8 @@ void csync_daemon_session()
 		case A_PATCH:
 			conn_printf("OK (send_data).\n");
 			csync_rs_sig(tag[2]);
-			csync_rs_patch(tag[2]);
+			if (csync_rs_patch(tag[2]))
+				cmd_error = strerror(errno);
 			break;
 		case A_MKDIR:
 			/* ignore errors on creating directories if the

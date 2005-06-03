@@ -63,6 +63,7 @@ enum {
 	MODE_UPDATE,
 	MODE_INETD,
 	MODE_SERVER,
+	MODE_SINGLE,
 	MODE_MARK,
 	MODE_FORCE,
 	MODE_LIST_HINT,
@@ -118,6 +119,7 @@ PACKAGE_STRING " - cluster synchronisation tool, 2nd generation\n"
 "\n"
 "	-i	Run in inetd server mode.\n"
 "	-ii	Run in stand-alone server mode.\n"
+"	-iii	Run in stand-alone server mode (one connect only).\n"
 "\n"
 "	-R	Remove files from database which don't match config entries.\n"
 "\n"
@@ -174,7 +176,7 @@ int create_keyfile(const char *filename)
 	return 0;
 }
 
-static int csync_server_loop()
+static int csync_server_loop(int single_connect)
 {
 	struct linger sl = { 1, 5 };
 	struct sockaddr_in addr;
@@ -208,7 +210,7 @@ static int csync_server_loop()
 			inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
 		fflush(stdout); fflush(stderr);
 
-		if (!fork()) {
+		if (single_connect || !fork()) {
 			dup2(conn, 0);
 			dup2(conn, 1);
 			close(conn);
@@ -289,6 +291,9 @@ int main(int argc, char ** argv)
 			case 'i':
 				if ( mode == MODE_INETD )
 					mode = MODE_SERVER;
+				else
+				if ( mode == MODE_SERVER )
+					mode = MODE_SINGLE;
 				else {
 					if ( mode != MODE_NONE ) help(argv[0]);
 					mode = MODE_INETD;
@@ -360,8 +365,8 @@ int main(int argc, char ** argv)
 
 	/* Stand-alone server mode. This is a hack..
 	 */
-	if ( mode == MODE_SERVER ) {
-		if (csync_server_loop()) return 1;
+	if ( mode == MODE_SERVER || mode == MODE_SINGLE ) {
+		if (csync_server_loop(mode == MODE_SINGLE)) return 1;
 		mode = MODE_INETD;
 	}
 
