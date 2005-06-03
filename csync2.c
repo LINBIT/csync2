@@ -176,9 +176,9 @@ int create_keyfile(const char *filename)
 
 static int csync_server_loop()
 {
-	int addrlen, on = 1;
 	struct linger sl = { 1, 5 };
 	struct sockaddr_in addr;
+	int on = 1;
 
 	int listenfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (listenfd < 0) goto error;
@@ -200,6 +200,7 @@ static int csync_server_loop()
 	printf("Csync2 daemon running. Waiting for connections.\n");
 
 	while (1) {
+		int addrlen = sizeof(addr);
 		int conn = accept(listenfd, (struct sockaddr *) &addr, &addrlen);
 		if (conn < 0) goto error;
 
