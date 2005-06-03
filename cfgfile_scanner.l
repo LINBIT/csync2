@@ -53,7 +53,7 @@ int include_stack_ptr = 0;
 
 "config"	BEGIN(INCL);
 <INCL>[ \t]*	/* eat the whitespaces */
-<INCL>[^ \t\n;]+ {
+<INCL>[^ \t\r\n;]+ {
 			if ( include_stack_ptr >= MAX_INCLUDE_DEPTH ) {
 				fprintf(stderr, "Config includes nested too deeply.\n");
 				exit(1);
@@ -83,8 +83,8 @@ int include_stack_ptr = 0;
 <STRING>[^\"]*	{ yylval.txt=strdup(yytext); return TK_STRING; }
 <STRING>\"	BEGIN(0);
 
-[ \n\t]+	/* whitespaces are just delimiters */
-#[^\n]*		/* this is a comment */
+[ \r\n\t]+	/* whitespaces are just delimiters */
+#[^\r\n]*	/* this is a comment */
 
-[^ \n\t@;#"]+	{ yylval.txt=strdup(yytext); return TK_STRING; }
+[^ \r\n\t@;#"]+	{ yylval.txt=strdup(yytext); return TK_STRING; }
 %%

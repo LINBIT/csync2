@@ -29,6 +29,11 @@
 #include <assert.h>
 #include <errno.h>
 
+#ifdef REAL_DBDIR
+#  undef DBDIR
+#  define DBDIR REAL_DBDIR
+#endif
+
 static char *file_database = 0;
 static char *file_config = 0;
 static char *dbdir = DBDIR;
