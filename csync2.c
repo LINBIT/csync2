@@ -19,6 +19,11 @@
  */
 
 #include "csync2.h"
+
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -56,6 +61,7 @@ enum {
 	MODE_CHECK,
 	MODE_UPDATE,
 	MODE_INETD,
+	MODE_SERVER,
 	MODE_MARK,
 	MODE_FORCE,
 	MODE_LIST_HINT,
@@ -110,6 +116,7 @@ PACKAGE_STRING " - cluster synchronisation tool, 2nd generation\n"
 "	The mode -T returns 2 if both hosts are in sync.\n"
 "\n"
 "	-i	Run in inetd server mode.\n"
+"	-ii	Run in stand-alone server mode.\n"
 "\n"
 "	-R	Remove files from database which don't match config entries.\n"
 "\n"
@@ -164,6 +171,54 @@ int create_keyfile(const char *filename)
 	close(rand);
 	close(fd);
 	return 0;
+}
+
+static int csync_server_loop()
+{
+	int addrlen, on = 1;
+	struct linger sl = { 1, 5 };
+	struct sockaddr_in addr;
+
+	int listenfd = socket(AF_INET, SOCK_STREAM, 0);
+	if (listenfd < 0) goto error;
+
+	bzero(&addr, sizeof(addr));
+	addr.sin_family = AF_INET;
+	addr.sin_addr.s_addr = htonl(INADDR_ANY);
+	addr.sin_port = htons(CSYNC_PORT);
+
+	if ( setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &on, (socklen_t) sizeof(on)) < 0 ) goto error;
+	if ( setsockopt(listenfd, SOL_SOCKET, SO_LINGER, &sl, (socklen_t) sizeof(sl)) < 0 ) goto error;
+
+	if ( bind(listenfd, (struct sockaddr *) &addr, sizeof(addr)) < 0 ) goto error;
+	if ( listen(listenfd, 5) < 0 ) goto error;
+
+	signal(SIGPIPE, SIG_IGN);
+	signal(SIGCHLD, SIG_IGN);
+
+	printf("Csync2 daemon running. Waiting for connections.\n");
+
+	while (1) {
+		int conn = accept(listenfd, (struct sockaddr *) &addr, &addrlen);
+		if (conn < 0) goto error;
+
+		printf("New connection from %s:%u.\n",
+			inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
+		fflush(stdout); fflush(stderr);
+
+		if (!fork()) {
+			dup2(conn, 0);
+			dup2(conn, 1);
+			close(conn);
+			return 0;
+		}
+
+		close(conn);
+	}
+
+error:
+	fprintf(stderr, "Server error: %s\n", strerror(errno));
+	return 1;
 }
 
 int main(int argc, char ** argv)
@@ -230,8 +285,12 @@ int main(int argc, char ** argv)
 				mode = MODE_UPDATE;
 				break;
 			case 'i':
-				if ( mode != MODE_NONE ) help(argv[0]);
-				mode = MODE_INETD;
+				if ( mode == MODE_INETD )
+					mode = MODE_SERVER;
+				else {
+					if ( mode != MODE_NONE ) help(argv[0]);
+					mode = MODE_INETD;
+				}
 				break;
 			case 'm':
 				if ( mode != MODE_NONE ) help(argv[0]);
@@ -295,6 +354,13 @@ int main(int argc, char ** argv)
 	if ( *myhostname == 0 ) {
 		gethostname(myhostname, 256);
 		myhostname[255] = 0;
+	}
+
+	/* Stand-alone server mode. This is a hack..
+	 */
+	if ( mode == MODE_SERVER ) {
+		if (csync_server_loop()) return 1;
+		mode = MODE_INETD;
 	}
 
 	/* In inetd mode we need to read the module name from the peer

@@ -18,7 +18,7 @@ mkdir -p $TRGDIR
 	--with-libsqlite-source=cygwin/sqlite-2.8.16.tar.gz \
 	--sysconfdir=$TRGDIR
 
-make CFLAGS='-DDBDIR=ETCDIR'
+make CFLAGS='-DREAL_DBDIR=\".\"'
 
 ignore_dlls="KERNEL32.dll"
 copy_dlls() {
