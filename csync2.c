@@ -33,6 +33,7 @@
 #include <unistd.h>
 #include <assert.h>
 #include <errno.h>
+#include <signal.h>
 
 #ifdef REAL_DBDIR
 #  undef DBDIR
