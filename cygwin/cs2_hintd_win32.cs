@@ -52,7 +52,7 @@ public class Csync2HintDaemon
 		watcher.EnableRaisingEvents = true;
 
 		while (true) {
-			Console.WriteLine("-- csyn2 hint daemon waiting for filesystem events in '{0}' --", watchdir);
+			Console.WriteLine("-- csync2 hint daemon waiting for filesystem events in '{0}' --", watchdir);
 			Thread.Sleep(600000);
 		}
 	}
