@@ -253,10 +253,12 @@ int csync_rs_patch(const char * filename)
 	}
 
 	fclose(basis_file);
+	rewind(new_file);
+
+	unlink(filename);
 	basis_file = fopen(filename, "w");
 	if ( !basis_file ) goto io_error;
 
-	rewind(new_file);
 	char buffer[512];
 	int rc;
 
