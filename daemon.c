@@ -295,10 +295,12 @@ void csync_daemon_session()
 			/* just ignore socket files */
 			break;
 		case A_SETOWN:
-			if ( lchown(tag[2],
-					csync_ignore_user ? -1 : atoi(tag[3]),
-					csync_ignore_group ? -1 : atoi(tag[4])) )
-				cmd_error = strerror(errno);
+			if ( !csync_ignore_user || !csync_ignore_group ) {
+				int uid = csync_ignore_user  ? -1 : atoi(tag[3]);
+				int gid = csync_ignore_group ? -1 : atoi(tag[4]);
+				if ( lchown(tag[2], uid, gid) )
+					cmd_error = strerror(errno);
+			}
 			break;
 		case A_SETMOD:
 			if ( !csync_ignore_perm ) {

@@ -151,16 +151,20 @@ or older file wins), 'bigger' and 'smaller' (the bigger or smaller file wins),
 list wins). The 'younger', 'older', 'bigger' and 'smaller' test also fail if
 the file has been removed on the local side.
 
-You might want to run "csync2 -R" after excluding some files from the config
-file. This will check the database and remove the old entries which are not
-matched by the config file anymore. Without that, those database entries would
-ligger around forever.
+You might want to run "csync2 -R" after excluding files or hosts from the
+config file. This will check the database and remove the old entries which are
+not matched by the config file anymore. Without that, those database entries
+would ligger around forever.
 
-It is also possible to have multiple configurations in parallel. A configuration
-named 'foobar' may be stored in /etc/csync2_foobar.cfg and is used whenever csync2
-is called with the option "-C foobar". Each configuration has it's own backend
-database. So splitting up the setups into various small configurations can speed
-up operation and avoid problems with database locks.
+It is also possible to have multiple configurations in parallel. A
+configuration named 'foobar' may be stored in /etc/csync2_foobar.cfg and is
+used whenever csync2 is called with the option "-C foobar". Each configuration
+has it's own backend database. So splitting up the setups into various small
+configurations can speed up operation and avoid problems with database locks.
+
+In some situations it is not wanted to sync file permissions. The gloabal
+config file statements "ignore user;", "ignore group;" and "ignore perm;" may
+be used to tell csync2 to not care about those file properties.
 
 
 The synchronization method
