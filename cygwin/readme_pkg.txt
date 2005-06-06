@@ -2,7 +2,6 @@
 Csync2 for Win32 (cygwin)
 =========================
 
-
 The Csync2 homepage can be reached at <http://oss.linbit.com/>.
 
   LINBIT Information Technologies GmbH <http://www.linbit.com>
@@ -25,15 +24,19 @@ SQLite, SQLite.NET wrapper, OpenSSL and Cygwin.
 Setup:
 ======
 
-1. Extract the contents of this .ZIP archive to c:\csync2 and create a c:\tmp
-directory.
+1. Extract the contents of this .ZIP archive to c:\csync2.
 
-2. Create a c:\csync2\csync2.cfg (or copy it from existing nodes).
+2. Create a c:\tmp directory.
 
-3. Add entries to C:\WINNT\system32\drivers\etc\hosts (optional).
+3. Create a c:\csync2\csync2.cfg (or copy it from existing nodes).
 
-4. Run c:\csync2\monitor.exe in a command window.
+4. Add entries to c:\winnt\system32\drivers\etc\hosts (optional).
+
+5. Run c:\csync2\monitor.exe in a command window.
 
 Pass the directory names which should be monitored by the hint deamon(s) as
 parameters to "monitor.exe".
+
+Read the csync2 documentation (bundled with the csync2 source tar) for more
+information about writing csync2 configuration files.
 
