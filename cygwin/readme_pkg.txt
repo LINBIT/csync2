@@ -34,3 +34,6 @@ directory.
 
 4. Run c:\csync2\monitor.exe in a command window.
 
+Pass the directory names which should be monitored by the hint deamon(s) as
+parameters to "monitor.exe".
+

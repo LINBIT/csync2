@@ -63,6 +63,9 @@ cp -v SQLiteClient.dll sqlite.dll $TRGDIR/
 cp -v cs2_hintd_win32.exe monitor.exe $TRGDIR/
 
 cd $( dirname $TRGDIR/ )
+rm -f $( basename $TRGDIR ).zip
 zip -r $( basename $TRGDIR ).zip $( basename $TRGDIR ) \
 	-i '*.txt' '*.dll' '*.exe'
+
+echo "DONE."
 
