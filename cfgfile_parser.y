@@ -27,9 +27,9 @@
 struct csync_group *csync_group = 0;
 struct csync_nossl *csync_nossl = 0;
 
-int csync_ignore_user  = 0;
-int csync_ignore_group = 0;
-int csync_ignore_perm  = 0;
+int csync_ignore_uid = 0;
+int csync_ignore_gid = 0;
+int csync_ignore_mod = 0;
 
 extern void yyerror(char* text);
 extern int yylex();
@@ -284,14 +284,14 @@ static void new_nossl(const char *from, const char *to)
 
 static void new_ignore(char *propname)
 {
-	if ( !strcmp(propname, "user") )
-		csync_ignore_user = 1;
+	if ( !strcmp(propname, "uid") )
+		csync_ignore_uid = 1;
 	else
-	if ( !strcmp(propname, "group") )
-		csync_ignore_group = 1;
+	if ( !strcmp(propname, "gid") )
+		csync_ignore_gid = 1;
 	else
-	if ( !strcmp(propname, "perm") )
-		csync_ignore_perm = 1;
+	if ( !strcmp(propname, "mod") )
+		csync_ignore_mod = 1;
 	else
 		csync_fatal("Config error: Unknown 'ignore' porperty: '%s'.\n", propname);
 

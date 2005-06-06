@@ -163,7 +163,7 @@ has it's own backend database. So splitting up the setups into various small
 configurations can speed up operation and avoid problems with database locks.
 
 In some situations it is not wanted to sync file permissions. The gloabal
-config file statements "ignore user;", "ignore group;" and "ignore perm;" may
+config file statements "ignore uid;", "ignore gid;" and "ignore mod;" may
 be used to tell csync2 to not care about those file properties.
 
 

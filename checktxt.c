@@ -51,13 +51,13 @@ const char *csync_genchecktxt(const struct stat *st, const char *filename, int i
 	if ( !S_ISLNK(st->st_mode) && !S_ISDIR(st->st_mode) )
 		xxprintf(":mtime=%Ld", ign_mtime ? (long long)0 : (long long)st->st_mtime);
 
-	if ( !csync_ignore_perm )
+	if ( !csync_ignore_mod )
 		xxprintf(":mode=%d", (int)st->st_mode);
 
-	if ( !csync_ignore_user )
+	if ( !csync_ignore_uid )
 		xxprintf(":uid=%d", (int)st->st_uid);
 
-	if ( !csync_ignore_group )
+	if ( !csync_ignore_gid )
 		xxprintf(":gid=%d", (int)st->st_gid);
 
 	if ( S_ISREG(st->st_mode) )
