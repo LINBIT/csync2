@@ -636,8 +636,8 @@ int main(int argc, char ** argv)
 
 	csync_run_commands();
 	csync_db_close();
-	csync_debug(csync_error_count != 0 ? 0 : 1,
-			"Finished with %d errors.\n", csync_error_count);
+	if ( csync_error_count != 0 )
+		csync_debug(0, "Finished with %d errors.\n", csync_error_count);
 	if ( retval >= 0 && csync_error_count == 0 ) return retval;
 	return csync_error_count != 0;
 }

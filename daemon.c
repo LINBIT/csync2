@@ -115,9 +115,9 @@ struct csync_command cmdtab[] = {
 	{ "mkfifo",	1, 1, 1, 1, 1, A_MKFIFO	},
 	{ "mklink",	1, 1, 1, 1, 1, A_MKLINK	},
 	{ "mksock",	1, 1, 1, 1, 1, A_MKSOCK	},
-	{ "setown",	1, 1, 0, 1, 1, A_SETOWN	},
-	{ "setmod",	1, 1, 0, 1, 1, A_SETMOD	},
-	{ "setime",	1, 0, 0, 1, 1, A_SETIME	},
+	{ "setown",	1, 1, 0, 2, 1, A_SETOWN	},
+	{ "setmod",	1, 1, 0, 2, 1, A_SETMOD	},
+	{ "setime",	1, 0, 0, 2, 1, A_SETIME	},
 	{ "list",	0, 0, 0, 0, 1, A_LIST	},
 #if 0
 	{ "debug",	0, 0, 0, 0, 1, A_DEBUG	},
@@ -378,6 +378,10 @@ found_asactive: ;
 
 		if ( cmdtab[cmdnr].update )
 			csync_file_update(tag[2]);
+
+		if ( cmdtab[cmdnr].update == 1 )
+			csync_debug(1, "Updated %s from %s.\n",
+					tag[2], peer ? peer : "???");
 
 abort_cmd:
 		if ( cmd_error )

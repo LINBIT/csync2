@@ -26,6 +26,9 @@
 #include <unistd.h>
 #include <time.h>
 
+#define DEADLOCK_MESSAGE \
+	"Detected DB deadlock situation => Terminating (requesting retry)."
+
 int db_blocking_mode = 1;
 static sqlite * db = 0;
 
@@ -102,7 +105,7 @@ void csync_db_sql(const char *err, const char *fmt, ...)
 {
 	char *sql;
 	va_list ap;
-	int rc;
+	int rc, busyc = 0;
 
 	va_start(ap, fmt);
 	vasprintf(&sql, fmt, ap);
@@ -113,6 +116,7 @@ void csync_db_sql(const char *err, const char *fmt, ...)
 	while (1) {
 		rc = sqlite_exec(db, sql, 0, 0, 0);
 		if ( rc != SQLITE_BUSY ) break;
+		if (busyc++ > 10) { db = 0; csync_fatal(DEADLOCK_MESSAGE); }
 		csync_debug(2, "Database is busy, sleeping a sec.\n");
 		sleep(1);
 	}
@@ -129,7 +133,7 @@ void* csync_db_begin(const char *err, const char *fmt, ...)
 	sqlite_vm *vm;
 	char *sql;
 	va_list ap;
-	int rc;
+	int rc, busyc = 0;
 
 	va_start(ap, fmt);
 	vasprintf(&sql, fmt, ap);
@@ -140,6 +144,7 @@ void* csync_db_begin(const char *err, const char *fmt, ...)
 	while (1) {
 		rc = sqlite_compile(db, sql, 0, &vm, 0);
 		if ( rc != SQLITE_BUSY ) break;
+		if (busyc++ > 10) { db = 0; csync_fatal(DEADLOCK_MESSAGE); }
 		csync_debug(2, "Database is busy, sleeping a sec.\n");
 		sleep(1);
 	}
@@ -155,13 +160,14 @@ int csync_db_next(void *vmx, const char *err,
 		int *pN, const char ***pazValue, const char ***pazColName)
 {
 	sqlite_vm *vm = vmx;
-	int rc;
+	int rc, busyc = 0;
 	
 	csync_debug(4, "Trying to fetch a row from the database.\n");
 
 	while (1) {
 		rc = sqlite_step(vm, pN, pazValue, pazColName);
 		if ( rc != SQLITE_BUSY ) break;
+		if (busyc++ > 10) { db = 0; csync_fatal(DEADLOCK_MESSAGE); }
 		csync_debug(2, "Database is busy, sleeping a sec.\n");
 		sleep(1);
 	}
@@ -176,13 +182,14 @@ int csync_db_next(void *vmx, const char *err,
 void csync_db_fin(void *vmx, const char *err)
 {
 	sqlite_vm *vm = vmx;
-	int rc;
+	int rc, busyc = 0;
 	
 	csync_debug(2, "SQL Query finished.\n");
 
 	while (1) {
 		rc = sqlite_finalize(vm, 0);
 		if ( rc != SQLITE_BUSY ) break;
+		if (busyc++ > 10) { db = 0; csync_fatal(DEADLOCK_MESSAGE); }
 		csync_debug(2, "Database is busy, sleeping a sec.\n");
 		sleep(1);
 	}
