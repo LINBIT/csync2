@@ -27,6 +27,10 @@
 struct csync_group *csync_group = 0;
 struct csync_nossl *csync_nossl = 0;
 
+int csync_ignore_user  = 0;
+int csync_ignore_group = 0;
+int csync_ignore_perm  = 0;
+
 extern void yyerror(char* text);
 extern int yylex();
 extern int yylineno;
@@ -278,6 +282,22 @@ static void new_nossl(const char *from, const char *to)
 	csync_nossl = t;
 }
 
+static void new_ignore(char *propname)
+{
+	if ( !strcmp(propname, "user") )
+		csync_ignore_user = 1;
+	else
+	if ( !strcmp(propname, "group") )
+		csync_ignore_group = 1;
+	else
+	if ( !strcmp(propname, "perm") )
+		csync_ignore_perm = 1;
+	else
+		csync_fatal("Config error: Unknown 'ignore' porperty: '%s'.\n", propname);
+
+	free(propname);
+}
+
 %}
 
 %union {
@@ -285,7 +305,7 @@ static void new_nossl(const char *from, const char *to)
 }
 
 %token TK_BLOCK_BEGIN TK_BLOCK_END TK_STEND TK_AT TK_AUTO
-%token TK_NOSSL TK_GROUP TK_HOST TK_EXCL TK_INCL TK_KEY
+%token TK_NOSSL TK_IGNORE TK_GROUP TK_HOST TK_EXCL TK_INCL TK_KEY
 %token TK_ACTION TK_PATTERN TK_EXEC TK_DOLOCAL TK_LOGFILE
 %token <txt> TK_STRING
 
@@ -300,6 +320,13 @@ block:
 	block_header block_body
 |	TK_NOSSL TK_STRING TK_STRING TK_STEND
 		{ new_nossl($2, $3); }
+|	TK_IGNORE ignore_list TK_STEND
+;
+
+ignore_list:
+	/* empty */
+|	TK_STRING ignore_list
+		{ new_ignore($1); }
 ;
 		
 block_header:

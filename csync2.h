@@ -291,6 +291,9 @@ extern char *active_peerlist;
 
 extern char *cfgname;
 
+extern int csync_ignore_user;
+extern int csync_ignore_group;
+extern int csync_ignore_perm;
 
 #endif /* CSYNC2_H */
 
