@@ -23,13 +23,16 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
+#include <stdio.h>
 
 static FILE *paranoid_tmpfile()
 {
+	FILE *f;
+
 	if ( access(P_tmpdir, R_OK|W_OK|X_OK) < 0 )
 		csync_fatal("Temp directory '%s' does not exist!\n", P_tmpdir);
 
-	FILE *f = tmpfile();
+	f = tmpfile();
 	if ( !f ) csync_debug(0, "ERROR: tmpfile() didn't return a valid file handle!\n");
 
 	return f;
@@ -234,6 +237,8 @@ int csync_rs_patch(const char * filename)
 	FILE *basis_file = 0, *delta_file = 0, *new_file = 0;
 	rs_stats_t stats;
 	rs_result result;
+	char buffer[512];
+	int rc;
 
 	delta_file = paranoid_tmpfile();
 	if ( !delta_file ) goto io_error;
@@ -258,9 +263,6 @@ int csync_rs_patch(const char * filename)
 	unlink(filename);
 	basis_file = fopen(filename, "w");
 	if ( !basis_file ) goto io_error;
-
-	char buffer[512];
-	int rc;
 
 	while ( (rc = fread(buffer, 1, 512, new_file)) > 0 )
 		fwrite(buffer, rc, 1, basis_file);

@@ -135,6 +135,7 @@ auto_resolve_entry_point:
 			goto got_error;
 	} else {
 		int i, found_diff = 0;
+		int rs_check_result;
 		const char *chk2 = "---";
 		char chk1[4096];
 
@@ -151,7 +152,7 @@ auto_resolve_entry_point:
 				break;
 			}
 
-		int rs_check_result = csync_rs_check(filename, 0);
+		rs_check_result = csync_rs_check(filename, 0);
 		if ( rs_check_result < 0 )
 			goto got_error;
 		if ( rs_check_result ) {
@@ -270,6 +271,7 @@ auto_resolve_entry_point:
 			goto got_error;
 	} else {
 		int i, found_diff = 0;
+		int rs_check_result;
 		char chk1[4096];
 		const char *chk2;
 
@@ -287,7 +289,7 @@ auto_resolve_entry_point:
 				break;
 			}
 
-		int rs_check_result = csync_rs_check(filename, S_ISREG(st.st_mode));
+		rs_check_result = csync_rs_check(filename, S_ISREG(st.st_mode));
 		if ( rs_check_result < 0 )
 			goto got_error;
 		if ( rs_check_result ) {
