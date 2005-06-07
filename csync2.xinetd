@@ -2,14 +2,14 @@
 # description: csync2
 service csync2
 {
-       	flags           = REUSE
-        socket_type     = stream        
-       	wait            = no
-        user            = root
+	flags		= REUSE
+	socket_type	= stream        
+	wait		= no
+	user		= root
 	group		= root
-       	server          = /sbin/csync2
-        server_args     =  -i
-       	#log_on_failure  += USERID
-        disable         = no
-	only_from       = 192.168.199.3 192.168.199.4
+	server		= /usr/sbin/csync2
+	server_args	= -i
+	#log_on_failure	+= USERID
+	disable		= no
+	# only_from	= 192.168.199.3 192.168.199.4
 }
