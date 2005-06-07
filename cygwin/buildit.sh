@@ -54,7 +54,7 @@ make private_librsync
 make private_libsqlite
 make CFLAGS='-DREAL_DBDIR=\".\"'
 
-ignore_dlls="KERNEL32.dll"
+ignore_dlls="KERNEL32.dll|USER32.dll"
 copy_dlls() {
 	for dll in $( strings $1 | egrep '^[^ ]+\.dll$' | sort -u; )
 	do
@@ -68,7 +68,9 @@ copy_dlls() {
 }
 
 cp -v csync2.exe $TRGDIR/csync2.exe
+cp -v sqlite-2.8.16/sqlite.exe $TRGDIR/sqlite.exe
 copy_dlls $TRGDIR/csync2.exe
+copy_dlls $TRGDIR/sqlite.exe
 
 cd cygwin
 PATH="$PATH:/cygdrive/c/WINNT/Microsoft.NET/Framework/v1.0.3705"
