@@ -1,7 +1,7 @@
 /*
  *  csync2 - cluster synchronisation tool, 2nd generation
  *  LINBIT Information Technologies GmbH <http://www.linbit.com>
- *  Copyright (C) 2004  Clifford Wolf <clifford@clifford.at>
+ *  Copyright (C) 2004, 2005  Clifford Wolf <clifford@clifford.at>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -81,7 +81,7 @@ void help(char *cmd)
 "\n"
 PACKAGE_STRING " - cluster synchronisation tool, 2nd generation\n"
 "LINBIT Information Technologies GmbH <http://www.linbit.com>\n"
-"Copyright (C) 2004  Clifford Wolf <clifford@clifford.at>\n"
+"Copyright (C) 2004, 2005  Clifford Wolf <clifford@clifford.at>\n"
 "This program is free software under the terms of the GNU GPL.\n"
 "\n"
 "Usage: %s [-v..] [-C config-name] [-D database-dir] [-N hostname] ..\n"
