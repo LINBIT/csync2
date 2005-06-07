@@ -69,8 +69,13 @@ copy_dlls() {
 
 cp -v csync2.exe $TRGDIR/csync2.exe
 cp -v sqlite-2.8.16/sqlite.exe $TRGDIR/sqlite.exe
-copy_dlls $TRGDIR/csync2.exe
-copy_dlls $TRGDIR/sqlite.exe
+cp -v /bin/cp.exe /bin/ls.exe /bin/wc.exe $TRGDIR/
+cp -v /bin/find.exe /bin/xargs.exe /bin/rsync.exe $TRGDIR/
+cp -v /bin/bash.exe /bin/gawk.exe $TRGDIR/
+
+for bin in csync2 sqlite cp ls wc find xargs rsync bash gawk; do
+	copy_dlls $TRGDIR/$bin.exe
+done
 
 cd cygwin
 PATH="$PATH:/cygdrive/c/WINNT/Microsoft.NET/Framework/v1.0.3705"

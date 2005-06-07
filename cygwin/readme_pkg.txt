@@ -40,3 +40,14 @@ parameters to "monitor.exe".
 Read the csync2 documentation (bundled with the csync2 source tar) for more
 information about writing csync2 configuration files.
 
+
+Additional Tools
+================
+
+Some basic programs from the cygwin toolchain which might be of great help for
+bootstrapping large csync2 setups (such as a unix-like 'cp' programm) are also
+included in this "Csync2 for Win32 (cygwin)" binary distribution.
+
+An SQLite command line shell is included as well. This is especially useful
+for administratice tasks such as running the SQL VACUUM command.
+
