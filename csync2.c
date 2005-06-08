@@ -22,6 +22,7 @@
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <sys/socket.h>
 
 #include <sys/types.h>
@@ -194,6 +195,7 @@ static int csync_server_loop(int single_connect)
 
 	if ( setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &on, (socklen_t) sizeof(on)) < 0 ) goto error;
 	if ( setsockopt(listenfd, SOL_SOCKET, SO_LINGER, &sl, (socklen_t) sizeof(sl)) < 0 ) goto error;
+	if ( setsockopt(listenfd, IPPROTO_TCP, TCP_NODELAY, &on, (socklen_t) sizeof(on)) < 0 ) goto error;
 
 	if ( bind(listenfd, (struct sockaddr *) &addr, sizeof(addr)) < 0 ) goto error;
 	if ( listen(listenfd, 5) < 0 ) goto error;

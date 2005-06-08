@@ -25,6 +25,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <unistd.h>
 #include <netdb.h>
 #include <openssl/ssl.h>
@@ -44,6 +45,7 @@ int conn_open(const char *peername)
 {
         struct sockaddr_in sin;
         struct hostent *hp;
+	int on = 1;
 
         hp = gethostbyname(peername);
         if ( ! hp ) {
@@ -66,6 +68,12 @@ int conn_open(const char *peername)
 		close(conn_fd_in); conn_fd_in = -1;
                 return -1;
         }
+
+	if (setsockopt(conn_fd_in, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on) ) == -1 ) {
+                csync_debug(1, "Can't set TCP_NODELAY option on TCP socket.\n");
+		close(conn_fd_in); conn_fd_in = -1;
+                return -1;
+	}
 
 	conn_fd_out = conn_fd_in;
 	conn_clisok = 1;
@@ -141,7 +149,7 @@ int conn_close()
 	return 0;
 }
 
-static inline READ(void *buf, size_t count)
+static inline int READ(void *buf, size_t count)
 {
 	if (conn_usessl)
 		return SSL_read(conn_ssl, buf, count);
@@ -149,7 +157,7 @@ static inline READ(void *buf, size_t count)
 		return read(conn_fd_in, buf, count);
 }
 
-static inline WRITE(const void *buf, size_t count)
+static inline int WRITE(const void *buf, size_t count)
 {
 	if (conn_usessl)
 		return SSL_write(conn_ssl, buf, count);
