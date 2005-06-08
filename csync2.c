@@ -56,6 +56,8 @@ int csync_error_count = 0;
 int csync_debug_level = 0;
 FILE *csync_debug_out = 0;
 
+int csync_server_child_pid = 0;
+
 enum {
 	MODE_NONE,
 	MODE_HINT,
@@ -206,11 +208,16 @@ static int csync_server_loop(int single_connect)
 		int conn = accept(listenfd, (struct sockaddr *) &addr, &addrlen);
 		if (conn < 0) goto error;
 
-		printf("New connection from %s:%u.\n",
-			inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
 		fflush(stdout); fflush(stderr);
 
 		if (single_connect || !fork()) {
+			csync_server_child_pid = getpid();
+			fprintf(stderr, "<%d> New connection from %s:%u.\n",
+				csync_server_child_pid,
+				inet_ntoa(addr.sin_addr),
+				ntohs(addr.sin_port));
+			fflush(stderr);
+
 			dup2(conn, 0);
 			dup2(conn, 1);
 			close(conn);
@@ -427,6 +434,7 @@ int main(int argc, char ** argv)
 	yyin = fopen(file_config, "r");
 	if ( !yyin ) csync_fatal("Can't open config file.\n");
 	yyparse();
+	fclose(yyin);
 
 	csync_db_open(file_database);
 
@@ -636,9 +644,17 @@ int main(int argc, char ** argv)
 
 	csync_run_commands();
 	csync_db_close();
+
 	if ( csync_error_count != 0 )
 		csync_debug(0, "Finished with %d errors.\n", csync_error_count);
 	if ( retval >= 0 && csync_error_count == 0 ) return retval;
+
+	if ( csync_server_child_pid ) {
+		fprintf(stderr, "<%d> Connection closed.\n",
+				csync_server_child_pid);
+		fflush(stderr);
+	}
+
 	return csync_error_count != 0;
 }
 
