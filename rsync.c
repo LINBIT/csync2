@@ -238,18 +238,19 @@ int csync_rs_patch(const char * filename)
 	rs_stats_t stats;
 	rs_result result;
 	char buffer[512];
+	char *errstr = "?";
 	int rc;
 
 	delta_file = paranoid_tmpfile();
-	if ( !delta_file ) goto io_error;
+	if ( !delta_file ) { errstr="creating delta temp file"; goto io_error; }
 	csync_recv_file(delta_file);
 
 	basis_file = fopen(filename, "r");
 	if ( !basis_file ) basis_file = paranoid_tmpfile();
-	if ( !basis_file ) goto io_error;
+	if ( !basis_file ) { errstr="opening data file for reading"; goto io_error; }
 
 	new_file = paranoid_tmpfile();
-	if ( !new_file ) goto io_error;
+	if ( !new_file ) { errstr="creating new data temp file"; goto io_error; }
 
 	result = rs_patch_file(basis_file, delta_file, new_file, &stats);
 	if (result != RS_DONE) {
@@ -262,7 +263,7 @@ int csync_rs_patch(const char * filename)
 
 	unlink(filename);
 	basis_file = fopen(filename, "w");
-	if ( !basis_file ) goto io_error;
+	if ( !basis_file ) { errstr="opening data file for writing"; goto io_error; }
 
 	while ( (rc = fread(buffer, 1, 512, new_file)) > 0 )
 		fwrite(buffer, rc, 1, basis_file);
@@ -274,8 +275,8 @@ int csync_rs_patch(const char * filename)
 	return 0;
 
 io_error:
-	csync_debug(0, "I/O Error '%s' in rsync-patch: %s\n",
-			strerror(errno), filename);
+	csync_debug(0, "I/O Error '%s' while %s in rsync-patch: %s\n",
+			strerror(errno), errstr, filename);
 
 error:
 	if ( delta_file ) fclose(delta_file);
