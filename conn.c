@@ -69,7 +69,7 @@ int conn_open(const char *peername)
                 return -1;
         }
 
-	if (setsockopt(conn_fd_in, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on) ) == -1 ) {
+	if (setsockopt(conn_fd_in, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on) ) < 0 ) {
                 csync_debug(1, "Can't set TCP_NODELAY option on TCP socket.\n");
 		close(conn_fd_in); conn_fd_in = -1;
                 return -1;
@@ -84,10 +84,17 @@ int conn_open(const char *peername)
 
 int conn_set(int infd, int outfd)
 {
+	int on = 1;
+
 	conn_fd_in  = infd;
 	conn_fd_out = outfd;
 	conn_clisok = 1;
 	conn_usessl = 0;
+
+	// when running in server mode, this has been done already
+	// in csync2.c with more restrictive error handling..
+	if ( setsockopt(conn_fd_out, IPPROTO_TCP, TCP_NODELAY, &on, (socklen_t) sizeof(on) < 0 )
+                csync_debug(1, "Can't set TCP_NODELAY option on TCP socket.\n");
 
 	return 0;
 }
