@@ -93,7 +93,7 @@ int conn_set(int infd, int outfd)
 
 	// when running in server mode, this has been done already
 	// in csync2.c with more restrictive error handling..
-	if ( setsockopt(conn_fd_out, IPPROTO_TCP, TCP_NODELAY, &on, (socklen_t) sizeof(on) < 0 )
+	if ( setsockopt(conn_fd_out, IPPROTO_TCP, TCP_NODELAY, &on, (socklen_t) sizeof(on)) < 0 )
                 csync_debug(1, "Can't set TCP_NODELAY option on TCP socket.\n");
 
 	return 0;
