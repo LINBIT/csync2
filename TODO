@@ -1,6 +1,4 @@
 
-Optimize repeated checks in daemon code.
-Cache results of 'symlink tests'
 Add 'vpath' feature (sync different diretories)
 Add passive-mode feature (daemon does -xv run)
 
