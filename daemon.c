@@ -319,9 +319,12 @@ void csync_daemon_session()
 			break;
 		case A_LIST:
 			SQL_BEGIN("DB Dump - Files for sync pair",
-				"SELECT checktxt, filename FROM file ORDER BY filename")
+				"SELECT checktxt, filename FROM file %s%s%s ORDER BY filename",
+					strcmp(tag[2], "-") ? "WHERE filename = '" : "",
+					strcmp(tag[2], "-") ? url_encode(tag[2]) : "",
+					strcmp(tag[2], "-") ? "'" : "")
 			{
-				if ( csync_match_file_host(SQL_V[1], tag[1], peer, (const char **)&tag[2]) )
+				if ( csync_match_file_host(SQL_V[1], tag[1], peer, (const char **)&tag[3]) )
 					conn_printf("%s\t%s\n", SQL_V[0], SQL_V[1]);
 			} SQL_END;
 			break;

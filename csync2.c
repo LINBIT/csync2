@@ -111,13 +111,15 @@ PACKAGE_STRING " - cluster synchronisation tool, 2nd generation\n"
 "	-S myname peername	List file-entries from status db for this\n"
 "				synchronisation pair.\n"
 "\n"
-"	-T  			Test if this node is in sync with all peers.\n"
+"	-T  			Test if everything is in sync with all peers.\n"
+"\n"
+"	-T filename 		Test if this file is in sync with all peers.\n"
 "\n"
 "	-T myname peername	Test if this synchronisation pair is in sync.\n"
 "\n"
-"	-T myname peer file	Show difference between file on peer and local.\n"
+"	-T myname peer file	Test only this file in this sync pair.\n"
 "\n"
-"	-TT	As -T, but always print the unified diffs.\n"
+"	-TT	As -T, but print the unified diffs.\n"
 "\n"
 "	The modes -H, -L, -M and -S return 2 if the requested db is empty.\n"
 "	The mode -T returns 2 if both hosts are in sync.\n"
@@ -365,7 +367,8 @@ int main(int argc, char ** argv)
 			mode != MODE_LIST_SYNC && mode != MODE_TEST_SYNC)
 		help(argv[0]);
 
-	if ( mode == MODE_TEST_SYNC && optind != argc && optind+2 != argc && optind+3 != argc)
+	if ( mode == MODE_TEST_SYNC && optind != argc &&
+	     optind+1 != argc && optind+2 != argc && optind+3 != argc)
 		help(argv[0]);
 
 	if ( mode == MODE_LIST_SYNC && optind+2 != argc )
@@ -618,14 +621,22 @@ int main(int argc, char ** argv)
 			switch (argc-optind)
 			{
 			case 3:
-				retval = csync_diff(argv[optind], argv[optind+1], argv[optind+2]);
+				if ( mode_test_auto_diff )
+					retval = csync_diff(argv[optind], argv[optind+1], argv[optind+2]);
+				else
+					if ( csync_insynctest(argv[optind], argv[optind+1], init_run, 0, argv[optind+2]) )
+						retval = 2;
 				break;
 			case 2:
-				if ( csync_insynctest(argv[optind], argv[optind+1], init_run, mode_test_auto_diff) )
+				if ( csync_insynctest(argv[optind], argv[optind+1], init_run, mode_test_auto_diff, 0) )
+					retval = 2;
+				break;
+			case 1:
+				if ( csync_insynctest_all(init_run, mode_test_auto_diff, argv[optind]) )
 					retval = 2;
 				break;
 			case 0:
-				if ( csync_insynctest_all(init_run, mode_test_auto_diff) )
+				if ( csync_insynctest_all(init_run, mode_test_auto_diff, 0) )
 					retval = 2;
 				break;
 			}

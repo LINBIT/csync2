@@ -138,8 +138,8 @@ extern void csync_mark(const char *file, const char *thispeer);
 
 extern void csync_update(const char **patlist, int patnum, int recursive, int dry_run);
 extern int csync_diff(const char *myname, const char *peername, const char *filename);
-extern int csync_insynctest(const char *myname, const char *peername, int init_run, int auto_diff);
-extern int csync_insynctest_all(int init_run, int auto_diff);
+extern int csync_insynctest(const char *myname, const char *peername, int init_run, int auto_diff, const char *filename);
+extern int csync_insynctest_all(int init_run, int auto_diff, const char *filename);
 extern void csync_remove_old();
 
 

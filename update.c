@@ -695,7 +695,7 @@ int csync_insynctest_readline(char **file, char **checktxt)
 	return 0;
 }
 
-int csync_insynctest(const char *myname, const char *peername, int init_run, int auto_diff)
+int csync_insynctest(const char *myname, const char *peername, int init_run, int auto_diff, const char *filename)
 {
 	struct textlist *diff_list = 0, *diff_ent;
 	const struct csync_group *g;
@@ -723,7 +723,7 @@ found_host_check:
 	conn_printf("HELLO %s\n", myname);
 	read_conn_status(0, peername);
 
-	conn_printf("LIST %s", peername);
+	conn_printf("LIST %s %s", peername, filename ? url_encode(filename) : "-");
 	for (g = csync_group; g; g = g->next) {
 		if ( !g->myname || strcmp(g->myname, myname) ) continue;
 		for (h = g->host; h; h = h->next)
@@ -735,7 +735,10 @@ found_host:
 	conn_printf("\n");
 
 	SQL_BEGIN("DB Dump - File",
-		"SELECT checktxt, filename FROM file ORDER BY filename")
+		"SELECT checktxt, filename FROM file %s%s%s ORDER BY filename",
+			filename ? "WHERE filename = '" : "",
+			filename ? url_encode(filename) : "",
+			filename ? "'" : "")
 	{
 		char *l_file = strdup(url_decode(SQL_V[1])), *l_checktxt = strdup(url_decode(SQL_V[0]));
 		if ( csync_match_file_host(l_file, myname, peername, 0) ) {
@@ -744,7 +747,7 @@ got_remote_eof:
 				if (auto_diff)
 					textlist_add(&diff_list, strdup(l_file), 0);
 				else
-					printf("L %s\n", l_file); ret=0;
+					printf("L\t%s\t%s\t%s\n", myname, peername, l_file); ret=0;
 				if (init_run) csync_mark(l_file, 0);
 			} else {
 				if ( !remote_reuse )
@@ -756,7 +759,7 @@ got_remote_eof:
 					if (auto_diff)
 						textlist_add(&diff_list, strdup(r_file), 0);
 					else
-						printf("R %s\n", r_file); ret=0;
+						printf("R\t%s\t%s\t%s\n", myname, peername, r_file); ret=0;
 					if ( csync_insynctest_readline(&r_file, &r_checktxt) )
 						{ remote_eof = 1; goto got_remote_eof; }
 					rel = strcmp(l_file, r_file);
@@ -766,7 +769,7 @@ got_remote_eof:
 					if (auto_diff)
 						textlist_add(&diff_list, strdup(l_file), 0);
 					else
-						printf("L %s\n", l_file); ret=0;
+						printf("L\t%s\t%s\t%s\n", myname, peername, l_file); ret=0;
 					if (init_run) csync_mark(l_file, 0);
 					remote_reuse = 1;
 				} else {
@@ -776,7 +779,7 @@ got_remote_eof:
 							if (auto_diff)
 								textlist_add(&diff_list, strdup(l_file), 0);
 							else
-								printf("X %s\n", l_file); ret=0;
+								printf("X\t%s\t%s\t%s\n", myname, peername, l_file); ret=0;
 							if (init_run) csync_mark(l_file, 0);
 						}
 					}
@@ -792,7 +795,7 @@ got_remote_eof:
 			if (auto_diff)
 				textlist_add(&diff_list, strdup(r_file), 0);
 			else
-				printf("R %s\n", r_file); ret=0;
+				printf("R\t%s\t%s\t%s\n", myname, peername, r_file); ret=0;
 		}
 
 	if (r_file) free(r_file);
@@ -809,7 +812,7 @@ got_remote_eof:
 	return ret;
 }
 
-int csync_insynctest_all(int init_run, int auto_diff)
+int csync_insynctest_all(int init_run, int auto_diff, const char *filename)
 {
 	struct textlist *myname_list = 0, *myname;
 	struct csync_group *g;
@@ -841,7 +844,7 @@ skip_this_peername:		;
 
 		for (peername=peername_list; peername; peername=peername->next) {
 			csync_debug(1, "Running in-sync check for %s <-> %s.\n", myname->value, peername->value);
-			if ( !csync_insynctest(myname->value, peername->value, init_run, auto_diff) ) ret=0;
+			if ( !csync_insynctest(myname->value, peername->value, init_run, auto_diff, filename) ) ret=0;
 		}
 
 		textlist_free(peername_list);
