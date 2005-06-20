@@ -117,6 +117,8 @@ PACKAGE_STRING " - cluster synchronisation tool, 2nd generation\n"
 "\n"
 "	-T myname peer file	Show difference between file on peer and local.\n"
 "\n"
+"	-TT	As -T, but always print the unified diffs.\n"
+"\n"
 "	The modes -H, -L, -M and -S return 2 if the requested db is empty.\n"
 "	The mode -T returns 2 if both hosts are in sync.\n"
 "\n"
@@ -238,6 +240,7 @@ int main(int argc, char ** argv)
 {
 	struct textlist *tl = 0, *t;
 	int mode = MODE_NONE;
+	int mode_test_auto_diff = 0;
 	int init_run = 0;
 	int recursive = 0;
 	int retval = -1;
@@ -329,8 +332,12 @@ int main(int argc, char ** argv)
 				mode = MODE_LIST_SYNC;
 				break;
 			case 'T':
-				if ( mode != MODE_NONE ) help(argv[0]);
-				mode = MODE_TEST_SYNC;
+				if ( mode == MODE_TEST_SYNC ) {
+					mode_test_auto_diff = 1;
+				} else {
+					if ( mode != MODE_NONE ) help(argv[0]);
+					mode = MODE_TEST_SYNC;
+				}
 				break;
 			case 'M':
 				if ( mode != MODE_NONE ) help(argv[0]);
@@ -614,11 +621,11 @@ int main(int argc, char ** argv)
 				retval = csync_diff(argv[optind], argv[optind+1], argv[optind+2]);
 				break;
 			case 2:
-				if ( csync_insynctest(argv[optind], argv[optind+1], init_run) )
+				if ( csync_insynctest(argv[optind], argv[optind+1], init_run, mode_test_auto_diff) )
 					retval = 2;
 				break;
 			case 0:
-				if ( csync_insynctest_all(init_run) )
+				if ( csync_insynctest_all(init_run, mode_test_auto_diff) )
 					retval = 2;
 				break;
 			}
