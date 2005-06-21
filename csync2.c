@@ -382,6 +382,9 @@ int main(int argc, char ** argv)
 		myhostname[255] = 0;
 	}
 
+	for (i=0; myhostname[i]; i++)
+		myhostname[i] = tolower(myhostname[i]);
+
 	/* Stand-alone server mode. This is a hack..
 	 */
 	if ( mode == MODE_SERVER || mode == MODE_SINGLE ) {

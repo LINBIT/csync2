@@ -55,11 +55,16 @@ static void new_group(char * name)
 	csync_group = t;
 }
 
-static void add_host(const char *hostname, const char *peername)
+static void add_host(char *hostname, char *peername)
 {
+	int i;
+	for (i=0; hostname[i]; i++)
+		hostname[i] = tolower(hostname[i]);
+	for (i=0; peername[i]; i++)
+		peername[i] = tolower(peername[i]);
 	if ( strcmp(hostname, myhostname) == 0 ) {
 		csync_group->myname = peername;
-		free((void*)hostname);
+		free(hostname);
 	} else {
 		struct csync_group_host *t =
 			calloc(sizeof(struct csync_group_host), 1);
@@ -67,7 +72,7 @@ static void add_host(const char *hostname, const char *peername)
 		t->on_left_side = !csync_group->myname;
 		t->next = csync_group->host;
 		csync_group->host = t;
-		free((void*)hostname);
+		free(hostname);
 	}
 }
 

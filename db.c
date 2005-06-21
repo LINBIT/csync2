@@ -32,6 +32,11 @@
 int db_blocking_mode = 1;
 static sqlite * db = 0;
 
+static int get_dblock_timeout()
+{
+	return getpid() % 11 + 10;
+}
+
 void csync_db_maycommit()
 {
 	static time_t lastcommit = 0;
@@ -116,7 +121,7 @@ void csync_db_sql(const char *err, const char *fmt, ...)
 	while (1) {
 		rc = sqlite_exec(db, sql, 0, 0, 0);
 		if ( rc != SQLITE_BUSY ) break;
-		if (busyc++ > 10) { db = 0; csync_fatal(DEADLOCK_MESSAGE); }
+		if (busyc++ > get_dblock_timeout()) { db = 0; csync_fatal(DEADLOCK_MESSAGE); }
 		csync_debug(2, "Database is busy, sleeping a sec.\n");
 		sleep(1);
 	}
@@ -144,7 +149,7 @@ void* csync_db_begin(const char *err, const char *fmt, ...)
 	while (1) {
 		rc = sqlite_compile(db, sql, 0, &vm, 0);
 		if ( rc != SQLITE_BUSY ) break;
-		if (busyc++ > 10) { db = 0; csync_fatal(DEADLOCK_MESSAGE); }
+		if (busyc++ > get_dblock_timeout()) { db = 0; csync_fatal(DEADLOCK_MESSAGE); }
 		csync_debug(2, "Database is busy, sleeping a sec.\n");
 		sleep(1);
 	}
@@ -167,7 +172,7 @@ int csync_db_next(void *vmx, const char *err,
 	while (1) {
 		rc = sqlite_step(vm, pN, pazValue, pazColName);
 		if ( rc != SQLITE_BUSY ) break;
-		if (busyc++ > 10) { db = 0; csync_fatal(DEADLOCK_MESSAGE); }
+		if (busyc++ > get_dblock_timeout()) { db = 0; csync_fatal(DEADLOCK_MESSAGE); }
 		csync_debug(2, "Database is busy, sleeping a sec.\n");
 		sleep(1);
 	}
@@ -189,7 +194,7 @@ void csync_db_fin(void *vmx, const char *err)
 	while (1) {
 		rc = sqlite_finalize(vm, 0);
 		if ( rc != SQLITE_BUSY ) break;
-		if (busyc++ > 10) { db = 0; csync_fatal(DEADLOCK_MESSAGE); }
+		if (busyc++ > get_dblock_timeout()) { db = 0; csync_fatal(DEADLOCK_MESSAGE); }
 		csync_debug(2, "Database is busy, sleeping a sec.\n");
 		sleep(1);
 	}

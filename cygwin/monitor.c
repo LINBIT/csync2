@@ -24,6 +24,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <stdlib.h>
 
 int main(int argc, char **argv)
 {
@@ -96,6 +97,7 @@ int main(int argc, char **argv)
 			goto io_error;
 	}
 
+	srandom((unsigned int)((time(NULL) << 5) ^ getpid()));
 	while (1) {
 		pid_t pid;
 
@@ -117,7 +119,7 @@ int main(int argc, char **argv)
 		if (waitpid(pid, NULL, 0) == -1)
 			goto io_error;
 
-		sleep(5);
+		sleep(3 + random()%7);
 	}
 
 	/* never reached */
