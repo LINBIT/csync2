@@ -30,6 +30,8 @@
 	"Detected DB deadlock situation => Terminating (requesting retry)."
 
 int db_blocking_mode = 1;
+static int db_intransaction = 0;
+
 static sqlite * db = 0;
 
 static int get_dblock_timeout()
@@ -40,20 +42,37 @@ static int get_dblock_timeout()
 void csync_db_maycommit()
 {
 	static time_t lastcommit = 0;
+	static time_t lastwait = 0;
 	static int commitcount = 0;
 	static int recursion = 0;
+	static int query_counter = 0;
 	time_t now;
 
 	if ( !db_blocking_mode || recursion ) return;
 	recursion++;
 
+	query_counter++;
+	if (query_counter < 100) return;
+	if (query_counter == 100) {
+		SQL("BEGIN TRANSACTION", "BEGIN TRANSACTION");
+		db_intransaction = 1;
+		return;
+	}
+
 	now = time(0);
 	if ( !lastcommit ) lastcommit = now;
+	if ( !lastwait )   lastwait = now;
 
-	if ( now-lastcommit >= 10 || commitcount++ >= 1000 ) {
+	if ( now-lastwait >= 10 || now-lastcommit >= 3 ||
+	     commitcount++ >= 1000 ) {
 		csync_debug(2, "Commiting current transaction (time=%d, count=%d).\n",
 				(int)(now-lastcommit), commitcount-1);
 		SQL("COMMIT TRANSACTION", "COMMIT TRANSACTION");
+		if ( now-lastwait >= 10 ) {
+			lastwait = 0;
+			csync_debug(2, "Waiting 2 secs so others can lock the database...\n");
+			sleep(2);
+		}
 		SQL("BEGIN TRANSACTION", "BEGIN TRANSACTION");
 		lastcommit = now; commitcount = 0;
 	}
@@ -92,15 +111,12 @@ void csync_db_open(const char * file)
 		"	UNIQUE ( filename, command ) ON CONFLICT IGNORE"
 		")",
 		0, 0, 0);
-
-	if (db_blocking_mode)
-		SQL("BEGIN TRANSACTION", "BEGIN TRANSACTION");
 }
 
 void csync_db_close()
 {
 	if (!db) return;
-	if (db_blocking_mode)
+	if (db_intransaction)
 		SQL("COMMIT TRANSACTION", "COMMIT TRANSACTION");
 	sqlite_close(db);
 	db = 0;

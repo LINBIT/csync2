@@ -28,6 +28,7 @@
 
 int main(int argc, char **argv)
 {
+	int non_blocking_mode = 0;
 	char myhostname[256];
 	char *dbname;
 	int i;
@@ -54,6 +55,17 @@ int main(int argc, char **argv)
 		goto io_error;
 
 	for (i=1; i<argc; i++) {
+		if (argv[i][0] != '-')
+			break;
+		if (!strcmp(argv[i], "-B"))
+			non_blocking_mode = 1;
+		else {
+			printf("Unkown option: %s\n", argv[i]);
+			return 1;
+		}
+	}
+
+	for (; i<argc; i++) {
 		printf("Starting hintd for '%s' ...\n", argv[i]);
 		fflush(stdout);
 		if (!fork()) {
@@ -76,7 +88,10 @@ int main(int argc, char **argv)
 		while (1) {
 			pid_t pid;
 			if (!(pid=fork())) {
-				execl("./csync2.exe", "csync2.exe", "-iiv", NULL);
+				if (non_blocking_mode)
+					execl("./csync2.exe", "csync2.exe", "-Biiv", NULL);
+				else
+					execl("./csync2.exe", "csync2.exe", "-iiv", NULL);
 				goto io_error;
 			}
 			if (waitpid(pid, NULL, 0) == -1)
@@ -90,7 +105,10 @@ int main(int argc, char **argv)
 	{
 		pid_t pid;
 		if (!(pid=fork())) {
-			execl("./csync2.exe", "csync2.exe", "-crv", "/", NULL);
+			if (non_blocking_mode)
+				execl("./csync2.exe", "csync2.exe", "-Bcrv", "/", NULL);
+			else
+				execl("./csync2.exe", "csync2.exe", "-crv", "/", NULL);
 			goto io_error;
 		}
 		if (waitpid(pid, NULL, 0) == -1)
@@ -106,14 +124,20 @@ int main(int argc, char **argv)
 		fflush(stdout);
 
 		if (!(pid=fork())) {
-			execl("./csync2.exe", "csync2.exe", "-cv", NULL);
+			if (non_blocking_mode)
+				execl("./csync2.exe", "csync2.exe", "-Bcv", NULL);
+			else
+				execl("./csync2.exe", "csync2.exe", "-cv", NULL);
 			goto io_error;
 		}
 		if (waitpid(pid, NULL, 0) == -1)
 			goto io_error;
 
 		if (!(pid=fork())) {
-			execl("./csync2.exe", "csync2.exe", "-uv", NULL);
+			if (non_blocking_mode)
+				execl("./csync2.exe", "csync2.exe", "-Buv", NULL);
+			else
+				execl("./csync2.exe", "csync2.exe", "-uv", NULL);
 			goto io_error;
 		}
 		if (waitpid(pid, NULL, 0) == -1)
