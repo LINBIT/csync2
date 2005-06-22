@@ -36,7 +36,7 @@ static sqlite * db = 0;
 
 static int get_dblock_timeout()
 {
-	return getpid() % 11 + 10;
+	return getpid() % 7 + 12;
 }
 
 void csync_db_maycommit()
