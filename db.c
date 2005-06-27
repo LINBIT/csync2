@@ -119,10 +119,14 @@ void csync_db_open(const char * file)
 
 void csync_db_close()
 {
-	if (!db) return;
+	static int recursion = 0;
+	if (!db || recursion) return;
+
+	recursion++;
 	if (db_intransaction)
 		SQL("COMMIT TRANSACTION", "COMMIT TRANSACTION");
 	sqlite_close(db);
+	recursion--;
 	db = 0;
 }
 

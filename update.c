@@ -30,13 +30,17 @@
 #include <fnmatch.h>
 #include <stdarg.h>
 
+static int connection_closed_error = 1;
+
 int read_conn_status(const char *file, const char *host)
 {
 	char line[4096];
 	if ( conn_gets(line, 4096) ) {
 		if ( !strncmp(line, "OK (", 4) ) return 0;
-	} else 
+	} else {
+		connection_closed_error = 1;
 		strcpy(line, "Connection closed.\n");
+	}
 	if ( file )
 		csync_debug(0, "While syncing file %s:\n", file);
 	csync_debug(0, "ERROR from peer %s: %s", host, line);
@@ -48,6 +52,8 @@ int connect_to_host(const char *peername)
 {
 	int use_ssl = 1;
 	struct csync_nossl *t;
+
+	connection_closed_error = 0;
 
 	for (t = csync_nossl; t; t=t->next) {
 		if ( !fnmatch(t->pattern_from, myhostname, 0) &&
@@ -552,8 +558,9 @@ void csync_update_host(const char *peername,
 					goto ident_failed_1;
 				current_name = t->value2;
 			}
-			csync_update_file_del(peername,
-					t->value, t->intvalue, dry_run);
+			if (!connection_closed_error)
+				csync_update_file_del(peername,
+						t->value, t->intvalue, dry_run);
 ident_failed_1:
 			last_tn=&(t->next);
 		}
@@ -566,9 +573,10 @@ ident_failed_1:
 				goto ident_failed_2;
 			current_name = t->value2;
 		}
-		csync_update_file_mod(peername,
-				t->value, t->intvalue, dry_run);
-ident_failed_2:	;
+		if (!connection_closed_error)
+			csync_update_file_mod(peername,
+					t->value, t->intvalue, dry_run);
+ident_failed_2:;
 	}
 
 	textlist_free(tl_mod);
