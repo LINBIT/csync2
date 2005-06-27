@@ -52,10 +52,14 @@ void csync_db_maycommit()
 	recursion++;
 
 	query_counter++;
-	if (query_counter < 100) return;
+	if (query_counter < 100) {
+		recursion--;
+		return;
+	}
 	if (query_counter == 100) {
 		SQL("BEGIN TRANSACTION", "BEGIN TRANSACTION");
 		db_intransaction = 1;
+		recursion--;
 		return;
 	}
 
