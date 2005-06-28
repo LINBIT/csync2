@@ -27,7 +27,7 @@
 #include <time.h>
 
 #define DEADLOCK_MESSAGE \
-	"Detected DB deadlock situation => Terminating (requesting retry).\n"
+	"Database backend is exceedingly busy => Terminating (requesting retry).\n"
 
 int db_blocking_mode = 1;
 static int db_intransaction = 0;
