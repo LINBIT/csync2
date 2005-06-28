@@ -66,14 +66,21 @@ void csync_send_file(FILE * in)
 	}
 }
 
-void csync_recv_file(FILE * out)
+void csync_send_error()
+{
+	conn_printf("ERROR\n");
+}
+
+int csync_recv_file(FILE * out)
 {
 	char buffer[512];
 	int rc, chunk;
 	long size;
 
-	if ( !conn_gets(buffer, 100) || sscanf(buffer, "octet-stream %ld\n", &size) != 1 )
+	if ( !conn_gets(buffer, 100) || sscanf(buffer, "octet-stream %ld\n", &size) != 1 ) {
+		if (!strcmp(buffer, "ERROR\n")) return -1;
 		csync_fatal("Format-error while receiving data.\n");
+	}
 
 	csync_debug(3, "Receiving %ld bytes ..\n", size);
 
@@ -96,6 +103,7 @@ void csync_recv_file(FILE * out)
 
 	fflush(out);
 	rewind(out);
+	return 0;
 }
 
 int csync_rs_check(const char *filename, int isreg)
@@ -215,7 +223,7 @@ void csync_rs_sig(const char *filename)
 	fclose(sig_file);
 }
 
-void csync_rs_delta(const char *filename)
+int csync_rs_delta(const char *filename)
 {
 	FILE *sig_file, *new_file, *delta_file;
 	rs_result result;
@@ -226,7 +234,10 @@ void csync_rs_delta(const char *filename)
 
 	csync_debug(3, "Receiving sig_file from peer..\n");
 	sig_file = paranoid_tmpfile();
-	csync_recv_file(sig_file);
+	if ( csync_recv_file(sig_file) ) {
+		fclose(sig_file);
+		return -1;
+	}
 	result = rs_loadsig_file(sig_file, &sumset, &stats);
 	if (result != RS_DONE)
 		csync_fatal("Got an error from librsync, too bad!\n");
@@ -234,6 +245,13 @@ void csync_rs_delta(const char *filename)
 
 	csync_debug(3, "Opening new_file and delta_file..\n");
 	new_file = fopen(filename, "r");
+	if ( !new_file ) {
+		csync_debug(0, "I/O Error '%s' while %s in rsync-delta: %s\n",
+				strerror(errno), "opening data file for reading", filename);
+		csync_send_error();
+		fclose(new_file);
+		return -1;
+	}
 	delta_file = paranoid_tmpfile();
 
 	csync_debug(3, "Running rs_build_hash_table() from librsync..\n");
@@ -253,6 +271,8 @@ void csync_rs_delta(const char *filename)
 	rs_free_sumset(sumset);
 	fclose(delta_file);
 	fclose(new_file);
+
+	return 0;
 }
 
 int csync_rs_patch(const char *filename)
@@ -269,7 +289,7 @@ int csync_rs_patch(const char *filename)
 	csync_debug(3, "Receiving delta_file from peer..\n");
 	delta_file = paranoid_tmpfile();
 	if ( !delta_file ) { errstr="creating delta temp file"; goto io_error; }
-	csync_recv_file(delta_file);
+	if ( csync_recv_file(delta_file) ) goto error;
 
 	csync_debug(3, "Opening to be patched file on local host..\n");
 	basis_file = fopen(filename, "r");

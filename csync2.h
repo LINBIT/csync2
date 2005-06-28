@@ -115,10 +115,10 @@ extern int db_blocking_mode;
 
 /* rsync.c */
 
-extern int csync_rs_check(const char * filename, int isreg);
-extern void csync_rs_sig(const char * filename);
-extern void csync_rs_delta(const char * filename);
-extern int csync_rs_patch(const char * filename);
+extern int csync_rs_check(const char *filename, int isreg);
+extern void csync_rs_sig(const char *filename);
+extern int csync_rs_delta(const char *filename);
+extern int csync_rs_patch(const char *filename);
 
 
 /* checktxt.c */
@@ -130,7 +130,7 @@ extern int csync_cmpchecktxt(const char *a, const char *b);
 /* check.c */
 
 extern void csync_hint(const char *file, int recursive);
-extern void csync_check(const char * filename, int recursive, int init_run);
+extern void csync_check(const char *filename, int recursive, int init_run);
 extern void csync_mark(const char *file, const char *thispeer);
 
 

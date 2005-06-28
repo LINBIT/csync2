@@ -324,7 +324,8 @@ auto_resolve_entry_point:
 				url_encode(key), url_encode(filename));
 		if ( (last_conn_status = read_conn_status(filename, peername)) )
 			goto maybe_auto_resolve;
-		csync_rs_delta(filename);
+		if ( csync_rs_delta(filename) )
+			goto got_error;
 		if ( read_conn_status(filename, peername) )
 			goto got_error;
 	} else
@@ -621,7 +622,7 @@ found_asactive:
 int csync_diff(const char *myname, const char *peername, const char *filename)
 {
 	FILE *p;
-	sighandler_t old_sigpipe_handler;
+	void *old_sigpipe_handler;
 	const struct csync_group *g = 0;
 	const struct csync_group_host *h;
 	char buffer[512];
