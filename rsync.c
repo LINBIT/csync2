@@ -78,7 +78,7 @@ int csync_recv_file(FILE * out)
 	long size;
 
 	if ( !conn_gets(buffer, 100) || sscanf(buffer, "octet-stream %ld\n", &size) != 1 ) {
-		if (!strcmp(buffer, "ERROR\n")) return -1;
+		if (!strcmp(buffer, "ERROR\n")) { errno=ENODATA; return -1; }
 		csync_fatal("Format-error while receiving data.\n");
 	}
 
@@ -189,10 +189,11 @@ io_error:
 	csync_debug(0, "I/O Error '%s' in rsync-check: %s\n",
 			strerror(errno), filename);
 
-error:
+error:;
+	int backup_errno = errno;
 	if ( basis_file ) fclose(basis_file);
 	if ( sig_file )   fclose(sig_file);
-
+	errno = backup_errno;
 	return -1;
 }
 
@@ -246,10 +247,12 @@ int csync_rs_delta(const char *filename)
 	csync_debug(3, "Opening new_file and delta_file..\n");
 	new_file = fopen(filename, "r");
 	if ( !new_file ) {
+		int backup_errno = errno;
 		csync_debug(0, "I/O Error '%s' while %s in rsync-delta: %s\n",
 				strerror(errno), "opening data file for reading", filename);
 		csync_send_error();
 		fclose(new_file);
+		errno = backup_errno;
 		return -1;
 	}
 	delta_file = paranoid_tmpfile();
@@ -329,11 +332,12 @@ io_error:
 	csync_debug(0, "I/O Error '%s' while %s in rsync-patch: %s\n",
 			strerror(errno), errstr, filename);
 
-error:
+error:;
+	int backup_errno = errno;
 	if ( delta_file ) fclose(delta_file);
 	if ( basis_file ) fclose(basis_file);
 	if ( new_file )   fclose(new_file);
-
+	errno = backup_errno;
 	return -1;
 }
 

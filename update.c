@@ -324,8 +324,10 @@ auto_resolve_entry_point:
 				url_encode(key), url_encode(filename));
 		if ( (last_conn_status = read_conn_status(filename, peername)) )
 			goto maybe_auto_resolve;
-		if ( csync_rs_delta(filename) )
+		if ( csync_rs_delta(filename) ) {
+			read_conn_status(filename, peername);
 			goto got_error;
+		}
 		if ( read_conn_status(filename, peername) )
 			goto got_error;
 	} else
