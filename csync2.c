@@ -82,7 +82,7 @@ void help(char *cmd)
 {
 	printf(
 "\n"
-PACKAGE_STRING " - cluster synchronisation tool, 2nd generation\n"
+PACKAGE_STRING " - cluster synchronisation tool, 2nd generation ($Rev$)\n"
 "LINBIT Information Technologies GmbH <http://www.linbit.com>\n"
 "Copyright (C) 2004, 2005  Clifford Wolf <clifford@clifford.at>\n"
 "This program is free software under the terms of the GNU GPL.\n"
