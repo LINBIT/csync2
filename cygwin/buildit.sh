@@ -71,9 +71,9 @@ cp -v csync2.exe $TRGDIR/csync2.exe
 cp -v sqlite-2.8.16/sqlite.exe $TRGDIR/sqlite.exe
 cp -v /bin/cp.exe /bin/ls.exe /bin/wc.exe $TRGDIR/
 cp -v /bin/find.exe /bin/xargs.exe /bin/rsync.exe $TRGDIR/
-cp -v /bin/bash.exe /bin/gawk.exe $TRGDIR/
+cp -v /bin/bash.exe /bin/gawk.exe /bin/wget.exe $TRGDIR/
 
-for bin in csync2 sqlite cp ls wc find xargs rsync bash gawk; do
+for bin in csync2 sqlite cp ls wc find xargs rsync bash gawk wget; do
 	copy_dlls $TRGDIR/$bin.exe
 done
 
