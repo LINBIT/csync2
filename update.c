@@ -29,6 +29,7 @@
 #include <netdb.h>
 #include <fnmatch.h>
 #include <stdarg.h>
+#include <signal.h>
 
 static int connection_closed_error = 1;
 
@@ -620,6 +621,7 @@ found_asactive:
 int csync_diff(const char *myname, const char *peername, const char *filename)
 {
 	FILE *p;
+	sighandler_t old_sigpipe_handler;
 	const struct csync_group *g = 0;
 	const struct csync_group_host *h;
 	char buffer[512];
@@ -651,12 +653,14 @@ found_host_check:
 	fflush(stdout);
 
 	snprintf(buffer, 512, "diff -u - '%s' | tail +3", filename);
+	old_sigpipe_handler = signal(SIGPIPE, SIG_IGN);
 	p = popen(buffer, "w");
 
 	while ( (rc=conn_read(buffer, 512)) > 0 )
 		fwrite(buffer, rc, 1, p);
 
 	fclose(p);
+	signal(SIGPIPE, old_sigpipe_handler);
 
 finish:
 	conn_close();
