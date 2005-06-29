@@ -29,8 +29,6 @@
 #include <string.h>
 #include <sys/stat.h>
 
-#define CSYNC_PORT 30865
-
 
 /* action.c */
 
@@ -286,6 +284,7 @@ extern int csync_debug_level;
 extern FILE *csync_debug_out;
 
 extern int csync_server_child_pid;
+extern int csync_port;
 
 extern char myhostname[];
 extern char *active_grouplist;

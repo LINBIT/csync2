@@ -61,7 +61,7 @@ int conn_open(const char *peername)
 
         sin.sin_family = hp->h_addrtype;
         bcopy(hp->h_addr, &sin.sin_addr, hp->h_length);
-        sin.sin_port = htons(CSYNC_PORT);
+        sin.sin_port = htons(csync_port);
 
         if (connect(conn_fd_in, (struct sockaddr *)&sin, sizeof (sin)) < 0) {
                 csync_debug(1, "Can't connect to remote host.\n");

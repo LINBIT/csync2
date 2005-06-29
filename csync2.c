@@ -58,6 +58,7 @@ int csync_debug_level = 0;
 FILE *csync_debug_out = 0;
 
 int csync_server_child_pid = 0;
+int csync_port = 30865;
 
 enum {
 	MODE_NONE,
@@ -87,7 +88,8 @@ PACKAGE_STRING " - cluster synchronisation tool, 2nd generation\n"
 "Copyright (C) 2004, 2005  Clifford Wolf <clifford@clifford.at>\n"
 "This program is free software under the terms of the GNU GPL.\n"
 "\n"
-"Usage: %s [-v..] [-C config-name] [-D database-dir] [-N hostname] ..\n"
+"Usage: %s [-v..] [-C config-name] \\\n"
+"		[-D database-dir] [-N hostname] [-p port] ..\n"
 "\n"
 "With file parameters:\n"
 "	-h [-r] file..		Add (recursive) hints for check to db\n"
@@ -195,7 +197,7 @@ static int csync_server_loop(int single_connect)
 	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
 	addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	addr.sin_port = htons(CSYNC_PORT);
+	addr.sin_port = htons(csync_port);
 
 	if ( setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &on, (socklen_t) sizeof(on)) < 0 ) goto error;
 	if ( setsockopt(listenfd, SOL_SOCKET, SO_LINGER, &sl, (socklen_t) sizeof(sl)) < 0 ) goto error;
@@ -260,8 +262,11 @@ int main(int argc, char ** argv)
 		return 1;
 	}
 
-	while ( (opt = getopt(argc, argv, "G:P:C:D:N:HBILSTMRvhcuimfxrd")) != -1 ) {
+	while ( (opt = getopt(argc, argv, "p:G:P:C:D:N:HBILSTMRvhcuimfxrd")) != -1 ) {
 		switch (opt) {
+			case 'p':
+				csync_port = atoi(optarg);
+				break;
 			case 'G':
 				active_grouplist = optarg;
 				break;
