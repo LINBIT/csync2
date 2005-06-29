@@ -25,6 +25,10 @@
 #include <errno.h>
 #include <stdio.h>
 
+#ifdef __CYGWIN__
+#include <w32api/windows.h>
+#endif
+
 static FILE *paranoid_tmpfile()
 {
 	FILE *f;
@@ -123,7 +127,7 @@ int csync_rs_check(const char *filename, int isreg)
 	sig_file = paranoid_tmpfile();
 	if ( !sig_file ) goto io_error;
 
-	basis_file = fopen(filename, "r");
+	basis_file = fopen(filename, "rb");
 	if ( !basis_file ) basis_file = paranoid_tmpfile();
 	if ( !basis_file ) goto io_error;
 
@@ -207,8 +211,8 @@ void csync_rs_sig(const char *filename)
 
 	csync_debug(3, "Opening basis_file and sig_file..\n");
 	sig_file = paranoid_tmpfile();
-	basis_file = fopen(filename, "r");
-	if ( !basis_file ) basis_file = fopen("/dev/null", "r");
+	basis_file = fopen(filename, "rb");
+	if ( !basis_file ) basis_file = fopen("/dev/null", "rb");
 
 	csync_debug(3, "Running rs_sig_file() from librsync..\n");
 	result = rs_sig_file(basis_file, sig_file,
@@ -245,7 +249,7 @@ int csync_rs_delta(const char *filename)
 	fclose(sig_file);
 
 	csync_debug(3, "Opening new_file and delta_file..\n");
-	new_file = fopen(filename, "r");
+	new_file = fopen(filename, "rb");
 	if ( !new_file ) {
 		int backup_errno = errno;
 		csync_debug(0, "I/O Error '%s' while %s in rsync-delta: %s\n",
@@ -280,6 +284,9 @@ int csync_rs_delta(const char *filename)
 
 int csync_rs_patch(const char *filename)
 {
+#ifdef __CYGWIN__
+	HANDLE winfh;
+#endif
 	FILE *basis_file = 0, *delta_file = 0, *new_file = 0;
 	rs_stats_t stats;
 	rs_result result;
@@ -295,7 +302,7 @@ int csync_rs_patch(const char *filename)
 	if ( csync_recv_file(delta_file) ) goto error;
 
 	csync_debug(3, "Opening to be patched file on local host..\n");
-	basis_file = fopen(filename, "r");
+	basis_file = fopen(filename, "rb");
 	if ( !basis_file ) basis_file = paranoid_tmpfile();
 	if ( !basis_file ) { errstr="opening data file for reading"; goto io_error; }
 
@@ -313,9 +320,31 @@ int csync_rs_patch(const char *filename)
 	csync_debug(3, "Copying new data to local file..\n");
 	fclose(basis_file);
 	rewind(new_file);
-
 	unlink(filename);
-	basis_file = fopen(filename, "w");
+
+#ifdef __CYGWIN__
+	// This creates the file using the native windows API, bypassing
+	// the cygwin wrappers and so making sure that we do not mess up the
+	// permissions..
+	winfh = CreateFile(TEXT(filename),
+			GENERIC_WRITE,          // open for writing
+			0,                      // do not share
+			NULL,                   // default security
+			CREATE_ALWAYS,          // overwrite existing
+			FILE_ATTRIBUTE_NORMAL | // normal file
+			FILE_FLAG_OVERLAPPED,   // asynchronous I/O
+			NULL);                  // no attr. template
+
+	if (winfh == INVALID_HANDLE_VALUE) {
+		csync_debug(0, "Win32 I/O Error %d in rsync-patch: %s\n",
+				(int)GetLastError(), filename);
+		errno = EACCES;
+		goto error;
+	}
+	CloseHandle(winfh);
+#endif
+
+	basis_file = fopen(filename, "wb");
 	if ( !basis_file ) { errstr="opening data file for writing"; goto io_error; }
 
 	while ( (rc = fread(buffer, 1, 512, new_file)) > 0 )

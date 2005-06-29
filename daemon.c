@@ -222,7 +222,7 @@ void csync_daemon_session()
 			break;
 		case A_TYPE:
 			{
-				FILE *f = fopen(tag[2], "r");
+				FILE *f = fopen(tag[2], "rb");
 
 				if (f) {
 					char buffer[512];
