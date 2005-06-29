@@ -284,9 +284,6 @@ int csync_rs_delta(const char *filename)
 
 int csync_rs_patch(const char *filename)
 {
-#ifdef __CYGWIN__
-	HANDLE winfh;
-#endif
 	FILE *basis_file = 0, *delta_file = 0, *new_file = 0;
 	rs_stats_t stats;
 	rs_result result;
@@ -326,22 +323,29 @@ int csync_rs_patch(const char *filename)
 	// This creates the file using the native windows API, bypassing
 	// the cygwin wrappers and so making sure that we do not mess up the
 	// permissions..
-	winfh = CreateFile(TEXT(filename),
-			GENERIC_WRITE,          // open for writing
-			0,                      // do not share
-			NULL,                   // default security
-			CREATE_ALWAYS,          // overwrite existing
-			FILE_ATTRIBUTE_NORMAL | // normal file
-			FILE_FLAG_OVERLAPPED,   // asynchronous I/O
-			NULL);                  // no attr. template
+	{
+		char winfilename[MAX_PATH];
+		HANDLE winfh;
 
-	if (winfh == INVALID_HANDLE_VALUE) {
-		csync_debug(0, "Win32 I/O Error %d in rsync-patch: %s\n",
-				(int)GetLastError(), filename);
-		errno = EACCES;
-		goto error;
+		cygwin_conv_to_win32_path(filename, winfilename);
+
+		winfh = CreateFile(TEXT(winfilename),
+				GENERIC_WRITE,          // open for writing
+				0,                      // do not share
+				NULL,                   // default security
+				CREATE_ALWAYS,          // overwrite existing
+				FILE_ATTRIBUTE_NORMAL | // normal file
+				FILE_FLAG_OVERLAPPED,   // asynchronous I/O
+				NULL);                  // no attr. template
+
+		if (winfh == INVALID_HANDLE_VALUE) {
+			csync_debug(0, "Win32 I/O Error %d in rsync-patch: %s\n",
+					(int)GetLastError(), filename);
+			errno = EACCES;
+			goto error;
+		}
+		CloseHandle(winfh);
 	}
-	CloseHandle(winfh);
 #endif
 
 	basis_file = fopen(filename, "wb");
