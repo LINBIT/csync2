@@ -151,7 +151,7 @@ void csync_db_sql(const char *err, const char *fmt, ...)
 	}
 
 	if ( rc != SQLITE_OK && err )
-		csync_fatal("Database Error: %s [%d]:\n%s\n", err, rc, sql);
+		csync_fatal("Database Error: %s [%d]: %s\n", err, rc, sql);
 	free(sql);
 
 	csync_db_maycommit();
@@ -179,7 +179,7 @@ void* csync_db_begin(const char *err, const char *fmt, ...)
 	}
 
 	if ( rc != SQLITE_OK && err )
-		csync_fatal("Database Error: %s [%d]:\n%s\n", err, rc, sql);
+		csync_fatal("Database Error: %s [%d]: %s\n", err, rc, sql);
 	free(sql);
 
 	return vm;
