@@ -390,6 +390,9 @@ int main(int argc, char ** argv)
 	for (i=0; myhostname[i]; i++)
 		myhostname[i] = tolower(myhostname[i]);
 
+	for (i=optind; i < argc; i++)
+		on_cygwin_lowercase(argv[i]);
+
 	/* Stand-alone server mode. This is a hack..
 	 */
 	if ( mode == MODE_SERVER || mode == MODE_SINGLE ) {
@@ -673,7 +676,7 @@ int main(int argc, char ** argv)
 	csync_run_commands();
 	csync_db_close();
 
-	if ( csync_error_count != 0 )
+	if ( csync_error_count != 0 || (csync_messages_printed && csync_debug_level) )
 		csync_debug(0, "Finished with %d errors.\n", csync_error_count);
 	if ( retval >= 0 && csync_error_count == 0 ) return retval;
 

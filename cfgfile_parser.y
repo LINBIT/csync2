@@ -373,13 +373,13 @@ host_list:
 excl_list:
 	/* empty */
 |	excl_list TK_STRING
-		{ add_patt(0, $2); }
+		{ add_patt(0, on_cygwin_lowercase($2)); }
 ;
 		
 incl_list:
 	/* empty */
 |	incl_list TK_STRING
-		{ add_patt(1, $2); }
+		{ add_patt(1, on_cygwin_lowercase($2)); }
 ;
 
 action:
@@ -406,7 +406,7 @@ action_stmt:
 action_pattern_list:
 	/* empty */
 |	action_pattern_list TK_STRING
-		{ add_action_pattern($2); }
+		{ add_action_pattern(on_cygwin_lowercase($2)); }
 ;
 
 action_exec_list:

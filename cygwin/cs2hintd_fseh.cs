@@ -41,7 +41,17 @@ public class Csync2HintDaemonFSEH
 		watchdir = args[1];
 
 		FileSystemWatcher watcher = new FileSystemWatcher();
+
 		watcher.Path = watchdir;
+		watcher.IncludeSubdirectories = true;
+		watcher.NotifyFilter =
+			NotifyFilters.Attributes	|
+			NotifyFilters.CreationTime	|
+			NotifyFilters.DirectoryName	|
+			NotifyFilters.FileName		|
+			NotifyFilters.LastWrite		|
+			NotifyFilters.Security		|
+			NotifyFilters.Size;
 
 		watcher.Changed += new FileSystemEventHandler(OnChanged);
 		watcher.Created += new FileSystemEventHandler(OnChanged);
@@ -66,9 +76,10 @@ public class Csync2HintDaemonFSEH
 		while (changed_files.Count > 0)
 		{
 			string filename = (string)changed_files.Dequeue();
+
 			if (donethat.ContainsKey(filename)) continue;
 			donethat.Add(filename, 1);
-			
+
 			filename = Regex.Replace(filename, "^([a-z]):\\\\", "/cygdrive/$1/" );
 			filename = Regex.Replace(filename, "\\\\", "/" );
 
@@ -84,13 +95,13 @@ public class Csync2HintDaemonFSEH
 
 	private static void OnChanged(object source, FileSystemEventArgs e)
 	{
-		Console.WriteLine("** FS Event: '{0}' {1}.", e.FullPath, e.ChangeType);
+		Console.Error.WriteLine("** FS Event: '{0}' {1}.", e.FullPath, e.ChangeType);
 		ScheduleWriteFilename(e.FullPath);
 	}
 
 	private static void OnRenamed(object source, RenamedEventArgs e)
 	{
-		Console.WriteLine("** FS Event: '{0}' renamed to '{1}'.", e.OldFullPath, e.FullPath);
+		Console.Error.WriteLine("** FS Event: '{0}' renamed to '{1}'.", e.OldFullPath, e.FullPath);
 		ScheduleWriteFilename(e.OldFullPath);
 		ScheduleWriteFilename(e.FullPath);
 	}

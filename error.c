@@ -24,6 +24,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+int csync_messages_printed = 0;
+
 void csync_fatal(const char *fmt, ...)
 {
 	va_list ap;
@@ -51,5 +53,7 @@ void csync_debug(int lv, const char *fmt, ...)
 	va_start(ap, fmt);
 	vfprintf(csync_debug_out, fmt, ap);
 	va_end(ap);
+
+	csync_messages_printed++;
 }
 

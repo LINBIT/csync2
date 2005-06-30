@@ -50,7 +50,7 @@ int csync_unlink(const char * filename, int ign)
 	return rc;
 }
 
-int csync_check_dirty(const char *filename)
+int csync_check_dirty(const char *filename, const char *peername)
 {
 	int rc = 0;
 	csync_check(filename, 0, 0);
@@ -61,6 +61,8 @@ int csync_check_dirty(const char *filename)
 		rc = 1;
 		cmd_error = "File is also marked dirty here!";
 	} SQL_END;
+	if (rc && peername)
+		csync_mark(filename, peername);
 	return rc;
 }
 
@@ -178,6 +180,9 @@ void csync_daemon_session()
 			goto next_cmd;
 		}
 
+		if ( cmdtab[cmdnr].check_perm )
+			on_cygwin_lowercase(tag[2]);
+
 		if ( cmdtab[cmdnr].check_perm &&
 				csync_perm(tag[2], tag[1], peer) ) {
 			cmd_error = "Permission denied!";
@@ -185,7 +190,7 @@ void csync_daemon_session()
 		}
 
 		if ( cmdtab[cmdnr].check_dirty &&
-				csync_check_dirty(tag[2]) ) goto abort_cmd;
+				csync_check_dirty(tag[2], peer) ) goto abort_cmd;
 
 		if ( cmdtab[cmdnr].unlink )
 				csync_unlink(tag[2], cmdtab[cmdnr].unlink);

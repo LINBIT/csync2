@@ -283,6 +283,7 @@ extern int csync_error_count;
 extern int csync_debug_level;
 extern FILE *csync_debug_out;
 
+extern int csync_messages_printed;
 extern int csync_server_child_pid;
 extern int csync_port;
 
@@ -295,6 +296,15 @@ extern char *cfgname;
 extern int csync_ignore_uid;
 extern int csync_ignore_gid;
 extern int csync_ignore_mod;
+
+static inline char *on_cygwin_lowercase(char *s) {
+#ifdef __CYGWIN__
+	int i;
+	for (i=0; s[i]; i++)
+		s[i] = tolower(s[i]);
+#endif
+	return s;
+}
 
 #endif /* CSYNC2_H */
 

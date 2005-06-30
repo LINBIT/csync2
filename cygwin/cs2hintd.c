@@ -18,6 +18,7 @@
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include <ctype.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -101,6 +102,9 @@ int main(int argc, char **argv)
 				sql("BEGIN TRANSACTION");
 				in_transaction = 1;
 			}
+
+			for (c=line+2; *c; c++)
+				*c = tolower(*c);
 
 			sql("INSERT INTO hint ( filename, recursive ) VALUES ( '%s', 0 )", url_encode(line+2));
 			fprintf(stderr, "** Added to DB: %s\n", line+2);

@@ -175,16 +175,17 @@ void csync_check_mod(const char * file, int recursive, int ignnoent, int init_ru
 			perror("scandir");
 		else {
 			while(n--) {
-			  if ( strcmp(namelist[n]->d_name, ".") &&
-					strcmp(namelist[n]->d_name, "..") ) {
-				char fn[strlen(file)+
-					strlen(namelist[n]->d_name)+2];
-				sprintf(fn, "%s/%s",
-					!strcmp(file, "/") ? "" : file,
-					namelist[n]->d_name);
-				csync_check_mod(fn, recursive, 0, init_run);
-			  }
-			  free(namelist[n]);
+				on_cygwin_lowercase(namelist[n]->d_name);
+				if ( strcmp(namelist[n]->d_name, ".") &&
+						strcmp(namelist[n]->d_name, "..") ) {
+					char fn[strlen(file)+
+						strlen(namelist[n]->d_name)+2];
+					sprintf(fn, "%s/%s",
+						!strcmp(file, "/") ? "" : file,
+						namelist[n]->d_name);
+					csync_check_mod(fn, recursive, 0, init_run);
+				}
+				free(namelist[n]);
 			}
 			free(namelist);
 		}
