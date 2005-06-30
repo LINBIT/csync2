@@ -43,7 +43,7 @@ void sql(const char *fmt, ...)
 		rc = sqlite_exec(db, sql, 0, 0, 0);
 		if ( rc != SQLITE_BUSY ) break;
 		if (busyc++ > 60) {
-			fprintf(stderr, "** Database busy for long time [%d secs]: %s", busyc, sql);
+			fprintf(stderr, "** Database busy for long time [%d secs]: %s\n", busyc, sql);
 		}
 		sleep(1);
 	}
