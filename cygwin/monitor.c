@@ -65,23 +65,6 @@ int main(int argc, char **argv)
 		}
 	}
 
-	for (; i<argc; i++) {
-		printf("Starting hintd for '%s' ...\n", argv[i]);
-		fflush(stdout);
-		if (!fork()) {
-			while (1) {
-				pid_t pid;
-				if (!(pid=fork())) {
-					execl("./cs2_hintd_win32.exe", "cs2_hintd_win32.exe",
-							dbname, argv[i], NULL);
-					goto io_error;
-				}
-				if (waitpid(pid, NULL, 0) == -1)
-					goto io_error;
-			}
-		}
-	}
-
 	printf("Starting local csync2 daemon (listener) ...\n");
 	fflush(stdout);
 	if (!fork()) {
@@ -96,6 +79,23 @@ int main(int argc, char **argv)
 			}
 			if (waitpid(pid, NULL, 0) == -1)
 				goto io_error;
+		}
+	}
+
+	for (; i<argc; i++) {
+		printf("Starting hintd for '%s' ...\n", argv[i]);
+		fflush(stdout);
+		if (!fork()) {
+			while (1) {
+				pid_t pid;
+				if (!(pid=fork())) {
+					execl("./cs2hintd.exe", "cs2hintd.exe",
+							dbname, argv[i], NULL);
+					goto io_error;
+				}
+				if (waitpid(pid, NULL, 0) == -1)
+					goto io_error;
+			}
 		}
 	}
 

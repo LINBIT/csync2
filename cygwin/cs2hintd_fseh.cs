@@ -23,11 +23,9 @@ using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Collections;
-using SQLite.NET;
 
-public class Csync2HintDaemon
+public class Csync2HintDaemonFSEH
 {
-	private static string dbfile;
 	private static string watchdir;
 	private static Queue changed_files = new Queue();
 
@@ -35,13 +33,12 @@ public class Csync2HintDaemon
 	{
 		string[] args = System.Environment.GetCommandLineArgs();
 	 
-		if(args.Length != 3) {
-			Console.WriteLine("Usage: {0} db-file directory", args[0]);
+		if(args.Length != 2) {
+			Console.Error.WriteLine("Usage: {0} directory", args[0]);
 			return;
 		}
 
-		dbfile = args[1];
-		watchdir = args[2];
+		watchdir = args[1];
 
 		FileSystemWatcher watcher = new FileSystemWatcher();
 		watcher.Path = watchdir;
@@ -54,79 +51,48 @@ public class Csync2HintDaemon
 		watcher.EnableRaisingEvents = true;
 
 		while (true) {
-			Console.WriteLine("-- csync2 hint daemon waiting for filesystem events in '{0}' --", watchdir);
+			Console.Error.WriteLine("-- cs2hintd_fseh waiting for filesystem events in '{0}' --", watchdir);
 			for (int i=0; i<600; i++) {
 				Thread.Sleep(1000);
-				if (changed_files.Count > 0) UpdateDB();
+				if (changed_files.Count > 0) WriteFilename();
 			}
 		}
 	}
 
-	private static void UpdateDB()
+	private static void WriteFilename()
 	{
-		SQLiteClient db;
 		Hashtable donethat = new Hashtable();
-
-		try {
-			db = new SQLiteClient(dbfile);
-			db.BusyRetryDelay = 700;
-			db.BusyRetries = 5000;
-			db.Execute("BEGIN TRANSACTION");
-		} catch (SQLiteException e) {
-			Console.WriteLine("******************************************************");
-			Console.WriteLine("Fatal SQLite error (open database): {0}", e.Message);
-			Console.WriteLine("******************************************************");
-			return;
-		}
 
 		while (changed_files.Count > 0)
 		{
 			string filename = (string)changed_files.Dequeue();
-
 			if (donethat.ContainsKey(filename)) continue;
 			donethat.Add(filename, 1);
 			
 			filename = Regex.Replace(filename, "^([a-z]):\\\\", "/cygdrive/$1/" );
 			filename = Regex.Replace(filename, "\\\\", "/" );
 
-			string query = "INSERT INTO hint ( filename, recursive ) VALUES ( '" + filename + "', 0 )";
-			try {
-				db.Execute(query);
-			} catch (SQLiteException e) {
-				Console.WriteLine("******************************************************");
-				Console.WriteLine("Fatal SQLite error: {0}\nIn: {1}", e.Message, query);
-				Console.WriteLine("******************************************************");
-			}
-			Console.WriteLine("** Added to DB: {0}", filename);
+			Console.WriteLine("+ {0}", filename);
 		}
-
-		try {
-			db.Execute("COMMIT TRANSACTION");
-			db.Close();
-		} catch (SQLiteException e) {
-			Console.WriteLine("******************************************************");
-			Console.WriteLine("Fatal SQLite error (close database): {0}", e.Message);
-			Console.WriteLine("******************************************************");
-			return;
-		}
+		Console.WriteLine("- COMMIT");
 	}
 
-	private static void ScheduleUpdateDB(string filename)
+	private static void ScheduleWriteFilename(string filename)
 	{
 		changed_files.Enqueue(filename);
 	}
 
 	private static void OnChanged(object source, FileSystemEventArgs e)
 	{
-		Console.WriteLine("** FS Event: " +  e.FullPath + " " + e.ChangeType);
-		ScheduleUpdateDB(e.FullPath);
+		Console.WriteLine("** FS Event: '{0}' {1}.", e.FullPath, e.ChangeType);
+		ScheduleWriteFilename(e.FullPath);
 	}
 
 	private static void OnRenamed(object source, RenamedEventArgs e)
 	{
-		Console.WriteLine("** FS Event: {0} renamed to {1}", e.OldFullPath, e.FullPath);
-		ScheduleUpdateDB(e.OldFullPath);
-		ScheduleUpdateDB(e.FullPath);
+		Console.WriteLine("** FS Event: '{0}' renamed to '{1}'.", e.OldFullPath, e.FullPath);
+		ScheduleWriteFilename(e.OldFullPath);
+		ScheduleWriteFilename(e.FullPath);
 	}
 }
 

@@ -31,6 +31,10 @@
 #include <errno.h>
 #include <netdb.h>
 
+#ifdef __CYGWIN__
+#include <w32api/windows.h>
+#endif
+
 static char * cmd_error;
 
 int csync_unlink(const char * filename, int ign)
@@ -268,12 +272,30 @@ void csync_daemon_session()
 			 * a check for the other file types, because they
 			 * will simply be unlinked if already present.
 			 */
+#ifdef __CYGWIN__
+			// This creates the file using the native windows API, bypassing
+			// the cygwin wrappers and so making sure that we do not mess up the
+			// permissions..
+			{
+				char winfilename[MAX_PATH];
+				cygwin_conv_to_win32_path(tag[2], winfilename);
+
+				if ( !CreateDirectory(TEXT(winfilename), NULL) ) {
+					struct stat st;
+					if ( lstat(tag[2], &st) != 0 || !S_ISDIR(st.st_mode)) {
+						csync_debug(1, "Win32 I/O Error %d in mkdir command: %s\n",
+								(int)GetLastError(), winfilename);
+						cmd_error = "Win32 I/O Error on CreateDirectory()";
+					}
+				}
+			}
+#else
 			if ( mkdir(tag[2], 0700) ) {
 				struct stat st;
-				if ( lstat(tag[2], &st) != 0 ||
-						!S_ISDIR(st.st_mode))
+				if ( lstat(tag[2], &st) != 0 || !S_ISDIR(st.st_mode))
 					cmd_error = strerror(errno);
 			}
+#endif
 			break;
 		case A_MKCHR:
 			if ( mknod(tag[2], 0700|S_IFCHR, atoi(tag[3])) )

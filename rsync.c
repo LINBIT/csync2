@@ -340,7 +340,7 @@ int csync_rs_patch(const char *filename)
 
 		if (winfh == INVALID_HANDLE_VALUE) {
 			csync_debug(0, "Win32 I/O Error %d in rsync-patch: %s\n",
-					(int)GetLastError(), filename);
+					(int)GetLastError(), winfilename);
 			errno = EACCES;
 			goto error;
 		}

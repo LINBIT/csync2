@@ -28,18 +28,6 @@ if ! [ -f librsync-0.9.7.tar.gz ]; then
 	wget http://mesh.dl.sourceforge.net/sourceforge/librsync/librsync-0.9.7.tar.gz -O librsync-0.9.7.tar.gz
 fi
 
-if ! [ -f SQLite.NET.2.0.1.zip ]; then
-	wget http://www.phpguru.org/downloads/csharp/SQLite.NET/SQLite.NET.2.0.1.zip -O SQLite.NET.2.0.1.zip
-fi
-
-if ! [ -f SQLiteClient.dll ]; then
-	unzip -p SQLite.NET.2.0.1.zip SQLite.NET/SQLiteClient/bin/Release/SQLiteClient.dll > SQLiteClient.dll
-fi
-
-if ! [ -f sqlite.dll ]; then
-	unzip -p SQLite.NET.2.0.1.zip SQLite.NET/SQLiteTest/bin/Release/sqlite.dll > sqlite.dll
-fi
-
 cd ..
 mkdir -p $TRGDIR
 
@@ -71,7 +59,8 @@ cp -v csync2.exe $TRGDIR/csync2.exe
 cp -v sqlite-2.8.16/sqlite.exe $TRGDIR/sqlite.exe
 cp -v /bin/cp.exe /bin/ls.exe /bin/wc.exe $TRGDIR/
 cp -v /bin/find.exe /bin/xargs.exe /bin/rsync.exe $TRGDIR/
-cp -v /bin/bash.exe /bin/gawk.exe /bin/wget.exe $TRGDIR/
+cp -v /bin/grep.exe /bin/gawk.exe /bin/wget.exe $TRGDIR/
+cp -v /bin/bash.exe $TRGDIR/sh.exe
 
 for bin in csync2 sqlite cp ls wc find xargs rsync bash gawk wget; do
 	copy_dlls $TRGDIR/$bin.exe
@@ -79,13 +68,13 @@ done
 
 cd cygwin
 PATH="$PATH:/cygdrive/c/WINNT/Microsoft.NET/Framework/v1.0.3705"
-csc /nologo /r:SQLiteClient.dll cs2_hintd_win32.cs
+csc /nologo cs2hintd_fseh.cs
 
 gcc -Wall monitor.c -o monitor.exe -DTRGDIR="\"$TRGDIR"\"
+gcc -Wall ../urlencode.o cs2hintd.c -o cs2hintd.exe -{I,L}../sqlite-2.8.16 -lprivatesqlite
 
 cp -v readme_pkg.txt $TRGDIR/README.txt
-cp -v SQLiteClient.dll sqlite.dll $TRGDIR/
-cp -v cs2_hintd_win32.exe monitor.exe $TRGDIR/
+cp -v cs2hintd_fseh.exe cs2hintd.exe monitor.exe $TRGDIR/
 
 cd $( dirname $TRGDIR/ )
 rm -f $( basename $TRGDIR ).zip
