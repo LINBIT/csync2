@@ -57,12 +57,12 @@ copy_dlls() {
 
 cp -v csync2.exe $TRGDIR/csync2.exe
 cp -v sqlite-2.8.16/sqlite.exe $TRGDIR/sqlite.exe
-cp -v /bin/cp.exe /bin/ls.exe /bin/wc.exe $TRGDIR/
+cp -v /bin/killall.exe /bin/cp.exe /bin/ls.exe /bin/wc.exe $TRGDIR/
 cp -v /bin/find.exe /bin/xargs.exe /bin/rsync.exe $TRGDIR/
 cp -v /bin/grep.exe /bin/gawk.exe /bin/wget.exe $TRGDIR/
 cp -v /bin/bash.exe $TRGDIR/sh.exe
 
-for bin in csync2 sqlite cp ls wc find xargs rsync grep gawk wget sh; do
+for bin in csync2 sqlite killall cp ls wc find xargs rsync grep gawk wget sh; do
 	copy_dlls $TRGDIR/$bin.exe
 done
 
@@ -70,7 +70,7 @@ cd cygwin
 PATH="$PATH:/cygdrive/c/WINNT/Microsoft.NET/Framework/v1.0.3705"
 csc /nologo cs2hintd_fseh.cs
 
-gcc -Wall monitor.c -o monitor.exe -DTRGDIR="\"$TRGDIR"\"
+gcc -Wall monitor.c -o monitor.exe -DTRGDIR="\"$TRGDIR"\" -{I,L}../sqlite-2.8.16 -lprivatesqlite
 gcc -Wall ../urlencode.o cs2hintd.c -o cs2hintd.exe -{I,L}../sqlite-2.8.16 -lprivatesqlite
 
 cp -v readme_pkg.txt $TRGDIR/README.txt

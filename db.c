@@ -31,7 +31,7 @@
 
 int db_blocking_mode = 1;
 
-static sqlite * db = 0;
+static sqlite *db = 0;
 
 static int get_dblock_timeout()
 {
