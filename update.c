@@ -596,7 +596,7 @@ void csync_update(const char ** patlist, int patnum, int recursive, int dry_run)
 	struct textlist *tl = 0, *t;
 
 	SQL_BEGIN("Get hosts from dirty table",
-		"SELECT peername FROM dirty GROUP BY peername")
+		"SELECT peername FROM dirty GROUP BY peername ORDER BY random()")
 	{
 		textlist_add(&tl, url_decode(SQL_V[0]), 0);
 	} SQL_END;
