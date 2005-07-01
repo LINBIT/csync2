@@ -30,7 +30,6 @@
 	"Database backend is exceedingly busy => Terminating (requesting retry).\n"
 
 int db_blocking_mode = 1;
-static int db_intransaction = 0;
 
 static sqlite * db = 0;
 
@@ -39,49 +38,90 @@ static int get_dblock_timeout()
 	return getpid() % 7 + 12;
 }
 
-void csync_db_maycommit()
+
+static int tqueries_counter = -50;
+static time_t transaction_begin = 0;
+static time_t last_wait_cycle = 0;
+static int begin_commit_recursion = 0;
+static int in_sql_query = 0;
+
+void csync_db_alarmhandler(int signum)
 {
-	static time_t lastcommit = 0;
-	static time_t lastwait = 0;
-	static int commitcount = 0;
-	static int recursion = 0;
-	static int query_counter = 0;
-	time_t now;
+	if ( in_sql_query || begin_commit_recursion )
+		alarm(2);
 
-	if ( !db_blocking_mode || recursion ) return;
-	recursion++;
+	if (tqueries_counter <= 0)
+		return;
 
-	query_counter++;
-	if (query_counter < 100) {
-		recursion--;
+	begin_commit_recursion++;
+
+	csync_debug(2, "Database idle in transaction. Forcing COMMIT.\n");
+	SQL("COMMIT TRANSACTION", "COMMIT TRANSACTION");
+	tqueries_counter = -10;
+
+	begin_commit_recursion--;
+}
+
+void csync_db_maybegin()
+{
+	if ( !db_blocking_mode || begin_commit_recursion ) return;
+	begin_commit_recursion++;
+
+	signal(SIGALRM, SIG_IGN);
+	alarm(0);
+
+	tqueries_counter++;
+	if (tqueries_counter <= 0) {
+		begin_commit_recursion--;
 		return;
 	}
-	if (query_counter == 100) {
+
+	if (tqueries_counter == 1) {
+		transaction_begin = time(0);
+		if (!last_wait_cycle)
+			last_wait_cycle = transaction_begin;
 		SQL("BEGIN TRANSACTION", "BEGIN TRANSACTION");
-		db_intransaction = 1;
-		recursion--;
+	}
+
+	begin_commit_recursion--;
+}
+
+void csync_db_maycommit()
+{
+	time_t now;
+
+	if ( !db_blocking_mode || begin_commit_recursion ) return;
+	begin_commit_recursion++;
+
+	if (tqueries_counter <= 0) {
+		begin_commit_recursion--;
 		return;
 	}
 
 	now = time(0);
-	if ( !lastcommit ) lastcommit = now;
-	if ( !lastwait )   lastwait = now;
 
-	if ( now-lastwait >= 10 || now-lastcommit >= 3 ||
-	     commitcount++ >= 1000 ) {
-		csync_debug(2, "Commiting current transaction (time=%d, count=%d).\n",
-				(int)(now-lastcommit), commitcount-1);
+	if ((now - last_wait_cycle) > 10) {
 		SQL("COMMIT TRANSACTION", "COMMIT TRANSACTION");
-		if ( now-lastwait >= 10 ) {
-			lastwait = 0;
-			csync_debug(2, "Waiting 2 secs so others can lock the database...\n");
-			sleep(2);
-		}
-		SQL("BEGIN TRANSACTION", "BEGIN TRANSACTION");
-		lastcommit = now; commitcount = 0;
+		csync_debug(2, "Waiting 2 secs so others can lock the database (%d - %d)...\n", (int)now, (int)last_wait_cycle);
+		sleep(2);
+		last_wait_cycle = 0;
+		tqueries_counter = -10;
+		begin_commit_recursion--;
+		return;
 	}
 
-	recursion--;
+	if ((tqueries_counter > 1000) || ((now - transaction_begin) > 3)) {
+		SQL("COMMIT TRANSACTION", "COMMIT TRANSACTION");
+		tqueries_counter = 0;
+		begin_commit_recursion--;
+		return;
+	}
+
+	signal(SIGALRM, csync_db_alarmhandler);
+	alarm(10);
+
+	begin_commit_recursion--;
+	return;
 }
 
 void csync_db_open(const char * file)
@@ -91,6 +131,7 @@ void csync_db_open(const char * file)
 		csync_fatal("Can't open database: %s\n", file);
 
 	/* ignore errors on table creation */
+	in_sql_query++;
 	sqlite_exec(db,
 		"CREATE TABLE file ("
 		"	filename, checktxt,"
@@ -115,18 +156,20 @@ void csync_db_open(const char * file)
 		"	UNIQUE ( filename, command ) ON CONFLICT IGNORE"
 		")",
 		0, 0, 0);
+	in_sql_query--;
 }
 
 void csync_db_close()
 {
-	static int recursion = 0;
-	if (!db || recursion) return;
+	if (!db || begin_commit_recursion) return;
 
-	recursion++;
-	if (db_intransaction)
+	begin_commit_recursion++;
+	if (tqueries_counter > 0) {
 		SQL("COMMIT TRANSACTION", "COMMIT TRANSACTION");
+		tqueries_counter = -10;
+	}
 	sqlite_close(db);
-	recursion--;
+	begin_commit_recursion--;
 	db = 0;
 }
 
@@ -139,6 +182,9 @@ void csync_db_sql(const char *err, const char *fmt, ...)
 	va_start(ap, fmt);
 	vasprintf(&sql, fmt, ap);
 	va_end(ap);
+
+	in_sql_query++;
+	csync_db_maybegin();
 
 	csync_debug(2, "SQL: %s\n", sql);
 
@@ -155,6 +201,7 @@ void csync_db_sql(const char *err, const char *fmt, ...)
 	free(sql);
 
 	csync_db_maycommit();
+	in_sql_query--;
 }
 
 void* csync_db_begin(const char *err, const char *fmt, ...)
@@ -167,6 +214,9 @@ void* csync_db_begin(const char *err, const char *fmt, ...)
 	va_start(ap, fmt);
 	vasprintf(&sql, fmt, ap);
 	va_end(ap);
+
+	in_sql_query++;
+	csync_db_maybegin();
 
 	csync_debug(2, "SQL: %s\n", sql);
 
@@ -227,5 +277,6 @@ void csync_db_fin(void *vmx, const char *err)
 		csync_fatal("Database Error: %s [%d].\n", err, rc);
 
 	csync_db_maycommit();
+	in_sql_query--;
 }
 

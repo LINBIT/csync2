@@ -62,7 +62,7 @@ cp -v /bin/find.exe /bin/xargs.exe /bin/rsync.exe $TRGDIR/
 cp -v /bin/grep.exe /bin/gawk.exe /bin/wget.exe $TRGDIR/
 cp -v /bin/bash.exe $TRGDIR/sh.exe
 
-for bin in csync2 sqlite cp ls wc find xargs rsync bash gawk wget; do
+for bin in csync2 sqlite cp ls wc find xargs rsync grep gawk wget sh; do
 	copy_dlls $TRGDIR/$bin.exe
 done
 
