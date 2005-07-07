@@ -25,7 +25,9 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <stdlib.h>
+#include <fcntl.h>
 #include <sqlite.h>
+#include <time.h>
 
 static sqlite *db = 0;
 static int db_busyc = 0;
@@ -34,6 +36,8 @@ static int last_busyc_warn = 0;
 static int non_blocking_mode = 0;
 static char myhostname[256];
 static char *dbname, *dirname;
+static time_t restart_time;
+static int wheel_counter;
 
 struct service {
 	char *name;
@@ -163,8 +167,40 @@ int main(int argc, char **argv)
 	if (chdir(TRGDIR) < 0)
 		goto io_error;
 
+	printf("MONITOR: Killing all running 'csync2' processes...\n");
+	system("./killall.exe csync2 2> /dev/null");
+
+	printf("MONITOR: Killing all running 'cs2hintd' processes...\n");
+	system("./killall.exe cs2hintd 2> /dev/null");
+
+	printf("MONITOR: Killing all running 'cs2hintd_fseh' processes...\n");
+	system("./killall.exe cs2hintd_fseh 2> /dev/null");
+
+	sleep(1);
+
+	{
+		char vacuum_command[strlen(dbname) + 100];
+		sprintf(vacuum_command, "./sqlite.exe %s vacuum", dbname);
+
+		printf("MONITOR: Running database VACUUM command...\n");
+		system(vacuum_command);
+	}
+
+	{
+		unsigned char random_number = 0;
+		int rand = open("/dev/random", O_RDONLY);
+		read(rand, &random_number, sizeof(unsigned char));
+		close(rand);
+
+		restart_time = 60 + random_number%30;
+		printf("MONITOR: Automatic restart in %d minutes.\n", (int)restart_time);
+		restart_time = restart_time * 60 + time(0);
+        }
+
 	while (1)
 	{
+		struct timespec interval;
+		time_t remaining_restart_time;
 		struct service **s;
 		int rc;
 
@@ -211,7 +247,23 @@ int main(int argc, char **argv)
 			}
 		}
 
-		sleep(1);
+		interval.tv_sec = 0;
+		interval.tv_nsec = 250000000;
+		nanosleep(&interval, 0);
+
+		wheel_counter = (wheel_counter+1) % 4;
+		remaining_restart_time = restart_time - time(0);
+
+		printf("[%02d:%02d] %c\r", 
+			(int)(remaining_restart_time / 60),
+			(int)(remaining_restart_time % 60),
+			"/-\\|"[wheel_counter]);
+		fflush(stdout);
+
+		if (remaining_restart_time <= 0) {
+			printf("MONITOR: Restarting monitor now...\n");
+			goto panic_restart_everything;
+		}
 
 		if (got_ctrl_c) {
 			printf("MONITOR: Got Ctrl-C signal. Terminating...\n");
@@ -253,6 +305,8 @@ int main(int argc, char **argv)
 	}
 
 panic_restart_everything:
+	sleep(2);
+
 	printf("MONITOR: Killing all running 'csync2' processes...\n");
 	system("./killall.exe csync2 2> /dev/null");
 
@@ -262,8 +316,9 @@ panic_restart_everything:
 	printf("MONITOR: Killing all running 'cs2hintd_fseh' processes...\n");
 	system("./killall.exe cs2hintd_fseh 2> /dev/null");
 
+	sleep(1);
+
 	if (got_ctrl_c) {
-		sleep(1);
 		printf("MONITOR: Bye.\n");
 		return 0;
 	}
