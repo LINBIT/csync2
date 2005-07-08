@@ -30,6 +30,7 @@ fi
 
 cd ..
 mkdir -p $TRGDIR
+rm -f $TRGDIR/*.exe $TRGDIR/*.dll
 
 if ! [ -f config.h ]; then
 	./configure \
@@ -42,9 +43,9 @@ make private_librsync
 make private_libsqlite
 make CFLAGS='-DREAL_DBDIR=\".\"'
 
-ignore_dlls="KERNEL32.dll|USER32.dll"
+ignore_dlls="KERNEL32.dll|USER32.dll|GDI32.dll|mscoree.dll"
 copy_dlls() {
-	for dll in $( strings $1 | egrep '^[^ ]+\.dll$' | sort -u; )
+	for dll in $( strings "$@" | egrep '^[^ ]+\.dll$' | sort -u; )
 	do
 		if echo "$dll" | egrep -qv "^($ignore_dlls)\$"
 		then
@@ -60,21 +61,20 @@ cp -v sqlite-2.8.16/sqlite.exe $TRGDIR/sqlite.exe
 cp -v /bin/killall.exe /bin/cp.exe /bin/ls.exe /bin/wc.exe $TRGDIR/
 cp -v /bin/find.exe /bin/xargs.exe /bin/rsync.exe $TRGDIR/
 cp -v /bin/grep.exe /bin/gawk.exe /bin/wget.exe $TRGDIR/
-cp -v /bin/bash.exe $TRGDIR/sh.exe
+cp -v /bin/rxvt.exe /bin/libW11.dll $TRGDIR/
+cp -v /bin/bash.exe $TRGDIR/sh.exe 
 
-for bin in csync2 sqlite killall cp ls wc find xargs rsync grep gawk wget sh; do
-	copy_dlls $TRGDIR/$bin.exe
-done
+copy_dlls $TRGDIR/*.exe $TRGDIR/*.dll
 
 cd cygwin
 PATH="$PATH:/cygdrive/c/WINNT/Microsoft.NET/Framework/v1.0.3705"
 csc /nologo cs2hintd_fseh.cs
 
-gcc -Wall monitor.c -o monitor.exe -DTRGDIR="\"$TRGDIR"\" -{I,L}../sqlite-2.8.16 -lprivatesqlite
+gcc -Wall cs2monitor.c -o cs2monitor.exe -DTRGDIR="\"$TRGDIR"\" -{I,L}../sqlite-2.8.16 -lprivatesqlite
 gcc -Wall ../urlencode.o cs2hintd.c -o cs2hintd.exe -{I,L}../sqlite-2.8.16 -lprivatesqlite
 
 cp -v readme_pkg.txt $TRGDIR/README.txt
-cp -v cs2hintd_fseh.exe cs2hintd.exe monitor.exe $TRGDIR/
+cp -v cs2hintd_fseh.exe cs2hintd.exe cs2monitor.exe $TRGDIR/
 
 cd $( dirname $TRGDIR/ )
 rm -f $( basename $TRGDIR ).zip

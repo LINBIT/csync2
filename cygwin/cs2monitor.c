@@ -167,13 +167,13 @@ int main(int argc, char **argv)
 	if (chdir(TRGDIR) < 0)
 		goto io_error;
 
-	printf("MONITOR: Killing all running 'csync2' processes...\n");
+	printf("CS2MONITOR: Killing all running 'csync2' processes...\n");
 	system("./killall.exe csync2 2> /dev/null");
 
-	printf("MONITOR: Killing all running 'cs2hintd' processes...\n");
+	printf("CS2MONITOR: Killing all running 'cs2hintd' processes...\n");
 	system("./killall.exe cs2hintd 2> /dev/null");
 
-	printf("MONITOR: Killing all running 'cs2hintd_fseh' processes...\n");
+	printf("CS2MONITOR: Killing all running 'cs2hintd_fseh' processes...\n");
 	system("./killall.exe cs2hintd_fseh 2> /dev/null");
 
 	sleep(1);
@@ -182,7 +182,7 @@ int main(int argc, char **argv)
 		char vacuum_command[strlen(dbname) + 100];
 		sprintf(vacuum_command, "./sqlite.exe %s vacuum", dbname);
 
-		printf("MONITOR: Running database VACUUM command...\n");
+		printf("CS2MONITOR: Running database VACUUM command...\n");
 		system(vacuum_command);
 	}
 
@@ -193,7 +193,7 @@ int main(int argc, char **argv)
 		close(rand);
 
 		restart_time = 60 + random_number%30;
-		printf("MONITOR: Automatic restart in %d minutes.\n", (int)restart_time);
+		printf("CS2MONITOR: Automatic restart in %d minutes.\n", (int)restart_time);
 		restart_time = restart_time * 60 + time(0);
         }
 
@@ -209,7 +209,7 @@ int main(int argc, char **argv)
 			/* never has been started before */
 			if ((*s)->pid == 0)
 			{
-				printf("MONITOR: [%ld] Running job '%s' ...\n", (long)time(0), (*s)->name);
+				printf("CS2MONITOR: [%ld] Running job '%s' ...\n", (long)time(0), (*s)->name);
 				fflush(stdout);
 				if (((*s)->pid = fork()) == 0) {
 					(*s)->exec_func();
@@ -221,7 +221,7 @@ int main(int argc, char **argv)
 			if ((*s)->pid == -1)
 			{
 				if ((*s)->do_restart && time(0) > ((*s)->timestamp + (*s)->do_restart)) {
-					printf("MONITOR: [%ld] Running job '%s' ...\n", (long)time(0), (*s)->name);
+					printf("CS2MONITOR: [%ld] Running job '%s' ...\n", (long)time(0), (*s)->name);
 					fflush(stdout);
 					if (((*s)->pid = fork()) == 0) {
 						(*s)->exec_func();
@@ -240,7 +240,7 @@ int main(int argc, char **argv)
 					(*s)->timestamp = time(0);
 
 					if ((*s)->do_panic) {
-						printf("MONITOR: Job '%s' terminated! Restarting MONITOR..\n", (*s)->name);
+						printf("CS2MONITOR: Job '%s' terminated! Restarting CS2MONITOR..\n", (*s)->name);
 						goto panic_restart_everything;
 					}
 				}
@@ -261,25 +261,25 @@ int main(int argc, char **argv)
 		fflush(stdout);
 
 		if (remaining_restart_time <= 0) {
-			printf("MONITOR: Restarting monitor now...\n");
+			printf("CS2MONITOR: Restarting CS2MONITOR now...\n");
 			goto panic_restart_everything;
 		}
 
 		if (got_ctrl_c) {
-			printf("MONITOR: Got Ctrl-C signal. Terminating...\n");
+			printf("CS2MONITOR: Got Ctrl-C signal. Terminating...\n");
 			goto panic_restart_everything;
 		}
 
 		db = sqlite_open(dbname, 0, 0);
 		if (!db) {
-			printf("MONITOR: Can't open database file!\n");
+			printf("CS2MONITOR: Can't open database file!\n");
 			return 1;
 		}
 
 		rc = sqlite_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
 
 		if ( rc != SQLITE_BUSY && rc != SQLITE_OK ) {
-			printf("MONITOR: Got database error %d on DB check! Restarting MONITOR..\n", rc);
+			printf("CS2MONITOR: Got database error %d on DB check! Restarting CS2MONITOR..\n", rc);
 			sqlite_close(db);
 			goto panic_restart_everything;
 		}
@@ -287,12 +287,12 @@ int main(int argc, char **argv)
 		if ( rc == SQLITE_BUSY ) {
 			db_busyc++;
 			if (db_busyc > 600) {
-				printf("MONITOR: Database is busy for 600 seconds! Restarting MONITOR..\n");
+				printf("CS2MONITOR: Database is busy for 600 seconds! Restarting CS2MONITOR..\n");
 				sqlite_close(db);
 				goto panic_restart_everything;
 			}
 			if (db_busyc > 300 || db_busyc > last_busyc_warn + 10) {
-				printf("MONITOR: DB is busy for %d seconds now (Monitor restart at 600 seconds).\n", db_busyc);
+				printf("CS2MONITOR: DB is busy for %d seconds now (Monitor restart at 600 seconds).\n", db_busyc);
 				sqlite_close(db);
 				last_busyc_warn = db_busyc;
 			}
@@ -307,27 +307,27 @@ int main(int argc, char **argv)
 panic_restart_everything:
 	sleep(2);
 
-	printf("MONITOR: Killing all running 'csync2' processes...\n");
+	printf("CS2MONITOR: Killing all running 'csync2' processes...\n");
 	system("./killall.exe csync2 2> /dev/null");
 
-	printf("MONITOR: Killing all running 'cs2hintd' processes...\n");
+	printf("CS2MONITOR: Killing all running 'cs2hintd' processes...\n");
 	system("./killall.exe cs2hintd 2> /dev/null");
 
-	printf("MONITOR: Killing all running 'cs2hintd_fseh' processes...\n");
+	printf("CS2MONITOR: Killing all running 'cs2hintd_fseh' processes...\n");
 	system("./killall.exe cs2hintd_fseh 2> /dev/null");
 
 	sleep(1);
 
 	if (got_ctrl_c) {
-		printf("MONITOR: Bye.\n");
+		printf("CS2MONITOR: Bye.\n");
 		return 0;
 	}
 
-	printf("MONITOR: Restarting...\n");
+	printf("CS2MONITOR: Restarting...\n");
 	execv(argv[0], argv);
 
 io_error:
-	fprintf(stderr, "MONITOR I/O Error: %s\n", strerror(errno));
+	fprintf(stderr, "CS2MONITOR I/O Error: %s\n", strerror(errno));
 	return 1;
 }
 
