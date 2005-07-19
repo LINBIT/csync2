@@ -133,6 +133,7 @@ static void ctrl_c_handler(int signum) {
 int main(int argc, char **argv)
 {
 	signal(SIGINT, ctrl_c_handler);
+	signal(SIGTERM, ctrl_c_handler);
 
 	gethostname(myhostname, 256);
 	myhostname[255] = 0;
@@ -148,6 +149,71 @@ int main(int argc, char **argv)
 	else {
 		fprintf(stderr, "Usage: %s [-B] datadir\n", argv[0]);
 		return 1;
+	}
+
+	{
+		int p[2];
+		pipe(p);
+
+		if (!fork())
+		{
+			char *buffer[100], ch;
+			int i, pos=0, epos=0;
+			time_t last_update = 0;
+
+			dup2(p[0], 0);
+			close(p[0]);
+			close(p[1]);
+
+			for (i=0; i<100; i++)
+				buffer[i] = 0;
+
+			while (read(0, &ch, 1) == 1)
+			{
+				write(1, &ch, 1);
+
+				switch (ch)
+				{
+				case '\n':
+					if (buffer[0])
+						free(buffer[0]);
+					for (i=1; i<100; i++)
+						buffer[i-1] = buffer[i];
+					buffer[99] = malloc(256);
+					buffer[99][epos=0] = 0;
+				case '\r':
+					pos = 0;
+					break;
+				default:
+					if (pos < 255) {
+						if (++pos > epos)
+							epos = pos;
+						buffer[99][pos-1] = ch;
+						buffer[99][epos] = 0;
+					}
+				}
+
+				if (last_update+2 < time(0)) {
+					FILE *f = fopen("cs2monitor.log", "w");
+					if (f) {
+						for (i=0; i<100; i++) {
+							if (buffer[i])
+								fprintf(f, "%s\r\n", buffer[i]);
+						}
+						fclose(f);
+					} else
+						fprintf(stderr, "CS2MONITOR: Can't update cs2monitor.log!\n");
+					last_update = time(0);
+				}
+			}
+
+			return 0;
+		}
+
+		dup2(p[1], 1);
+		dup2(p[1], 2);
+		close(p[0]);
+		close(p[1]);
 	}
 
 	printf("\n");
