@@ -151,7 +151,7 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	{
+	if (!getenv("CS2MONITOR_CONSOLE_OPEN")) {
 		int p[2];
 		pipe(p);
 
@@ -167,6 +167,9 @@ int main(int argc, char **argv)
 
 			for (i=0; i<100; i++)
 				buffer[i] = 0;
+
+			buffer[99] = malloc(256);
+			buffer[99][0] = 0;
 
 			while (read(0, &ch, 1) == 1)
 			{
@@ -214,6 +217,9 @@ int main(int argc, char **argv)
 		dup2(p[1], 2);
 		close(p[0]);
 		close(p[1]);
+
+		setenv("CS2MONITOR_CONSOLE_OPEN", "1", 1);
+		printf("CS2MONITOR: Writing log to cs2monitor.log.\n");
 	}
 
 	printf("\n");
@@ -242,6 +248,14 @@ int main(int argc, char **argv)
 	printf("CS2MONITOR: Killing all running 'cs2hintd_fseh' processes...\n");
 	system("./killall.exe cs2hintd_fseh 2> /dev/null");
 
+	if (0) {
+		struct service **s;
+restart_entry_point:
+		for (s = services; *s; s++)
+			(*s)->pid = 0;
+	}
+
+	fflush(stdout);
 	sleep(1);
 
 	{
@@ -260,7 +274,7 @@ int main(int argc, char **argv)
 
 		restart_time = 60 + random_number%30;
 		printf("CS2MONITOR: Automatic restart in %d minutes.\n", (int)restart_time);
-		restart_time = restart_time * 60 + time(0);
+		restart_time = time(0) + restart_time * 60;
         }
 
 	while (1)
@@ -338,8 +352,8 @@ int main(int argc, char **argv)
 
 		db = sqlite_open(dbname, 0, 0);
 		if (!db) {
-			printf("CS2MONITOR: Can't open database file!\n");
-			return 1;
+			printf("CS2MONITOR: Can't open database file! Restarting CS2MONITOR..\n");
+			goto panic_restart_everything;
 		}
 
 		rc = sqlite_exec(db, "BEGIN TRANSACTION", 0, 0, 0);
@@ -371,7 +385,8 @@ int main(int argc, char **argv)
 	}
 
 panic_restart_everything:
-	sleep(2);
+	fflush(stdout);
+	sleep(1);
 
 	printf("CS2MONITOR: Killing all running 'csync2' processes...\n");
 	system("./killall.exe csync2 2> /dev/null");
@@ -382,15 +397,24 @@ panic_restart_everything:
 	printf("CS2MONITOR: Killing all running 'cs2hintd_fseh' processes...\n");
 	system("./killall.exe cs2hintd_fseh 2> /dev/null");
 
-	sleep(1);
+	fflush(stdout);
+	sleep(5);
+
+	while (waitpid(-1, 0, WNOHANG) > 0) {};
 
 	if (got_ctrl_c) {
 		printf("CS2MONITOR: Bye.\n");
+		fflush(stdout);
+		sleep(1);
 		return 0;
 	}
 
 	printf("CS2MONITOR: Restarting...\n");
-	execv(argv[0], argv);
+
+	fflush(stdout);
+	sleep(1);
+
+	goto restart_entry_point;
 
 io_error:
 	fprintf(stderr, "CS2MONITOR I/O Error: %s\n", strerror(errno));
