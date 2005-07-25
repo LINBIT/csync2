@@ -151,7 +151,7 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	if (!getenv("CS2MONITOR_CONSOLE_OPEN")) {
+	{
 		int p[2];
 		pipe(p);
 
@@ -218,7 +218,6 @@ int main(int argc, char **argv)
 		close(p[0]);
 		close(p[1]);
 
-		setenv("CS2MONITOR_CONSOLE_OPEN", "1", 1);
 		printf("CS2MONITOR: Writing log to cs2monitor.log.\n");
 	}
 
