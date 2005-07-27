@@ -300,7 +300,7 @@ restart_entry_point:
 		my_system(vacuum_command);
 
 		printf("CS2MONITOR: Cleaning up old out-of-config DB records...\n");
-		my_system("csync2 -Rv");
+		my_system("./csync2.exe -Rv");
 	}
 
 	{
