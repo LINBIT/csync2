@@ -875,7 +875,7 @@ void csync_remove_old()
 	struct textlist *tl = 0, *t;
 
 	SQL_BEGIN("Query dirty DB",
-	          "SELECT filename, myname, peername FROM dirty GROUP BY filename")
+	          "SELECT filename, myname, peername FROM dirty")
 	{
 		const struct csync_group *g = 0;
 		const struct csync_group_host *h;
@@ -904,7 +904,7 @@ this_dirty_record_is_ok:
 
 	tl = 0;
 	SQL_BEGIN("Query file DB",
-	          "SELECT filename FROM file GROUP BY filename")
+	          "SELECT filename FROM file")
 	{
 		if (!csync_find_next(0, url_decode(SQL_V[0])))
 			textlist_add(&tl, SQL_V[0], 0);

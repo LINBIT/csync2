@@ -298,6 +298,9 @@ restart_entry_point:
 
 		printf("CS2MONITOR: Running database VACUUM command...\n");
 		my_system(vacuum_command);
+
+		printf("CS2MONITOR: Cleaning up old out-of-config DB records...\n");
+		my_system("csync2 -Rv");
 	}
 
 	{
