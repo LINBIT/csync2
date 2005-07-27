@@ -130,6 +130,28 @@ static void ctrl_c_handler(int signum) {
 	got_ctrl_c = 1;
 }
 
+static int my_system(const char *command)
+{
+	int pid, status;
+
+	if ((pid = fork()) == 0) {
+		execl("sh", "sh", "-c", command, NULL);
+		_exit(100);
+	}
+
+	waitpid(pid, &status, 0);
+
+	if (!WIFEXITED(status))
+		fprintf(stderr, "CS2MONITOT: Error while executing '%s': "
+				"Anormal exit.\n", command);
+	else
+	if (WEXITSTATUS(status) && WEXITSTATUS(status) != 1)
+		fprintf(stderr, "CS2MONITOT: Error while executing '%s': "
+				"Returncode is %d.\n", command, WEXITSTATUS(status));
+
+	return WIFEXITED(status) ? WEXITSTATUS(status) : -1;
+}
+
 int main(int argc, char **argv)
 {
 	signal(SIGINT, ctrl_c_handler);
@@ -157,7 +179,7 @@ int main(int argc, char **argv)
 
 		if (!fork())
 		{
-			char *buffer[100], ch;
+			char *buffer[100], *timer, ch;
 			int i, pos=0, epos=0;
 			time_t last_update = 0;
 
@@ -171,6 +193,8 @@ int main(int argc, char **argv)
 			buffer[99] = malloc(256);
 			buffer[99][0] = 0;
 
+			timer = strdup("");
+
 			while (read(0, &ch, 1) == 1)
 			{
 				write(1, &ch, 1);
@@ -183,8 +207,17 @@ int main(int argc, char **argv)
 					for (i=1; i<100; i++)
 						buffer[i-1] = buffer[i];
 					buffer[99] = malloc(256);
-					buffer[99][epos=0] = 0;
+					strcpy(buffer[99], timer);
+					epos = strlen(timer);
+					write(1, timer, epos);
+					write(1, "\r", 1);
+					pos = 0;
+					break;
 				case '\r':
+					if (buffer[99][0] == '[') {
+						free(timer);
+						timer = strdup(buffer[99]);
+					}
 					pos = 0;
 					break;
 				default:
@@ -196,13 +229,15 @@ int main(int argc, char **argv)
 					}
 				}
 
-				if (last_update+2 < time(0)) {
+				if (last_update+2 < time(0) && (ch == '\n' || ch == '\r')) {
 					FILE *f = fopen("cs2monitor.log", "w");
 					if (f) {
 						for (i=0; i<100; i++) {
 							if (buffer[i])
 								fprintf(f, "%s\r\n", buffer[i]);
 						}
+						if (strcmp(buffer[99], timer))
+								fprintf(f, "%s\r\n", timer);
 						fclose(f);
 					} else
 						fprintf(stderr, "CS2MONITOR: Can't update cs2monitor.log!\n");
@@ -239,13 +274,13 @@ int main(int argc, char **argv)
 		goto io_error;
 
 	printf("CS2MONITOR: Killing all running 'csync2' processes...\n");
-	system("./killall.exe csync2 2> /dev/null");
+	my_system("./killall.exe csync2");
 
 	printf("CS2MONITOR: Killing all running 'cs2hintd' processes...\n");
-	system("./killall.exe cs2hintd 2> /dev/null");
+	my_system("./killall.exe cs2hintd");
 
 	printf("CS2MONITOR: Killing all running 'cs2hintd_fseh' processes...\n");
-	system("./killall.exe cs2hintd_fseh 2> /dev/null");
+	my_system("./killall.exe cs2hintd_fseh");
 
 	if (0) {
 		struct service **s;
@@ -262,7 +297,7 @@ restart_entry_point:
 		sprintf(vacuum_command, "./sqlite.exe %s vacuum", dbname);
 
 		printf("CS2MONITOR: Running database VACUUM command...\n");
-		system(vacuum_command);
+		my_system(vacuum_command);
 	}
 
 	{
@@ -278,7 +313,6 @@ restart_entry_point:
 
 	while (1)
 	{
-		struct timespec interval;
 		time_t remaining_restart_time;
 		struct service **s;
 		int rc;
@@ -326,18 +360,26 @@ restart_entry_point:
 			}
 		}
 
-		interval.tv_sec = 0;
-		interval.tv_nsec = 250000000;
-		nanosleep(&interval, 0);
+		{
+			time_t t1 = time(0), t2;
+			int i = 0;
 
-		wheel_counter = (wheel_counter+1) % 4;
-		remaining_restart_time = restart_time - time(0);
+			do {
+				i++;
+				sleep(1);
+				t2 = time(0);
+			} while (t1 == t2);
 
-		printf("[%02d:%02d] %c\r", 
-			(int)(remaining_restart_time / 60),
-			(int)(remaining_restart_time % 60),
-			"/-\\|"[wheel_counter]);
-		fflush(stdout);
+			wheel_counter = (wheel_counter+1) % 16;
+			remaining_restart_time = restart_time - time(0);
+
+			printf("[%02d:%02d] (%c) %.*s\r", 
+				(int)(remaining_restart_time / 60),
+				(int)(remaining_restart_time % 60),
+				"/-\\|/-\\|:.,.:`:|"[wheel_counter],
+				i, i > 1 ? ".........." : "");
+			fflush(stdout);
+		}
 
 		if (remaining_restart_time <= 0) {
 			printf("CS2MONITOR: Restarting CS2MONITOR now...\n");
@@ -388,13 +430,13 @@ panic_restart_everything:
 	sleep(1);
 
 	printf("CS2MONITOR: Killing all running 'csync2' processes...\n");
-	system("./killall.exe csync2 2> /dev/null");
+	my_system("./killall.exe csync2");
 
 	printf("CS2MONITOR: Killing all running 'cs2hintd' processes...\n");
-	system("./killall.exe cs2hintd 2> /dev/null");
+	my_system("./killall.exe cs2hintd");
 
 	printf("CS2MONITOR: Killing all running 'cs2hintd_fseh' processes...\n");
-	system("./killall.exe cs2hintd_fseh 2> /dev/null");
+	my_system("./killall.exe cs2hintd_fseh");
 
 	fflush(stdout);
 	sleep(5);
