@@ -153,6 +153,8 @@ PACKAGE_STRING " - cluster synchronisation tool, 2nd generation\n"
 "\n"
 "Creating key file:\n"
 "	%s -k filename\n"
+"\n"
+"Csync2 will refuse to do anything when a " ETCDIR "/csync2.lock file is found.\n"
 "\n",
 		cmd, cmd);
 	exit(1);
