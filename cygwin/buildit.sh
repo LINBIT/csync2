@@ -74,6 +74,7 @@ gcc -Wall cs2monitor.c -o cs2monitor.exe -DTRGDIR="\"$TRGDIR"\" -{I,L}../sqlite-
 gcc -Wall ../urlencode.o cs2hintd.c -o cs2hintd.exe -{I,L}../sqlite-2.8.16 -lprivatesqlite
 
 cp -v readme_pkg.txt $TRGDIR/README.txt
+cp -v ../README $TRGDIR/README-csync2.txt
 cp -v cs2hintd_fseh.exe cs2hintd.exe cs2monitor.exe $TRGDIR/
 
 cd $( dirname $TRGDIR/ )
