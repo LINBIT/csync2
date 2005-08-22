@@ -289,9 +289,21 @@ static void new_prefix(const char *pname)
 
 static void new_prefix_entry(const char *host, const char *path)
 {
-	if (!csync_prefix->path && !strcmp(host, myhostname))
+	if (!csync_prefix->path && !strcmp(host, myhostname)) {
+#if __CYGWIN__
+		if (isalpha(path[0]) && path[1] == ':' &&
+		    (path[2] == '/' || path[2] == '\\')) {
+			char *new_path, *p;
+			asprintf(&new_path, "/cygdrive/%c/%s",
+				tolower(path[0]), path+3);
+			for (p = new_path; *p; p++)
+				if (*p == '\\') *p = '/';
+			free((void*)path);
+			path = new_path;
+		}
+#endif
 		csync_prefix->path = path;
-	else
+	} else
 		free((char*)path);
 	free((char*)host);
 }
