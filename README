@@ -75,6 +75,8 @@ csync2.cfg syntax
 The config file contains the definitions for all the synchronisation
 groups in the cluster:
 
+--snip--
+
 group mygroup
 {
 	host host1 host2 host3;
@@ -100,14 +102,10 @@ group mygroup
 
 prefix homedir
 {
-	on host1:
+	on host[12]:
 		/home;
-	on host2:
+	on host[34]:
 		/users;
-	on host3:
-		/mnt/home;
-	on host4:
-		/mnt/users;
 }
 
 nossl host2 host3;
@@ -115,6 +113,8 @@ nossl host3 host2;
 
 config /etc/csync2.cfg_anotherone;
 config /etc/csync2.cfg_foo /etc/csync2.cfg_bar;
+
+--snap--
 
 The host statement adds the hosts. Note that the names used here must
 equal to the output of "hostname". If the hostname used for communication

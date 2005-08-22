@@ -51,6 +51,8 @@ const char *prefixsubst(const char *in)
 		}
 	}
 
-	return in;
+	csync_fatal("Prefix '%.*s' is not defined for host '%s'.\n",
+			pn_len, pn, myhostname);
+	return 0;
 }
 

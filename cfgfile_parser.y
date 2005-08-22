@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <fnmatch.h>
 
 struct csync_group  *csync_group  = 0;
 struct csync_prefix *csync_prefix = 0;
@@ -287,9 +288,9 @@ static void new_prefix(const char *pname)
 	csync_prefix = p;
 }
 
-static void new_prefix_entry(const char *host, const char *path)
+static void new_prefix_entry(const char *pattern, const char *path)
 {
-	if (!csync_prefix->path && !strcmp(host, myhostname)) {
+	if (!csync_prefix->path && !fnmatch(pattern, myhostname, 0)) {
 #if __CYGWIN__
 		if (isalpha(path[0]) && path[1] == ':' &&
 		    (path[2] == '/' || path[2] == '\\')) {
@@ -304,8 +305,8 @@ static void new_prefix_entry(const char *host, const char *path)
 #endif
 		csync_prefix->path = path;
 	} else
-		free((char*)path);
-	free((char*)host);
+		free((void*)path);
+	free((void*)pattern);
 }
 
 static void new_nossl(const char *from, const char *to)
