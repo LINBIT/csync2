@@ -29,7 +29,7 @@ int match_pattern_list(
 
 	while (p) {
 		int matched = 0;
-		if ( p->pattern[0] != '/' ) {
+		if ( p->pattern[0] != '/' && p->pattern[0] != '%' ) {
 			if ( !fnmatch(p->pattern, basename, 0) ) {
 				match_base = p->isinclude;
 				matched = 1;
@@ -78,7 +78,7 @@ int csync_step_into(const char *file)
 	for (g=csync_group; g; g=g->next) {
 		if ( ! g->myname ) continue;
 		for (p=g->pattern; p; p=p->next)
-			if ( p->pattern[0] == '/' && p->isinclude ) {
+			if ( (p->pattern[0] == '/' || p->pattern[0] == '%') && p->isinclude ) {
 				char t[strlen(p->pattern)+1], *l;
 				strcpy(t, p->pattern);
 				while ( (l=strrchr(t, '/')) != 0 ) {

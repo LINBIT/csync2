@@ -160,6 +160,12 @@ const char *url_encode(const char * in);
 const char *url_decode(const char * in);
 
 
+/* prefixsubst.c */
+
+/* another ringbuffer here. so use it with care!! */
+const char *prefixsubst(const char *in);
+
+
 /* textlist implementation */
 
 struct textlist;
@@ -251,6 +257,11 @@ struct csync_group {
 	int auto_method;
 };
 
+struct csync_prefix {
+	const char *name, *path;
+	struct csync_prefix *next;
+};
+
 struct csync_nossl {
 	struct csync_nossl *next;
 	const char *pattern_from;
@@ -276,8 +287,9 @@ enum CSYNC_AUTO_METHOD {
 
 /* global variables */
 
-extern struct csync_group *csync_group;
-extern struct csync_nossl *csync_nossl;
+extern struct csync_group  *csync_group;
+extern struct csync_prefix *csync_prefix;
+extern struct csync_nossl  *csync_nossl;
 
 extern int csync_error_count;
 extern int csync_debug_level;

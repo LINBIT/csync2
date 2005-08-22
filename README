@@ -83,8 +83,8 @@ group mygroup
 	key /etc/csync2.key_mygroup;
 
 	include /etc/apache;
-	include /home/bob;
-	exclude /home/bob/temp;
+	include %homedir%/bob;
+	exclude %homedir%/bob/temp;
 	exclude *~ .*;
 
 	action {
@@ -96,6 +96,18 @@ group mygroup
 	}
 
 	auto none;
+}
+
+prefix homedir
+{
+	on host1:
+		/home;
+	on host2:
+		/users;
+	on host3:
+		/mnt/home;
+	on host4:
+		/mnt/users;
 }
 
 nossl host2 host3;
@@ -131,6 +143,11 @@ the keyword "do-local" is present in the action section, the command will
 also be executed on the machine where the change has happened locally. If
 the special token "%%" is present in the command text, it will be replaced
 by a list of the updated files.
+
+When different directories should be synced (e.g. /home and /users), a prefix
+must be used. The syntax "%prefixname%" can be used in include and exclude
+rules to refer to a prefix section. The real path for each host is then
+specified in the seperate prefix section.
 
 Usually the hosts are communicating using ssl. The nossl statement can be used
 to force a communication tunnel between two hosts to be unencrypted. The 1st

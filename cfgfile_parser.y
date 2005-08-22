@@ -24,8 +24,9 @@
 #include <stdio.h>
 #include <string.h>
 
-struct csync_group *csync_group = 0;
-struct csync_nossl *csync_nossl = 0;
+struct csync_group  *csync_group  = 0;
+struct csync_prefix *csync_prefix = 0;
+struct csync_nossl  *csync_nossl  = 0;
 
 int csync_ignore_uid = 0;
 int csync_ignore_gid = 0;
@@ -277,6 +278,24 @@ static void set_action_dolocal()
 	csync_group->action->do_local = 1;
 }
 
+static void new_prefix(const char *pname)
+{
+	struct csync_prefix *p =
+		calloc(sizeof(struct csync_prefix), 1);
+	p->name = pname;
+	p->next = csync_prefix;
+	csync_prefix = p;
+}
+
+static void new_prefix_entry(const char *host, const char *path)
+{
+	if (!csync_prefix->path && !strcmp(host, myhostname))
+		csync_prefix->path = path;
+	else
+		free((char*)path);
+	free((char*)host);
+}
+
 static void new_nossl(const char *from, const char *to)
 {
 	struct csync_nossl *t =
@@ -312,6 +331,7 @@ static void new_ignore(char *propname)
 %token TK_BLOCK_BEGIN TK_BLOCK_END TK_STEND TK_AT TK_AUTO
 %token TK_NOSSL TK_IGNORE TK_GROUP TK_HOST TK_EXCL TK_INCL TK_KEY
 %token TK_ACTION TK_PATTERN TK_EXEC TK_DOLOCAL TK_LOGFILE
+%token TK_PREFIX TK_ON TK_COLON
 %token <txt> TK_STRING
 
 %%
@@ -323,6 +343,10 @@ config:
 
 block:
 	block_header block_body
+|	TK_PREFIX TK_STRING
+		{ new_prefix($2); }
+		TK_BLOCK_BEGIN prefix_list TK_BLOCK_END
+		{ }
 |	TK_NOSSL TK_STRING TK_STRING TK_STEND
 		{ new_nossl($2, $3); }
 |	TK_IGNORE ignore_list TK_STEND
@@ -333,7 +357,13 @@ ignore_list:
 |	TK_STRING ignore_list
 		{ new_ignore($1); }
 ;
-		
+
+prefix_list:
+	/* empty */
+|	TK_ON TK_STRING TK_COLON TK_STRING TK_STEND prefix_list
+		{ new_prefix_entry($2, $4); }
+;
+
 block_header:
 	TK_GROUP
 		{ new_group(0);  }

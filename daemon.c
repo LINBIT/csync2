@@ -42,9 +42,9 @@ int csync_unlink(const char * filename, int ign)
 	struct stat st;
 	int rc;
 
-	if ( lstat(filename, &st) != 0 ) return 0;
+	if ( lstat(prefixsubst(filename), &st) != 0 ) return 0;
 	if ( ign==2 && S_ISREG(st.st_mode) ) return 0;
-	rc = S_ISDIR(st.st_mode) ? rmdir(filename) : unlink(filename);
+	rc = S_ISDIR(st.st_mode) ? rmdir(prefixsubst(filename)) : unlink(prefixsubst(filename));
 
 	if ( rc && !ign ) cmd_error = strerror(errno);
 	return rc;
@@ -69,7 +69,7 @@ int csync_check_dirty(const char *filename, const char *peername)
 void csync_file_update(const char *filename)
 {
 	struct stat st;
-	if ( lstat(filename, &st) != 0 || csync_check_pure(filename) ) {
+	if ( lstat(prefixsubst(filename), &st) != 0 || csync_check_pure(filename) ) {
 		SQL("Removing file from file db",
 			"delete from file where filename ='%s'",
 			url_encode(filename));
@@ -201,7 +201,7 @@ void csync_daemon_session()
 			{
 				struct stat st;
 
-				if ( lstat(tag[2], &st) != 0 ) {
+				if ( lstat(prefixsubst(tag[2]), &st) != 0 ) {
 					if ( errno == ENOENT )
 						conn_printf("OK (not_found).\n---\noctet-stream 0\n");
 					else
@@ -231,7 +231,7 @@ void csync_daemon_session()
 			break;
 		case A_TYPE:
 			{
-				FILE *f = fopen(tag[2], "rb");
+				FILE *f = fopen(prefixsubst(tag[2]), "rb");
 
 				if (f) {
 					char buffer[512];
@@ -254,7 +254,7 @@ void csync_daemon_session()
 			{
 				struct stat sbuf;
 				conn_printf("OK (data_follows).\n");
-				if (!lstat(tag[2], &sbuf))
+				if (!lstat(prefixsubst(tag[2]), &sbuf))
 					conn_printf("%ld\n", cmdtab[cmdnr].action == A_GETTM ?
 							(long)sbuf.st_mtime : (long)sbuf.st_size);
 				else
@@ -283,11 +283,11 @@ void csync_daemon_session()
 			// permissions..
 			{
 				char winfilename[MAX_PATH];
-				cygwin_conv_to_win32_path(tag[2], winfilename);
+				cygwin_conv_to_win32_path(prefixsubst(tag[2]), winfilename);
 
 				if ( !CreateDirectory(TEXT(winfilename), NULL) ) {
 					struct stat st;
-					if ( lstat(tag[2], &st) != 0 || !S_ISDIR(st.st_mode)) {
+					if ( lstat(prefixsubst(tag[2]), &st) != 0 || !S_ISDIR(st.st_mode)) {
 						csync_debug(1, "Win32 I/O Error %d in mkdir command: %s\n",
 								(int)GetLastError(), winfilename);
 						cmd_error = "Win32 I/O Error on CreateDirectory()";
@@ -295,27 +295,27 @@ void csync_daemon_session()
 				}
 			}
 #else
-			if ( mkdir(tag[2], 0700) ) {
+			if ( mkdir(prefixsubst(tag[2]), 0700) ) {
 				struct stat st;
-				if ( lstat(tag[2], &st) != 0 || !S_ISDIR(st.st_mode))
+				if ( lstat((prefixsubst(tag[2])), &st) != 0 || !S_ISDIR(st.st_mode))
 					cmd_error = strerror(errno);
 			}
 #endif
 			break;
 		case A_MKCHR:
-			if ( mknod(tag[2], 0700|S_IFCHR, atoi(tag[3])) )
+			if ( mknod(prefixsubst(tag[2]), 0700|S_IFCHR, atoi(tag[3])) )
 				cmd_error = strerror(errno);
 			break;
 		case A_MKBLK:
-			if ( mknod(tag[2], 0700|S_IFBLK, atoi(tag[3])) )
+			if ( mknod(prefixsubst(tag[2]), 0700|S_IFBLK, atoi(tag[3])) )
 				cmd_error = strerror(errno);
 			break;
 		case A_MKFIFO:
-			if ( mknod(tag[2], 0700|S_IFIFO, 0) )
+			if ( mknod(prefixsubst(tag[2]), 0700|S_IFIFO, 0) )
 				cmd_error = strerror(errno);
 			break;
 		case A_MKLINK:
-			if ( symlink(tag[3], tag[2]) )
+			if ( symlink(tag[3], prefixsubst(tag[2])) )
 				cmd_error = strerror(errno);
 			break;
 		case A_MKSOCK:
@@ -325,13 +325,13 @@ void csync_daemon_session()
 			if ( !csync_ignore_uid || !csync_ignore_gid ) {
 				int uid = csync_ignore_uid ? -1 : atoi(tag[3]);
 				int gid = csync_ignore_gid ? -1 : atoi(tag[4]);
-				if ( lchown(tag[2], uid, gid) )
+				if ( lchown(prefixsubst(tag[2]), uid, gid) )
 					cmd_error = strerror(errno);
 			}
 			break;
 		case A_SETMOD:
 			if ( !csync_ignore_mod ) {
-				if ( chmod(tag[2], atoi(tag[3])) )
+				if ( chmod(prefixsubst(tag[2]), atoi(tag[3])) )
 					cmd_error = strerror(errno);
 			}
 			break;
@@ -340,7 +340,7 @@ void csync_daemon_session()
 				struct utimbuf utb;
 				utb.actime = atoll(tag[3]);
 				utb.modtime = atoll(tag[3]);
-				if ( utime(tag[2], &utb) )
+				if ( utime(prefixsubst(tag[2]), &utb) )
 					cmd_error = strerror(errno);
 			}
 			break;

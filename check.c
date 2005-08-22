@@ -79,7 +79,7 @@ int csync_check_pure(const char *filename)
 			while (myfilename[i] != '/')
 				if (--i <= 0) return 0;
 			myfilename[i]=0;
-			if ( lstat(myfilename, &sbuf) || S_ISLNK(sbuf.st_mode) ) return 1;
+			if ( lstat(prefixsubst(myfilename), &sbuf) || S_ISLNK(sbuf.st_mode) ) return 1;
 		}
 	}
 #endif
@@ -105,7 +105,7 @@ void csync_check_del(const char *file, int recursive, int init_run)
 			"filename = '%s' %s ORDER BY filename", url_encode(file), where_rec)
 	{
 		const char *filename = url_decode(SQL_V[0]);
-		if ( lstat(filename, &st) != 0 || csync_check_pure(filename) )
+		if ( lstat(prefixsubst(filename), &st) != 0 || csync_check_pure(filename) )
 			textlist_add(&tl, filename, 0);
 	} SQL_END;
 
@@ -122,7 +122,7 @@ void csync_check_del(const char *file, int recursive, int init_run)
 		free(where_rec);
 }
 
-void csync_check_mod(const char * file, int recursive, int ignnoent, int init_run)
+void csync_check_mod(const char *file, int recursive, int ignnoent, int init_run)
 {
 	int check_type = csync_match_file(file);
 	struct dirent **namelist;
@@ -130,7 +130,32 @@ void csync_check_mod(const char * file, int recursive, int ignnoent, int init_ru
 	const char * checktxt;
 	struct stat st;
 
-	if ( check_type>0 && lstat(file, &st) != 0 ) {
+	if (*file != '%') {
+		struct csync_prefix *p;
+		for (p = csync_prefix; p; p = p->next)
+		{
+			if (!p->path)
+				continue;
+
+			if (!strcmp(file, p->path)) {
+				char new_file[strlen(p->name) + 3];
+				sprintf(new_file, "%%%s%%", p->name);
+				csync_check_mod(new_file, recursive, ignnoent, init_run);
+				continue;
+			}
+
+			if (check_type < 1) {
+				int file_len = strlen(file);
+				int path_len = strlen(p->path);
+
+				if (file_len < path_len && p->path[file_len] == '/' &&
+				    !strncmp(file, p->path, file_len))
+					check_type = 1;
+			}
+		}
+	}
+
+	if ( check_type>0 && lstat(prefixsubst(file), &st) != 0 ) {
 		if ( ignnoent ) return;
 		csync_fatal("This should not happen: "
 				"Can't stat %s.\n", file);
@@ -169,8 +194,9 @@ void csync_check_mod(const char * file, int recursive, int ignnoent, int init_ru
 	case 1:
 		if ( !recursive ) break;
 		if ( !S_ISDIR(st.st_mode) ) break;
-		csync_debug(2, "Checking %s/* ..\n", file);
-		n = scandir(file, &namelist, 0, alphasort);
+		csync_debug(2, "Checking %s%s* ..\n",
+				file, !strcmp(file, "/") ? "" : "/");
+		n = scandir(prefixsubst(file), &namelist, 0, alphasort);
 		if (n < 0)
 			perror("scandir");
 		else {

@@ -34,6 +34,7 @@ int include_stack_ptr = 0;
 "{"		{ return TK_BLOCK_BEGIN; }
 "}"		{ return TK_BLOCK_END; }
 ";"		{ return TK_STEND; }
+":"		{ return TK_COLON; }
 "@"		{ return TK_AT; }
 
 "nossl"		{ return TK_NOSSL; }
@@ -51,6 +52,9 @@ int include_stack_ptr = 0;
 "exec"		{ return TK_EXEC; }
 "logfile"	{ return TK_LOGFILE; }
 "do-local"	{ return TK_DOLOCAL; }
+
+"prefix"	{ return TK_PREFIX; }
+"on"		{ return TK_ON; }
 
 "config"	BEGIN(INCL);
 <INCL>[ \t]*	/* eat the whitespaces */
@@ -87,5 +91,5 @@ int include_stack_ptr = 0;
 [ \r\n\t]+	/* whitespaces are just delimiters */
 #[^\r\n]*	/* this is a comment */
 
-[^ \r\n\t@;#"]+	{ yylval.txt=strdup(yytext); return TK_STRING; }
+[^ \r\n\t@:;#"]+ { yylval.txt=strdup(yytext); return TK_STRING; }
 %%
