@@ -55,7 +55,7 @@ int match_pattern_list(
 const struct csync_group *csync_find_next(
 		const struct csync_group *g, const char *file)
 {
-	const char * basename = strrchr(file, '/');
+	const char *basename = strrchr(file, '/');
 
 	if ( basename ) basename++;
 	else basename = file;

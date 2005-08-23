@@ -42,7 +42,7 @@ static FILE *paranoid_tmpfile()
 	return f;
 }
 
-void csync_send_file(FILE * in)
+void csync_send_file(FILE *in)
 {
 	char buffer[512];
 	int rc, chunk;
@@ -75,7 +75,7 @@ void csync_send_error()
 	conn_printf("ERROR\n");
 }
 
-int csync_recv_file(FILE * out)
+int csync_recv_file(FILE *out)
 {
 	char buffer[512];
 	int rc, chunk;

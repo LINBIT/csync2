@@ -156,8 +156,8 @@ extern char *getrealfn(const char *filename);
 /* only use this functions if you understood the sideeffects of the ringbuffer
  * used to allocate the return values.
  */
-const char *url_encode(const char * in);
-const char *url_decode(const char * in);
+const char *url_encode(const char *in);
+const char *url_decode(const char *in);
 
 
 /* prefixsubst.c */

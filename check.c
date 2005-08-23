@@ -128,7 +128,7 @@ void csync_check_mod(const char *file, int recursive, int ignnoent, int init_run
 	int check_type = csync_match_file(file);
 	struct dirent **namelist;
 	int n, this_is_dirty = 0;
-	const char * checktxt;
+	const char *checktxt;
 	struct stat st;
 
 	if (*file != '%') {
@@ -223,7 +223,7 @@ void csync_check_mod(const char *file, int recursive, int ignnoent, int init_run
 	}
 }
 
-void csync_check(const char * filename, int recursive, int init_run)
+void csync_check(const char *filename, int recursive, int init_run)
 {
 #if __CYGWIN__
 	if (!strcmp(filename, "/")) {

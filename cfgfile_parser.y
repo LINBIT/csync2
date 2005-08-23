@@ -42,7 +42,7 @@ void yyerror(char *text)
 	csync_fatal("Near line %d: %s\n", yylineno, text);
 }
 
-static void new_group(char * name)
+static void new_group(char *name)
 {
 	int static autonum = 1;
 	struct csync_group *t =

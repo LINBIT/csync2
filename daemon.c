@@ -35,9 +35,9 @@
 #include <w32api/windows.h>
 #endif
 
-static char * cmd_error;
+static char *cmd_error;
 
-int csync_unlink(const char * filename, int ign)
+int csync_unlink(const char *filename, int ign)
 {
 	struct stat st;
 	int rc;

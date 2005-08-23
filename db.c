@@ -125,7 +125,7 @@ void csync_db_maycommit()
 	return;
 }
 
-void csync_db_open(const char * file)
+void csync_db_open(const char *file)
 {
 	db = sqlite_open(file, 0, 0);
 	if ( db == 0 )

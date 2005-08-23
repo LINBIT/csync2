@@ -139,7 +139,7 @@ void csync_update_file_del(const char *peername,
 		const char *filename, int force, int dry_run)
 {
 	int last_conn_status = 0, auto_resolve_run = 0;
-	const char * key = csync_key(peername, filename);
+	const char *key = csync_key(peername, filename);
 
 	if ( !key ) {
 		csync_debug(2, "Skipping deletion %s on %s - not in my groups.\n", filename, peername);
@@ -268,7 +268,7 @@ void csync_update_file_mod(const char *peername,
 {
 	struct stat st;
 	int last_conn_status = 0, auto_resolve_run = 0;
-	const char * key = csync_key(peername, filename);
+	const char *key = csync_key(peername, filename);
 
 	if ( !key ) {
 		csync_debug(2, "Skipping file update %s on %s - not in my groups.\n", filename, peername);
@@ -533,7 +533,7 @@ void csync_update_host(const char *peername,
 		"SELECT filename, myname, force FROM dirty WHERE peername = '%s' "
 		"ORDER by filename ASC", url_encode(peername))
 	{
-		const char * filename = url_decode(SQL_V[0]);
+		const char *filename = url_decode(SQL_V[0]);
 		int i, use_this = patnum == 0;
 		for (i=0; i<patnum && !use_this; i++)
 			if ( compare_files(filename, patlist[i], recursive) ) use_this = 1;

@@ -34,7 +34,7 @@ static char badchars[] =
 	"\021\022\023\024\025\026\027\030\031\032\033\034\035\036\037\040"
 	"\177\"'%$:|";
 
-const char *url_encode(const char * in)
+const char *url_encode(const char *in)
 {
 	char *out;
 	int i, j, k, len;
@@ -65,7 +65,7 @@ const char *url_encode(const char * in)
 	return out;
 }
 
-const char *url_decode(const char * in)
+const char *url_decode(const char *in)
 {
 	char *out, num[3]="XX";
 	int i, k, len;
