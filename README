@@ -103,9 +103,9 @@ group mygroup
 prefix homedir
 {
 	on host[12]:
-		/home;
-	on host[34]:
 		/users;
+	on *:
+		/home;
 }
 
 nossl host2 host3;
