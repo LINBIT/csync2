@@ -255,7 +255,7 @@ struct csync_group {
 	struct csync_group_pattern *pattern;
 	struct csync_group_action *action;
 	const char *key, *myname, *gname;
-	int auto_method;
+	int auto_method, local_slave;
 };
 
 struct csync_prefix {

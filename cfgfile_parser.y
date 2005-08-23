@@ -65,6 +65,7 @@ static void add_host(char *hostname, char *peername, int slave)
 	for (i=0; peername[i]; i++)
 		peername[i] = tolower(peername[i]);
 	if ( strcmp(hostname, myhostname) == 0 ) {
+		csync_group->local_slave = slave;
 		csync_group->myname = peername;
 		free(hostname);
 	} else {

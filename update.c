@@ -118,6 +118,23 @@ static int get_auto_method(const char *peername, const char *filename)
 	return CSYNC_AUTO_METHOD_NONE;
 }
 
+static int get_master_slave_status(const char *peername, const char *filename)
+{
+	const struct csync_group *g = 0;
+	const struct csync_group_host *h;
+
+	while ( (g=csync_find_next(g, filename)) ) {
+		if (g->local_slave)
+			continue;
+		for (h = g->host; h; h = h->next) {
+			if (h->slave && !strcmp(h->hostname, peername))
+				return 1;
+		}
+	}
+
+	return 0;
+}
+
 void csync_update_file_del(const char *peername,
 		const char *filename, int force, int dry_run)
 {
@@ -201,31 +218,36 @@ skip_action:
 maybe_auto_resolve:
 	if (!auto_resolve_run && last_conn_status == 2)
 	{
-		int auto_method = get_auto_method(peername, filename);
-
-		switch (auto_method)
-		{
-		case CSYNC_AUTO_METHOD_FIRST:
+		if (get_master_slave_status(peername, filename)) {
+			csync_debug(0, "Auto-resolving conflict: Won 'master/slave' test.\n");
 			auto_resolve_run = 1;
-			csync_debug(0, "Auto-resolving conflict: Won 'first' test.\n");
-			break;
+		} else {
+			int auto_method = get_auto_method(peername, filename);
 
-		case CSYNC_AUTO_METHOD_LEFT:
-		case CSYNC_AUTO_METHOD_RIGHT:
-			auto_resolve_run = 1;
-			csync_debug(0, "Auto-resolving conflict: Won 'left/right' test.\n");
-			break;
+			switch (auto_method)
+			{
+			case CSYNC_AUTO_METHOD_FIRST:
+				auto_resolve_run = 1;
+				csync_debug(0, "Auto-resolving conflict: Won 'first' test.\n");
+				break;
 
-		case CSYNC_AUTO_METHOD_LEFT_RIGHT_LOST:
-			csync_debug(0, "Do not auto-resolve conflict: Lost 'left/right' test.\n");
-			break;
+			case CSYNC_AUTO_METHOD_LEFT:
+			case CSYNC_AUTO_METHOD_RIGHT:
+				auto_resolve_run = 1;
+				csync_debug(0, "Auto-resolving conflict: Won 'left/right' test.\n");
+				break;
 
-		case CSYNC_AUTO_METHOD_YOUNGER:
-		case CSYNC_AUTO_METHOD_OLDER:
-		case CSYNC_AUTO_METHOD_BIGGER:
-		case CSYNC_AUTO_METHOD_SMALLER:
-			csync_debug(0, "Do not auto-resolve conflict: This is a removal.\n");
-			break;
+			case CSYNC_AUTO_METHOD_LEFT_RIGHT_LOST:
+				csync_debug(0, "Do not auto-resolve conflict: Lost 'left/right' test.\n");
+				break;
+
+			case CSYNC_AUTO_METHOD_YOUNGER:
+			case CSYNC_AUTO_METHOD_OLDER:
+			case CSYNC_AUTO_METHOD_BIGGER:
+			case CSYNC_AUTO_METHOD_SMALLER:
+				csync_debug(0, "Do not auto-resolve conflict: This is a removal.\n");
+				break;
+			}
 		}
 
 		if (auto_resolve_run) {
@@ -405,69 +427,73 @@ skip_action:
 maybe_auto_resolve:
 	if (!auto_resolve_run && last_conn_status == 2)
 	{
-		int auto_method = get_auto_method(peername, filename);
-
-		switch (auto_method)
-		{
-		case CSYNC_AUTO_METHOD_FIRST:
+		if (get_master_slave_status(peername, filename)) {
+			csync_debug(0, "Auto-resolving conflict: Won 'master/slave' test.\n");
 			auto_resolve_run = 1;
-			csync_debug(0, "Auto-resolving conflict: Won 'first' test.\n");
-			break;
-
-		case CSYNC_AUTO_METHOD_LEFT:
-		case CSYNC_AUTO_METHOD_RIGHT:
-			auto_resolve_run = 1;
-			csync_debug(0, "Auto-resolving conflict: Won 'left/right' test.\n");
-			break;
-
-		case CSYNC_AUTO_METHOD_LEFT_RIGHT_LOST:
-			csync_debug(0, "Do not auto-resolve conflict: Lost 'left/right' test.\n");
-			break;
-
-		case CSYNC_AUTO_METHOD_YOUNGER:
-		case CSYNC_AUTO_METHOD_OLDER:
-		case CSYNC_AUTO_METHOD_BIGGER:
-		case CSYNC_AUTO_METHOD_SMALLER:
+		} else {
+			int auto_method = get_auto_method(peername, filename);
+			switch (auto_method)
 			{
-				char buffer[1024], *type, *cmd;
-				long remotedata, localdata;
-				struct stat sbuf;
-
-				if (auto_method == CSYNC_AUTO_METHOD_YOUNGER ||
-				    auto_method == CSYNC_AUTO_METHOD_OLDER) {
-					type = "younger/older";
-					cmd = "GETTM";
-				} else {
-					type = "bigger/smaller";
-					cmd = "GETSZ";
-				}
-
-				conn_printf("%s %s %s\n", cmd, url_encode(key), url_encode(filename));
-				if ( read_conn_status(filename, peername) ) goto got_error_in_autoresolve;
-
-				if ( !conn_gets(buffer, 4096) ) goto got_error_in_autoresolve;
-				remotedata = atol(buffer);
-
-				if (remotedata == -1)
-					goto remote_file_has_been_removed;
-
-				if ( lstat(prefixsubst(filename), &sbuf) ) goto got_error_in_autoresolve;
-
-				if (auto_method == CSYNC_AUTO_METHOD_YOUNGER ||
-				    auto_method == CSYNC_AUTO_METHOD_OLDER)
-					localdata = sbuf.st_mtime;
-				else
-					localdata = sbuf.st_size;
-
-				if ((localdata > remotedata) ==
-						(auto_method == CSYNC_AUTO_METHOD_YOUNGER ||
-						 auto_method == CSYNC_AUTO_METHOD_BIGGER)) {
-remote_file_has_been_removed:
-					auto_resolve_run = 1;
-					csync_debug(0, "Auto-resolving conflict: Won '%s' test.\n", type);
-				} else
-					csync_debug(0, "Do not auto-resolve conflict: Lost '%s' test.\n", type);
+			case CSYNC_AUTO_METHOD_FIRST:
+				auto_resolve_run = 1;
+				csync_debug(0, "Auto-resolving conflict: Won 'first' test.\n");
 				break;
+
+			case CSYNC_AUTO_METHOD_LEFT:
+			case CSYNC_AUTO_METHOD_RIGHT:
+				auto_resolve_run = 1;
+				csync_debug(0, "Auto-resolving conflict: Won 'left/right' test.\n");
+				break;
+
+			case CSYNC_AUTO_METHOD_LEFT_RIGHT_LOST:
+				csync_debug(0, "Do not auto-resolve conflict: Lost 'left/right' test.\n");
+				break;
+
+			case CSYNC_AUTO_METHOD_YOUNGER:
+			case CSYNC_AUTO_METHOD_OLDER:
+			case CSYNC_AUTO_METHOD_BIGGER:
+			case CSYNC_AUTO_METHOD_SMALLER:
+				{
+					char buffer[1024], *type, *cmd;
+					long remotedata, localdata;
+					struct stat sbuf;
+
+					if (auto_method == CSYNC_AUTO_METHOD_YOUNGER ||
+					    auto_method == CSYNC_AUTO_METHOD_OLDER) {
+						type = "younger/older";
+						cmd = "GETTM";
+					} else {
+						type = "bigger/smaller";
+						cmd = "GETSZ";
+					}
+
+					conn_printf("%s %s %s\n", cmd, url_encode(key), url_encode(filename));
+					if ( read_conn_status(filename, peername) ) goto got_error_in_autoresolve;
+
+					if ( !conn_gets(buffer, 4096) ) goto got_error_in_autoresolve;
+					remotedata = atol(buffer);
+
+					if (remotedata == -1)
+						goto remote_file_has_been_removed;
+
+					if ( lstat(prefixsubst(filename), &sbuf) ) goto got_error_in_autoresolve;
+
+					if (auto_method == CSYNC_AUTO_METHOD_YOUNGER ||
+					    auto_method == CSYNC_AUTO_METHOD_OLDER)
+						localdata = sbuf.st_mtime;
+					else
+						localdata = sbuf.st_size;
+
+					if ((localdata > remotedata) ==
+							(auto_method == CSYNC_AUTO_METHOD_YOUNGER ||
+							 auto_method == CSYNC_AUTO_METHOD_BIGGER)) {
+remote_file_has_been_removed:
+						auto_resolve_run = 1;
+						csync_debug(0, "Auto-resolving conflict: Won '%s' test.\n", type);
+					} else
+						csync_debug(0, "Do not auto-resolve conflict: Lost '%s' test.\n", type);
+					break;
+				}
 			}
 		}
 
