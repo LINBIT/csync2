@@ -80,7 +80,7 @@ groups in the cluster:
 group mygroup
 {
 	host host1 host2 host3;
-	host host4@host4-eth2;
+	host (host4@host4-eth2);
 
 	key /etc/csync2.key_mygroup;
 
@@ -121,6 +121,9 @@ equal to the output of "hostname". If the hostname used for communication
 is different from the output of the "hostname" command (e.g. if a
 crossover cable with other IP addresses should be used), the syntax
 "hostname@hostname-for-communication" can be used.
+
+Hosts in parenthesis are slave hosts. They accept updates from the other hosts
+but are not allowed to send updates themself.
 
 The key statement must be used exactly once in each group and defines
 the file containing shared secret for that group. The keyfile can be

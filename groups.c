@@ -141,9 +141,11 @@ struct peer *csync_find_peers(const char *file, const char *thispeer)
 		if (thispeer) {
 			while (h) {
 				if ( !strcmp(h->hostname, thispeer) )
-					goto next_group;
+					break;
 				h = h->next;
 			}
+			if (!h)
+				goto next_group;
 			h = g->host;
 		}
 
@@ -177,21 +179,23 @@ const char *csync_key(const char *hostname, const char *filename)
 	return 0;
 }
 
-int csync_perm(const char * filename, const char * key, const char * hostname)
+int csync_perm(const char *filename, const char *key, const char *hostname)
 {
 	const struct csync_group *g = NULL;
 	struct csync_group_host *h;
+	int false_retcode = 1;
 
 	while ( (g=csync_find_next(g, filename)) ) {
-		if ( hostname != 0 ) {
-			for (h = g->host; h; h = h->next)
-				if (!strcmp(h->hostname, hostname)) goto found_host;
+		if ( !hostname )
 			continue;
-		}
-found_host:
-		if ( !strcmp(g->key, key) ) return 0;
+		for (h = g->host; h; h = h->next)
+			if (!strcmp(h->hostname, hostname) &&
+			    !strcmp(g->key, key)) {
+				if (!h->slave) return 0;
+				else false_retcode = 2;
+			}
 	}
 
-	return 1;
+	return false_retcode;
 }
 

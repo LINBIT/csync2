@@ -187,11 +187,6 @@ auto_resolve_entry_point:
 	if ( (last_conn_status=read_conn_status(filename, peername)) )
 		goto maybe_auto_resolve;
 
-	conn_printf("MARK %s %s\n",
-			url_encode(key), url_encode(filename));
-	if ( read_conn_status(filename, peername) )
-		goto got_error;
-
 skip_action:
 	SQL("Remove dirty-file entry.",
 		"DELETE FROM dirty WHERE filename = '%s' "
@@ -396,11 +391,6 @@ skip_action:
 		if ( read_conn_status(filename, peername) )
 			goto got_error;
 	}
-
-	conn_printf("MARK %s %s\n",
-			url_encode(key), url_encode(filename));
-	if ( read_conn_status(filename, peername) )
-		goto got_error;
 
 	SQL("Remove dirty-file entry.",
 		"DELETE FROM dirty WHERE filename = '%s' "

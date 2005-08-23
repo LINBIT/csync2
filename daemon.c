@@ -183,10 +183,16 @@ void csync_daemon_session()
 		if ( cmdtab[cmdnr].check_perm )
 			on_cygwin_lowercase(tag[2]);
 
-		if ( cmdtab[cmdnr].check_perm &&
-				csync_perm(tag[2], tag[1], peer) ) {
-			cmd_error = "Permission denied!";
-			goto abort_cmd;
+		if ( cmdtab[cmdnr].check_perm ) {
+			int perm = csync_perm(tag[2], tag[1], peer);
+			if ( perm ) {
+				if ( perm == 2 ) {
+					csync_mark(tag[2], peer);
+					cmd_error = "Permission denied for slave!";
+				} else
+					cmd_error = "Permission denied!";
+				goto abort_cmd;
+			}
 		}
 
 		if ( cmdtab[cmdnr].check_dirty &&
@@ -351,7 +357,7 @@ void csync_daemon_session()
 					strcmp(tag[2], "-") ? url_encode(tag[2]) : "",
 					strcmp(tag[2], "-") ? "'" : "")
 			{
-				if ( csync_match_file_host(SQL_V[1], tag[1], peer, (const char **)&tag[3]) )
+				if ( csync_match_file_host(url_decode(SQL_V[1]), tag[1], peer, (const char **)&tag[3]) )
 					conn_printf("%s\t%s\n", SQL_V[0], SQL_V[1]);
 			} SQL_END;
 			break;

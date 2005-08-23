@@ -222,6 +222,7 @@ struct csync_group_host {
 	struct csync_group_host *next;
 	const char *hostname;
 	int on_left_side;
+	int slave;
 };
 
 struct csync_group_pattern {

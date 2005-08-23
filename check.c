@@ -42,7 +42,8 @@ void csync_mark(const char *file, const char *thispeer)
 	csync_schedule_commands(file, thispeer == 0);
 
 	if ( ! pl ) {
-		csync_debug(2, "Not in one of my groups: %s\n", file);
+		csync_debug(2, "Not in one of my groups: %s (%s)\n",
+				file, thispeer ? thispeer : "NULL");
 		return;
 	}
 

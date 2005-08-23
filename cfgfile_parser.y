@@ -57,7 +57,7 @@ static void new_group(char * name)
 	csync_group = t;
 }
 
-static void add_host(char *hostname, char *peername)
+static void add_host(char *hostname, char *peername, int slave)
 {
 	int i;
 	for (i=0; hostname[i]; i++)
@@ -72,13 +72,14 @@ static void add_host(char *hostname, char *peername)
 			calloc(sizeof(struct csync_group_host), 1);
 		t->hostname = peername;
 		t->on_left_side = !csync_group->myname;
+		t->slave = slave;
 		t->next = csync_group->host;
 		csync_group->host = t;
 		free(hostname);
 	}
 }
 
-static void add_patt(int isinclude, const char *pattern)
+static void add_patt(int isinclude, char *pattern)
 {
 	struct csync_group_pattern *t =
 		calloc(sizeof(struct csync_group_pattern), 1);
@@ -91,7 +92,7 @@ static void add_patt(int isinclude, const char *pattern)
 			tolower(pattern[0]), pattern+3);
 		for (p = new_pattern; *p; p++)
 			if (*p == '\\') *p = '/';
-		free((void*)pattern);
+		free(pattern);
 		pattern = new_pattern;
 	}
 #endif
@@ -100,7 +101,7 @@ static void add_patt(int isinclude, const char *pattern)
 	csync_group->pattern = t;
 }
 
-static void set_key(const char *keyfilename)
+static void set_key(char *keyfilename)
 {
 	FILE *keyfile;
 	char line[1024];
@@ -127,11 +128,11 @@ static void set_key(const char *keyfilename)
 		csync_fatal("Config error: Key in file %s is too short.\n", keyfilename);
 
 	csync_group->key = strdup(line);
-	free((void*)keyfilename);
+	free(keyfilename);
 	fclose(keyfile);
 }
 
-static void set_auto(const char *auto_method)
+static void set_auto(char *auto_method)
 {
 	int method_id = -1;
 
@@ -168,7 +169,7 @@ static void set_auto(const char *auto_method)
 			"'left' or 'right').\n", auto_method);
 
 	csync_group->auto_method = method_id;
-	free((void*)auto_method);
+	free(auto_method);
 }
 
 static void check_group()
@@ -215,30 +216,6 @@ static void check_group()
 
 		csync_group->myname = 0;
 found_asactive:	;
-	}
-
-	/* dump config for debugging */
-	if ( csync_debug_level >= 2 ) {
-		struct csync_group_host *h = csync_group->host;
-		struct csync_group_pattern *p = csync_group->pattern;
-		csync_debug(2, "group %s {\n", csync_group->gname);
-		if ( csync_group->myname )
-			csync_debug(2, "# I'm member of this group.\n");
-		while (h) {
-			csync_debug(2, "\thost\twhocares@%s;\n",
-				h->hostname);
-			h = h->next;
-		}
-		if ( csync_group->myname )
-			csync_debug(2, "\thost\t%s@%s;\n",
-				myhostname, csync_group->myname);
-		while (p) {
-			csync_debug(2, "\t%s\t%s;\n",
-				p->isinclude ? "include" : "exclude",
-				p->pattern);
-			p = p->next;
-		}
-		csync_debug(2, "\tkey\tkeyfile;\n}\n");
 	}
 }
 
@@ -288,7 +265,7 @@ static void new_prefix(const char *pname)
 	csync_prefix = p;
 }
 
-static void new_prefix_entry(const char *pattern, const char *path)
+static void new_prefix_entry(char *pattern, char *path)
 {
 	if (!csync_prefix->path && !fnmatch(pattern, myhostname, 0)) {
 #if __CYGWIN__
@@ -299,14 +276,14 @@ static void new_prefix_entry(const char *pattern, const char *path)
 				tolower(path[0]), path+3);
 			for (p = new_path; *p; p++)
 				if (*p == '\\') *p = '/';
-			free((void*)path);
+			free(path);
 			path = new_path;
 		}
 #endif
 		csync_prefix->path = path;
 	} else
-		free((void*)path);
-	free((void*)pattern);
+		free(path);
+	free(pattern);
 }
 
 static void new_nossl(const char *from, const char *to)
@@ -344,7 +321,7 @@ static void new_ignore(char *propname)
 %token TK_BLOCK_BEGIN TK_BLOCK_END TK_STEND TK_AT TK_AUTO
 %token TK_NOSSL TK_IGNORE TK_GROUP TK_HOST TK_EXCL TK_INCL TK_KEY
 %token TK_ACTION TK_PATTERN TK_EXEC TK_DOLOCAL TK_LOGFILE
-%token TK_PREFIX TK_ON TK_COLON
+%token TK_PREFIX TK_ON TK_COLON TK_POPEN TK_PCLOSE
 %token <txt> TK_STRING
 
 %%
@@ -408,9 +385,18 @@ stmt:
 host_list:
 	/* empty */
 |	host_list TK_STRING
-		{ add_host($2, strdup($2)); }
+		{ add_host($2, strdup($2), 0); }
 |	host_list TK_STRING TK_AT TK_STRING
-		{ add_host($2, $4); }
+		{ add_host($2, $4, 0); }
+|	host_list TK_POPEN host_list_slaves TK_PCLOSE host_list
+;
+
+host_list_slaves:
+	/* empty */
+|	host_list TK_STRING
+		{ add_host($2, strdup($2), 1); }
+|	host_list TK_STRING TK_AT TK_STRING
+		{ add_host($2, $4, 1); }
 ;
 		
 excl_list:

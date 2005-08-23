@@ -33,6 +33,9 @@ int include_stack_ptr = 0;
 %%
 "{"		{ return TK_BLOCK_BEGIN; }
 "}"		{ return TK_BLOCK_END; }
+"("		{ return TK_POPEN; }
+")"		{ return TK_PCLOSE; }
+
 ";"		{ return TK_STEND; }
 ":"		{ return TK_COLON; }
 "@"		{ return TK_AT; }
@@ -91,5 +94,5 @@ int include_stack_ptr = 0;
 [ \r\n\t]+	/* whitespaces are just delimiters */
 #[^\r\n]*	/* this is a comment */
 
-[^ \r\n\t@:;#"]+ { yylval.txt=strdup(yytext); return TK_STRING; }
+[^ \r\n\t@:;\(\)#"]+ { yylval.txt=strdup(yytext); return TK_STRING; }
 %%
