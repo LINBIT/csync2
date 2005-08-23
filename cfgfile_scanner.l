@@ -94,5 +94,5 @@ int include_stack_ptr = 0;
 [ \r\n\t]+	/* whitespaces are just delimiters */
 #[^\r\n]*	/* this is a comment */
 
-[^ \r\n\t@:;\(\)#"]+ { yylval.txt=strdup(yytext); return TK_STRING; }
+[^ \r\n\t@;\(\)#"]*[^ \r\n\t@:;\(\)#"] { yylval.txt=strdup(yytext); return TK_STRING; }
 %%

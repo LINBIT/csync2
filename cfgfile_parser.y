@@ -84,7 +84,8 @@ static void add_patt(int isinclude, char *pattern)
 {
 	struct csync_group_pattern *t =
 		calloc(sizeof(struct csync_group_pattern), 1);
-	t->isinclude = isinclude;
+	int i;
+
 #if __CYGWIN__
 	if (isalpha(pattern[0]) && pattern[1] == ':' &&
 	    (pattern[2] == '/' || pattern[2] == '\\')) {
@@ -97,6 +98,14 @@ static void add_patt(int isinclude, char *pattern)
 		pattern = new_pattern;
 	}
 #endif
+
+	for (i=strlen(pattern)-1; i>0; i--)
+		if (pattern[i] == '/')
+			pattern[i] = 0;
+		else
+			break;
+
+	t->isinclude = isinclude;
 	t->pattern = pattern;
 	t->next = csync_group->pattern;
 	csync_group->pattern = t;
@@ -268,6 +277,10 @@ static void new_prefix(const char *pname)
 
 static void new_prefix_entry(char *pattern, char *path)
 {
+	int i;
+
+	csync_debug(2, "*** '%s' '%s'\n", myhostname, pattern);
+
 	if (!csync_prefix->path && !fnmatch(pattern, myhostname, 0)) {
 #if __CYGWIN__
 		if (isalpha(path[0]) && path[1] == ':' &&
@@ -281,6 +294,13 @@ static void new_prefix_entry(char *pattern, char *path)
 			path = new_path;
 		}
 #endif
+		for (i=strlen(path)-1; i>0; i--)
+			if (path[i] == '/')
+				path[i] = 0;
+			else
+				break;
+
+		csync_debug(2, "Prefix '%s' is set to '%s'.\n", csync_prefix->name, path);
 		csync_prefix->path = path;
 	} else
 		free(path);
@@ -351,8 +371,8 @@ ignore_list:
 
 prefix_list:
 	/* empty */
-|	TK_ON TK_STRING TK_COLON TK_STRING TK_STEND prefix_list
-		{ new_prefix_entry($2, $4); }
+|	prefix_list TK_ON TK_STRING TK_COLON TK_STRING TK_STEND
+		{ new_prefix_entry($3, $5); }
 ;
 
 block_header:

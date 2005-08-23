@@ -66,12 +66,15 @@ int csync_check_dirty(const char *filename, const char *peername)
 	return rc;
 }
 
-void csync_file_update(const char *filename)
+void csync_file_update(const char *filename, const char *peername)
 {
 	struct stat st;
+	SQL("Removing file from dirty db",
+			"delete from dirty where filename = '%s' and peername = '%s'",
+			url_encode(filename), peername);
 	if ( lstat(prefixsubst(filename), &st) != 0 || csync_check_pure(filename) ) {
 		SQL("Removing file from file db",
-			"delete from file where filename ='%s'",
+			"delete from file where filename = '%s'",
 			url_encode(filename));
 	} else {
 		const char *checktxt = csync_genchecktxt(&st, filename, 0);
@@ -413,7 +416,7 @@ found_asactive: ;
 		}
 
 		if ( cmdtab[cmdnr].update )
-			csync_file_update(tag[2]);
+			csync_file_update(tag[2], peer);
 
 		if ( cmdtab[cmdnr].update == 1 )
 			csync_debug(1, "Updated %s from %s.\n",

@@ -230,9 +230,30 @@ void csync_check(const char *filename, int recursive, int init_run)
 		filename = "/cygdrive";
 	}
 #endif
+	struct csync_prefix *p = csync_prefix;
+
 	csync_debug(2, "Running%s check for %s ...\n",
 			recursive ? " recursive" : "", filename);
 	csync_check_del(filename, recursive, init_run);
 	csync_check_mod(filename, recursive, 1, init_run);
+
+	if (*filename == '/')
+		while (p) {
+			int p_len = strlen(p->path);
+			int f_len = strlen(filename);
+
+			if (p_len <= f_len && !strncmp(p->path, filename, p_len) &&
+					(filename[p_len] == '/' || !filename[p_len])) {
+				char new_filename[strlen(p->name) + strlen(filename+p_len) + 10];
+				sprintf(new_filename, "%%%s%%%s", p->name, filename+p_len);
+
+				csync_debug(2, "Running%s check for %s ...\n",
+						recursive ? " recursive" : "", new_filename);
+				csync_check_del(new_filename, recursive, init_run);
+				csync_check_mod(new_filename, recursive, 1, init_run);
+			}
+
+			p = p->next;
+		}
 }
 
