@@ -115,6 +115,7 @@ int csync_rs_check(const char *filename, int isreg)
 	FILE *basis_file, *sig_file;
 	char buffer1[512], buffer2[512];
 	int rc, chunk, found_diff = 0;
+	int backup_errno;
 	rs_stats_t stats;
 	rs_result result;
 	long size;
@@ -194,7 +195,7 @@ io_error:
 			strerror(errno), prefixsubst(filename));
 
 error:;
-	int backup_errno = errno;
+	backup_errno = errno;
 	if ( basis_file ) fclose(basis_file);
 	if ( sig_file )   fclose(sig_file);
 	errno = backup_errno;
@@ -285,6 +286,7 @@ int csync_rs_delta(const char *filename)
 int csync_rs_patch(const char *filename)
 {
 	FILE *basis_file = 0, *delta_file = 0, *new_file = 0;
+	int backup_errno;
 	rs_stats_t stats;
 	rs_result result;
 	char buffer[512];
@@ -366,7 +368,7 @@ io_error:
 			strerror(errno), errstr, prefixsubst(filename));
 
 error:;
-	int backup_errno = errno;
+	backup_errno = errno;
 	if ( delta_file ) fclose(delta_file);
 	if ( basis_file ) fclose(basis_file);
 	if ( new_file )   fclose(new_file);
