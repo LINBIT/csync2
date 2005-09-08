@@ -80,7 +80,7 @@ public class Csync2HintDaemonFSEH
 			if (donethat.ContainsKey(filename)) continue;
 			donethat.Add(filename, 1);
 
-			filename = Regex.Replace(filename, "^([a-z]):\\\\", "/cygdrive/$1/" );
+			filename = Regex.Replace(filename, "^([a-zA-Z]):\\\\", "/cygdrive/$1/" );
 			filename = Regex.Replace(filename, "\\\\", "/" );
 
 			Console.WriteLine("+ {0}", filename);
