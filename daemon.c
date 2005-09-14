@@ -242,6 +242,9 @@ void csync_daemon_session()
 			{
 				FILE *f = fopen(prefixsubst(tag[2]), "rb");
 
+				if (!f && errno == ENOENT)
+					f = fopen("/dev/null", "rb");
+
 				if (f) {
 					char buffer[512];
 					size_t rc;

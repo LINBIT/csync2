@@ -671,7 +671,7 @@ found_host_check:
 	printf("--- %s:%s\n+++ %s:%s\n", peername, filename, myname, filename);
 	fflush(stdout);
 
-	snprintf(buffer, 512, "diff -u - '%s' | tail -n +3", filename);
+	snprintf(buffer, 512, "diff -Nu - '%s' | tail -n +3", filename);
 	old_sigpipe_handler = signal(SIGPIPE, SIG_IGN);
 	p = popen(buffer, "w");
 
