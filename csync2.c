@@ -1,5 +1,5 @@
 /*
- *  csync2 - cluster synchronisation tool, 2nd generation
+ *  csync2 - cluster synchronization tool, 2nd generation
  *  LINBIT Information Technologies GmbH <http://www.linbit.com>
  *  Copyright (C) 2004, 2005  Clifford Wolf <clifford@clifford.at>
  *
@@ -83,7 +83,7 @@ void help(char *cmd)
 {
 	printf(
 "\n"
-PACKAGE_STRING " - cluster synchronisation tool, 2nd generation\n"
+PACKAGE_STRING " - cluster synchronization tool, 2nd generation\n"
 "LINBIT Information Technologies GmbH <http://www.linbit.com>\n"
 "Copyright (C) 2004, 2005  Clifford Wolf <clifford@clifford.at>\n"
 "This program is free software under the terms of the GNU GPL.\n"
@@ -111,13 +111,13 @@ PACKAGE_STRING " - cluster synchronisation tool, 2nd generation\n"
 "	-M	List all dirty files from status db\n"
 "\n"
 "	-S myname peername	List file-entries from status db for this\n"
-"				synchronisation pair.\n"
+"				synchronization pair.\n"
 "\n"
 "	-T  			Test if everything is in sync with all peers.\n"
 "\n"
 "	-T filename 		Test if this file is in sync with all peers.\n"
 "\n"
-"	-T myname peername	Test if this synchronisation pair is in sync.\n"
+"	-T myname peername	Test if this synchronization pair is in sync.\n"
 "\n"
 "	-T myname peer file	Test only this file in this sync pair.\n"
 "\n"
@@ -139,7 +139,7 @@ PACKAGE_STRING " - cluster synchronisation tool, 2nd generation\n"
 "	-B	Don't block everything into big SQL transactions. This\n"
 "		slows down csync2 but allows multiple csync2 processes to\n"
 "		access the database at the same time. Use e.g. when slow\n"
-"		lines are used or huge files are transfered.\n"
+"		lines are used or huge files are transferred.\n"
 "\n"
 "	-I	Init-run. Use with care and read the documentation first!\n"
 "		You usually don't need this option unless you are\n"

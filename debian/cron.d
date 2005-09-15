@@ -1,7 +1,7 @@
 #
-#  Test if this synchronisation pair is in sync.
+#  Test if this synchronization pair is in sync.
 #
-#  csync2 - cluster synchronisation tool, 2nd generation
+#  csync2 - cluster synchronization tool, 2nd generation
 #  LINBIT Information Technologies GmbH <http://www.linbit.com>
 #  Copyright (C) 2004, 2005  Clifford Wolf <clifford@clifford.at>
 #
