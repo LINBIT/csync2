@@ -41,7 +41,7 @@ public class Csync2HintDaemonFSEH
 		{
 			FileSystemWatcher watcher = new FileSystemWatcher();
 
-			watcher.Path = args[1];
+			watcher.Path = args[i];
 			watcher.IncludeSubdirectories = true;
 			watcher.NotifyFilter =
 				NotifyFilters.Attributes	|
@@ -61,7 +61,8 @@ public class Csync2HintDaemonFSEH
 		}
 
 		while (true) {
-			Console.Error.WriteLine("-- cs2hintd_fseh waiting for filesystem events --");
+			for (int i=1; i<args.Length; i++)
+				Console.Error.WriteLine("-- cs2hintd_fseh waiting for filesystem events in '{0}' --", args[i]);
 			for (int i=0; i<600; i++) {
 				Thread.Sleep(1000);
 				if (changed_files.Count > 0) WriteFilename();

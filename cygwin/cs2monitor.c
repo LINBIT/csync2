@@ -183,7 +183,7 @@ int main(int argc, char **argv)
 		dirname6 = argc >=  9 ? argv[8] : 0;
 		dirname7 = argc >= 10 ? argv[9] : 0;
 	} else
-	if (argc >= 2)
+	if (argc >= 2) {
 		dirname0 = argc >= 2 ? argv[1] : 0;
 		dirname1 = argc >= 3 ? argv[2] : 0;
 		dirname2 = argc >= 4 ? argv[3] : 0;
@@ -192,7 +192,7 @@ int main(int argc, char **argv)
 		dirname5 = argc >= 7 ? argv[6] : 0;
 		dirname6 = argc >= 8 ? argv[7] : 0;
 		dirname7 = argc >= 9 ? argv[8] : 0;
-	else {
+	} else {
 		fprintf(stderr, "Usage: %s [-B] datadir\n", argv[0]);
 		return 1;
 	}

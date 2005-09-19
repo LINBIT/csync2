@@ -83,7 +83,7 @@ int main(int argc, char **argv)
 			command_len += strlen(argv[i]) + 10;
 
 		command = malloc(command_len);
-		sprintf(command, "./cs2hintd_fseh.exe");
+		pos = sprintf(command, "./cs2hintd_fseh.exe");
 		for (i=2; i<argc; i++)
 			pos += sprintf(command+pos, " '%s'", argv[i]);
 		fseh = popen(command, "r");
