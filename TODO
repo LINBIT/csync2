@@ -1,4 +1,4 @@
 
-Add 'vpath' feature (sync different diretories)
-Add passive-mode feature (daemon does -xv run)
+Add passive-mode (daemon does -xv run)
+Check ssl certificates (server and client)
 
