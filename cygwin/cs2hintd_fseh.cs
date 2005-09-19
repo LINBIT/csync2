@@ -26,42 +26,42 @@ using System.Collections;
 
 public class Csync2HintDaemonFSEH
 {
-	private static string watchdir;
 	private static Queue changed_files = new Queue();
 
 	public static void Main()
 	{
 		string[] args = System.Environment.GetCommandLineArgs();
 	 
-		if(args.Length != 2) {
-			Console.Error.WriteLine("Usage: {0} directory", args[0]);
+		if(args.Length < 2) {
+			Console.Error.WriteLine("Usage: {0} directory [ directory [ ... ] ]", args[0]);
 			return;
 		}
 
-		watchdir = args[1];
+		for (int i=1; i<args.Length; i++)
+		{
+			FileSystemWatcher watcher = new FileSystemWatcher();
 
-		FileSystemWatcher watcher = new FileSystemWatcher();
+			watcher.Path = args[1];
+			watcher.IncludeSubdirectories = true;
+			watcher.NotifyFilter =
+				NotifyFilters.Attributes	|
+				NotifyFilters.CreationTime	|
+				NotifyFilters.DirectoryName	|
+				NotifyFilters.FileName		|
+				NotifyFilters.LastWrite		|
+				NotifyFilters.Security		|
+				NotifyFilters.Size;
 
-		watcher.Path = watchdir;
-		watcher.IncludeSubdirectories = true;
-		watcher.NotifyFilter =
-			NotifyFilters.Attributes	|
-			NotifyFilters.CreationTime	|
-			NotifyFilters.DirectoryName	|
-			NotifyFilters.FileName		|
-			NotifyFilters.LastWrite		|
-			NotifyFilters.Security		|
-			NotifyFilters.Size;
+			watcher.Changed += new FileSystemEventHandler(OnChanged);
+			watcher.Created += new FileSystemEventHandler(OnChanged);
+			watcher.Deleted += new FileSystemEventHandler(OnChanged);
+			watcher.Renamed += new RenamedEventHandler(OnRenamed);
 
-		watcher.Changed += new FileSystemEventHandler(OnChanged);
-		watcher.Created += new FileSystemEventHandler(OnChanged);
-		watcher.Deleted += new FileSystemEventHandler(OnChanged);
-		watcher.Renamed += new RenamedEventHandler(OnRenamed);
-
-		watcher.EnableRaisingEvents = true;
+			watcher.EnableRaisingEvents = true;
+		}
 
 		while (true) {
-			Console.Error.WriteLine("-- cs2hintd_fseh waiting for filesystem events in '{0}' --", watchdir);
+			Console.Error.WriteLine("-- cs2hintd_fseh waiting for filesystem events --");
 			for (int i=0; i<600; i++) {
 				Thread.Sleep(1000);
 				if (changed_files.Count > 0) WriteFilename();

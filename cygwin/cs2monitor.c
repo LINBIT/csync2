@@ -35,7 +35,15 @@ static int last_busyc_warn = 0;
 
 static int non_blocking_mode = 0;
 static char myhostname[256];
-static char *dbname, *dirname;
+static char *dbname;
+static char *dirname0 = 0;
+static char *dirname1 = 0;
+static char *dirname2 = 0;
+static char *dirname3 = 0;
+static char *dirname4 = 0;
+static char *dirname5 = 0;
+static char *dirname6 = 0;
+static char *dirname7 = 0;
 static time_t restart_time;
 static int wheel_counter;
 
@@ -82,7 +90,9 @@ static void exec_updater()
 
 static void exec_hintd()
 {
-	execl("./cs2hintd.exe", "cs2hintd.exe", dbname, dirname, NULL);
+	execl("./cs2hintd.exe", "cs2hintd.exe", dbname,
+			dirname0, dirname1, dirname2, dirname3,
+			dirname4, dirname5, dirname6, dirname7, NULL);
 }
 
 static struct service service_tcp_listener = {
@@ -162,12 +172,26 @@ int main(int argc, char **argv)
 
 	asprintf(&dbname, "%s.db", myhostname);
 
-	if (argc == 3 && !strcmp(argv[1], "-B")) {
+	if (argc >= 3 && !strcmp(argv[1], "-B")) {
 		non_blocking_mode = 1;
-		dirname = argv[2];
+		dirname0 = argc >=  3 ? argv[2] : 0;
+		dirname1 = argc >=  4 ? argv[3] : 0;
+		dirname2 = argc >=  5 ? argv[4] : 0;
+		dirname3 = argc >=  6 ? argv[5] : 0;
+		dirname4 = argc >=  7 ? argv[6] : 0;
+		dirname5 = argc >=  8 ? argv[7] : 0;
+		dirname6 = argc >=  9 ? argv[8] : 0;
+		dirname7 = argc >= 10 ? argv[9] : 0;
 	} else
-	if (argc == 2)
-		dirname = argv[1];
+	if (argc >= 2)
+		dirname0 = argc >= 2 ? argv[1] : 0;
+		dirname1 = argc >= 3 ? argv[2] : 0;
+		dirname2 = argc >= 4 ? argv[3] : 0;
+		dirname3 = argc >= 5 ? argv[4] : 0;
+		dirname4 = argc >= 6 ? argv[5] : 0;
+		dirname5 = argc >= 7 ? argv[6] : 0;
+		dirname6 = argc >= 8 ? argv[7] : 0;
+		dirname7 = argc >= 9 ? argv[8] : 0;
 	else {
 		fprintf(stderr, "Usage: %s [-B] datadir\n", argv[0]);
 		return 1;
@@ -262,9 +286,17 @@ int main(int argc, char **argv)
 	printf("Csync2 Monitor\n");
 	printf("\n");
 	printf("Basedir:  %s\n", TRGDIR);
-	printf("Datadir:  %s\n", dirname);
 	printf("Hostname: %s\n", myhostname);
 	printf("Database: %s\n", dbname);
+	printf("\n");
+	if (dirname0) printf("Datadir #0: %s\n", dirname0);
+	if (dirname1) printf("Datadir #1: %s\n", dirname1);
+	if (dirname2) printf("Datadir #2: %s\n", dirname2);
+	if (dirname3) printf("Datadir #3: %s\n", dirname3);
+	if (dirname4) printf("Datadir #4: %s\n", dirname4);
+	if (dirname5) printf("Datadir #5: %s\n", dirname5);
+	if (dirname6) printf("Datadir #6: %s\n", dirname6);
+	if (dirname7) printf("Datadir #7: %s\n", dirname7);
 	printf("\n");
 	printf("**********************************************************\n");
 	printf("\n");
@@ -407,7 +439,7 @@ restart_entry_point:
 			sqlite_close(db);
 			goto panic_restart_everything;
 		}
-			
+
 		if ( rc == SQLITE_BUSY ) {
 			db_busyc++;
 			if (db_busyc > 600) {

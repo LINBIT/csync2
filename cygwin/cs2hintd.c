@@ -63,8 +63,8 @@ int main(int argc, char **argv)
 	char line[4096], *c;
 	int in_transaction = 0;
 
-	if (argc != 3) {
-		fprintf(stderr, "Usage: %s dbfile directory\n", argv[0]);
+	if (argc < 3) {
+		fprintf(stderr, "Usage: %s dbfile directory [ directory [ ... ] ]\n", argv[0]);
 		exit(1);
 	}
 
@@ -75,9 +75,20 @@ int main(int argc, char **argv)
 	}
 
 	{
-		char command[strlen(argv[2]) + 100];
-		sprintf(command, "./cs2hintd_fseh.exe '%s'", argv[2]);
+		int i, pos = 0;
+		int command_len = 100;
+		char *command;
+
+		for (i=2; i<argc; i++)
+			command_len += strlen(argv[i]) + 10;
+
+		command = malloc(command_len);
+		sprintf(command, "./cs2hintd_fseh.exe");
+		for (i=2; i<argc; i++)
+			pos += sprintf(command+pos, " '%s'", argv[i]);
 		fseh = popen(command, "r");
+		free(command);
+
 		if (!fseh) {
 			fprintf(stderr, "** Can't start cs2hintd_fseh.exe!\n");
 			exit(1);
