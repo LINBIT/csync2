@@ -186,7 +186,7 @@ static void check_group()
 {
 	if ( ! csync_group->key )
 		csync_fatal("Config error: every group must have a key.\n");
-	
+
 	if ( csync_group->auto_method < 0 )
 		csync_group->auto_method = CSYNC_AUTO_METHOD_NONE;
 
@@ -372,7 +372,7 @@ ignore_list:
 prefix_list:
 	/* empty */
 |	prefix_list TK_ON TK_STRING TK_COLON TK_STRING TK_STEND
-		{ new_prefix_entry($3, $5); }
+		{ new_prefix_entry($3, on_cygwin_lowercase($5)); }
 ;
 
 block_header:
@@ -419,13 +419,13 @@ host_list_slaves:
 |	host_list TK_STRING TK_AT TK_STRING
 		{ add_host($2, $4, 1); }
 ;
-		
+
 excl_list:
 	/* empty */
 |	excl_list TK_STRING
 		{ add_patt(0, on_cygwin_lowercase($2)); }
 ;
-		
+
 incl_list:
 	/* empty */
 |	incl_list TK_STRING
@@ -438,7 +438,7 @@ action:
 	TK_BLOCK_BEGIN action_stmts TK_BLOCK_END
 ;
 
-		
+
 action_stmts:
 	/* empty */
 |	action_stmt TK_STEND action_stmts
