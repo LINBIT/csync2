@@ -16,7 +16,9 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
+
 sbin_PROGRAMS = csync2
+man_MANS = csync2.1
 
 csync2_SOURCES = action.c cfgfile_parser.y cfgfile_scanner.l check.c	\
                  checktxt.c csync2.c daemon.c db.c error.c getrealfn.c	\
