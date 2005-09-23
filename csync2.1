@@ -1,0 +1,123 @@
+.\"                                      Hey, EMACS: -*- nroff -*-
+.TH CSYNC2 1 "September 23, 2005"
+.SH NAME
+csync2 \- cluster synchronization tool, 2nd generation
+.SH SYNOPSIS
+.B csync2
+.RI [ -v.. ] " [-C config-name]" " [-D database-dir]" " [-N hostname]" " [-p port]" ...
+.br
+.SH DESCRIPTION
+This manual page documents briefly the
+.B csync2
+command.
+.PP
+\fBcsync2\fP is a program for cluster synchronization.
+.SH OPTIONS
+.TP
+With file parameters:
+.TP
+.B  -h [-r] file..
+Add (recursive) hints for check to db
+.TP
+.B -c [-r] file..
+Check files and maybe add to dirty db
+.TP
+.B -u [-d] [-r] file..
+Updates files if listed in dirty db
+.TP
+.B -f file..
+Force this file in sync (resolve conflict)
+.TP
+.B -m file..
+Mark files in database as dirty
+.TP
+Simple mode:
+.TP
+.B -x [-d] [[-r] file..]
+Run checks for all given files and update remote hosts.
+.TP
+Without file parameters:
+.TP
+.B -c
+Check all hints in db and eventually mark files as dirty
+.TP
+.B -u [-d]
+Update (transfer dirty files to peers and mark as clear)
+.TP
+.B -H
+List all pending hints from status db
+.TP
+.B -L
+List all file-entries from status db
+.TP
+.B -M
+List all dirty files from status db
+.TP
+.B -S myname peername
+List file-entries from status db for this synchronization pair.
+.TP
+.B -T
+Test if everything is in sync with all peers.
+.TP
+.B -T filename
+Test if this file is in sync with all peers.
+.TP
+.B -T myname peername
+Test if this synchronization pair is in sync.
+.TP
+.B -T myname peer file
+Test only this file in this sync pair.
+.TP
+.B -TT
+As -T, but print the unified diffs.
+.TP
+Notice:  The modes -H, -L, -M and -S return 2 if the requested db is empty. The mode -T returns 2 if both hosts are in sync.
+.TP
+.B -i
+Run in inetd server mode.
+.TP
+.B -ii
+Run in stand-alone server mode.
+.TP
+.B -iii
+Run in stand-alone server mode (one connect only).
+.TP
+.B -R
+Remove files from database which do not match config entries.
+.TP
+Modifiers:
+.TP
+.B -r
+Recursive operation over subdirectories
+.TP
+.B -d
+Dry-run on all remote update operations
+.TP
+.B -B
+Do not block everything into big SQL transactions. This
+slows down csync2 but allows multiple csync2 processes to
+access the database at the same time. Use e.g. when slow
+lines are used or huge files are transferred.
+.TP
+.B -I
+Init-run. Use with care and read the documentation first!
+You usually do not need this option unless you are
+initializing groups with really large file lists.
+.TP
+.B -G Group1,Group2,Group3,...
+Only use this groups from config-file.
+.TP
+.B -P peer1,peer1,...
+Only update this peers (still mark all as dirty).
+.TP
+Creating key file:
+.B csync2 -k filename
+.TP
+Warning: Csync2 will refuse to do anything when a /etc/csync2.lock file is found.
+.SH SEE ALSO
+.BR sqlite (1).
+.SH AUTHOR
+csync2 was written by Clifford Wolf <clifford@clifford.at>.
+.PP
+This manual page was written by Michael Prokop <mika@grml.org>,
+for the Debian project (but may be used by others).

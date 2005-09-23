@@ -57,25 +57,14 @@ binary-arch: build install
 	dh_testroot
 	dh_installchangelogs 
 	dh_installdocs
-#	dh_installexamples
-#	dh_install
-#	dh_installmenu
-#	dh_installdebconf
-#	dh_installlogrotate
-#	dh_installemacsen
-#	dh_installpam
-#	dh_installmime
-#	dh_installinit
+	dh_installman csync2.1
 	dh_installcron
-#	dh_installinfo
-#	dh_installman
 	dh_link
 	dh_strip
 	dh_compress
+	mkdir -p $(CURDIR)/debian/csync2/usr/share/lintian/overrides/
+	cp -av debian/overrides $(CURDIR)/debian/csync2/usr/share/lintian/overrides/csync2
 	dh_fixperms
-#	dh_perl
-#	dh_python
-#	dh_makeshlibs
 	dh_installdeb
 	dh_shlibdeps
 	dh_gencontrol
