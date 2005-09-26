@@ -1,0 +1,15 @@
+
+csync2 for Debian
+-----------------
+
+You need to create an SSL certificate for the local Csync2
+server. You can create a certificate using the following
+commands:
+
+openssl genrsa -out /etc/csync2_ssl_key.pem 1024
+openssl req -new -key /etc/csync2_ssl_key.pem -out /etc/csync2_ssl_cert.csr
+openssl x509 -req -days 600 -in /etc/csync2_ssl_cert.csr \
+        -signkey /etc/csync2_ssl_key.pem -out /etc/csync2_ssl_cert.pem
+
+ -- Michael Prokop <mika@grml.org>, Fri, 23 Sep 2005 12:11:25 +0200
+
