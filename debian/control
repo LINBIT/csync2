@@ -2,7 +2,7 @@ Source: csync2
 Section: admin
 Priority: optional
 Maintainer: Philipp Richter <philipp.richter@linbit.com>
-Build-Depends: debhelper (>= 4.0.0), librsync-dev, libsqlite0-dev
+Build-Depends: debhelper (>= 4.0.0), librsync-dev, libsqlite0-dev, libc6-dev, libssl-dev, bison
 Standards-Version: 3.6.2
 
 Package: csync2
