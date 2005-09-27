@@ -279,8 +279,6 @@ static void new_prefix_entry(char *pattern, char *path)
 {
 	int i;
 
-	csync_debug(2, "*** '%s' '%s'\n", myhostname, pattern);
-
 	if (!csync_prefix->path && !fnmatch(pattern, myhostname, 0)) {
 #if __CYGWIN__
 		if (isalpha(path[0]) && path[1] == ':' &&
