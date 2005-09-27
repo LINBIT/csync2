@@ -157,6 +157,12 @@ void csync_db_open(const char *file)
 		"	UNIQUE ( filename, command ) ON CONFLICT IGNORE"
 		")",
 		0, 0, 0);
+	sqlite_exec(db,
+		"CREATE TABLE cert_sha1 ("
+		"	peername, hash,"
+		"	UNIQUE ( peername ) ON CONFLICT IGNORE"
+		")",
+		0, 0, 0);
 	in_sql_query--;
 }
 

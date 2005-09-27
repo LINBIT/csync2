@@ -418,7 +418,6 @@ int main(int argc, char ** argv)
 		if (cmd && !strcasecmp(cmd, "ssl")) {
 			conn_printf("OK (activating_ssl).\n");
 			conn_activate_ssl(1);
-			/* FIXME: Do certificate checking, etc. */
 
 			if ( !conn_gets(line, 4096) ) return 0;
 			cmd = strtok(line, "\t \r\n");

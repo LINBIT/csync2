@@ -102,6 +102,11 @@ int conn_set(int infd, int outfd)
 char *ssl_keyfile = ETCDIR "/csync2_ssl_key.pem";
 char *ssl_certfile = ETCDIR "/csync2_ssl_cert.pem";
 
+static int dummy_ssl_verify_callback(int preverify_ok, X509_STORE_CTX *x509_ctx)
+{
+	return 1;
+}
+
 int conn_activate_ssl(int role)
 {
 	static sslinit = 0;
@@ -118,13 +123,13 @@ int conn_activate_ssl(int role)
 	conn_ssl_meth = SSLv23_method();
 	conn_ssl_ctx = SSL_CTX_new(conn_ssl_meth);
 
-	if (role) {
-		if (SSL_CTX_use_PrivateKey_file(conn_ssl_ctx, ssl_keyfile, SSL_FILETYPE_PEM) <= 0)
-			csync_fatal("SSL: failed to use key file %s.\n", ssl_keyfile);
+	if (SSL_CTX_use_PrivateKey_file(conn_ssl_ctx, ssl_keyfile, SSL_FILETYPE_PEM) <= 0)
+		csync_fatal("SSL: failed to use key file %s.\n", ssl_keyfile);
 
-		if (SSL_CTX_use_certificate_file(conn_ssl_ctx, ssl_certfile, SSL_FILETYPE_PEM) <= 0)
-			csync_fatal("SSL: failed to use certificate file %s.\n", ssl_certfile);
-	}
+	if (SSL_CTX_use_certificate_file(conn_ssl_ctx, ssl_certfile, SSL_FILETYPE_PEM) <= 0)
+		csync_fatal("SSL: failed to use certificate file %s.\n", ssl_certfile);
+
+	SSL_CTX_set_verify(conn_ssl_ctx, SSL_VERIFY_PEER, &dummy_ssl_verify_callback);
 
 	if (! (conn_ssl = SSL_new(conn_ssl_ctx)) )
 		csync_fatal("Creating a new SSL handle failed.\n");
@@ -138,6 +143,59 @@ int conn_activate_ssl(int role)
 	conn_usessl = 1;
 
 	return 0;
+}
+
+int conn_check_peer_cert(const char *peername, int callfatal)
+{
+	X509 *peercert;
+	char hashtxt[SHA_DIGEST_LENGTH*2+1];
+	int i, j, hash_is_ok = -1;
+
+	if (!conn_usessl)
+		return 1;
+
+	peercert = SSL_get_peer_certificate(conn_ssl);
+
+	if (!peercert) {
+		if (callfatal)
+			csync_fatal("Peer did not provide an SSL X509 cetrificate.\n");
+		csync_debug(1, "Peer did not provide an SSL X509 cetrificate.\n");
+		return 0;
+	}
+
+	for (i=0; i<SHA_DIGEST_LENGTH; i++) {
+		j = peercert->sha1_hash[i];
+		sprintf(hashtxt+i*2, "%02X", j);
+	}
+
+	SQL_BEGIN("Checking peer x509 sha1 hash.",
+		"SELECT hash FROM cert_sha1 WHERE peername = '%s'",
+		url_encode(peername))
+	{
+		if (!strcmp(SQL_V[0], hashtxt))
+			hash_is_ok = 1;
+		else
+			hash_is_ok = 0;
+	} SQL_END;
+
+	if (hash_is_ok < 0) {
+		csync_debug(1, "Adding peer x509 sha1 hash to db: %s\n", hashtxt);
+		SQL("Adding peer x509 sha1 hash to database.",
+			"INSERT INTO cert_sha1 (peername, hash) VALUES ('%s', '%s')",
+			url_encode(peername), url_encode(hashtxt));
+		return 1;
+	}
+
+	csync_debug(2, "Peer x509 sha1 hash is: %s\n", hashtxt);
+
+	if (!hash_is_ok) {
+		if (callfatal)
+			csync_fatal("Peer did provide a wrong SSL X509 cetrificate.\n");
+		csync_debug(0, "Peer did provide a wrong SSL X509 cetrificate.\n");
+		return 0;
+	}
+
+	return 1;
 }
 
 int conn_close()

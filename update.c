@@ -77,6 +77,7 @@ int connect_to_host(const char *peername)
 			return -1;
 		}
 		conn_activate_ssl(0);
+		conn_check_peer_cert(peername, 1);
 	}
 
 	conn_printf("CONFIG %s\n", url_encode(cfgname));

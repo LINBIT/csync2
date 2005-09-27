@@ -377,7 +377,8 @@ void csync_daemon_session()
 			if (peer) free(peer);
 			hp = gethostbyname(tag[1]);
 			if ( hp != 0 && peername.sin_family == hp->h_addrtype &&
-			     !memcmp(hp->h_addr, &peername.sin_addr, hp->h_length) ) {
+			     !memcmp(hp->h_addr, &peername.sin_addr, hp->h_length) &&
+			     conn_check_peer_cert(tag[1], 0)) {
 				peer = strdup(tag[1]);
 			} else {
 				peer = 0;
