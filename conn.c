@@ -156,7 +156,7 @@ int conn_check_peer_cert(const char *peername, int callfatal)
 
 	peercert = SSL_get_peer_certificate(conn_ssl);
 
-	if (!peercert) {
+	if (!peercert || !peercert->sha1_hash) {
 		if (callfatal)
 			csync_fatal("Peer did not provide an SSL X509 cetrificate.\n");
 		csync_debug(1, "Peer did not provide an SSL X509 cetrificate.\n");
@@ -191,7 +191,7 @@ int conn_check_peer_cert(const char *peername, int callfatal)
 	if (!hash_is_ok) {
 		if (callfatal)
 			csync_fatal("Peer did provide a wrong SSL X509 cetrificate.\n");
-		csync_debug(0, "Peer did provide a wrong SSL X509 cetrificate.\n");
+		csync_debug(1, "Peer did provide a wrong SSL X509 cetrificate.\n");
 		return 0;
 	}
 
