@@ -169,7 +169,7 @@ int conn_check_peer_cert(const char *peername, int callfatal)
 	}
 
 	SQL_BEGIN("Checking peer x509 sha1 hash.",
-		"SELECT hash FROM cert_sha1 WHERE peername = '%s'",
+		"SELECT hash FROM x509_sha1 WHERE peername = '%s'",
 		url_encode(peername))
 	{
 		if (!strcmp(SQL_V[0], hashtxt))
@@ -181,7 +181,7 @@ int conn_check_peer_cert(const char *peername, int callfatal)
 	if (hash_is_ok < 0) {
 		csync_debug(1, "Adding peer x509 sha1 hash to db: %s\n", hashtxt);
 		SQL("Adding peer x509 sha1 hash to database.",
-			"INSERT INTO cert_sha1 (peername, hash) VALUES ('%s', '%s')",
+			"INSERT INTO x509_sha1 (peername, hash) VALUES ('%s', '%s')",
 			url_encode(peername), url_encode(hashtxt));
 		return 1;
 	}

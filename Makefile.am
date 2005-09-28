@@ -53,10 +53,12 @@ install-data-local:
 	$(mkinstalldirs) $(localstatedir)/lib/csync2
 
 cert:
-	openssl genrsa -out $(sysconfdir)/csync2_ssl_key.pem 1024
-	openssl req -new -key $(sysconfdir)/csync2_ssl_key.pem -out $(sysconfdir)/csync2_ssl_cert.csr
+	openssl genrsa -out $(sysconfdir)/csync2_ssl_key.pem 1024 
+	yes '' | openssl req -new -key $(sysconfdir)/csync2_ssl_key.pem \
+		-out $(sysconfdir)/csync2_ssl_cert.csr
 	openssl x509 -req -days 600 -in $(sysconfdir)/csync2_ssl_cert.csr \
 		-signkey $(sysconfdir)/csync2_ssl_key.pem -out $(sysconfdir)/csync2_ssl_cert.pem
+	rm $(sysconfdir)/csync2_ssl_cert.csr
 
 
 ## hack for building private librsync and private libsqlite ##
