@@ -146,6 +146,11 @@ void csync_db_open(const char *file)
 		")",
 		0, 0, 0);
 	sqlite_exec(db,
+		"CREATE INDEX dirty_bypeername ON dirty ("
+		"	peername, filename"
+		")",
+		0, 0, 0);
+	sqlite_exec(db,
 		"CREATE TABLE hint ("
 		"	filename, recursive,"
 		"	UNIQUE ( filename, recursive ) ON CONFLICT IGNORE"
