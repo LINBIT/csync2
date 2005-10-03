@@ -108,18 +108,19 @@ void csync_check_usefullness(const char *file, int recursive)
 
 	if (*file == '/')
 		while (p) {
-			int p_len = strlen(p->path);
-			int f_len = strlen(file);
-			
-			if (p_len <= f_len && !strncmp(p->path, file, p_len) &&
-					(file[p_len] == '/' || !file[p_len])) {
-				char new_file[strlen(p->name) + strlen(file+p_len) + 10];
-				sprintf(new_file, "%%%s%%%s", p->name, file+p_len);
-				
-				if ( csync_find_next(0, new_file) ) return;
-				if ( recursive && csync_step_into(new_file) ) return;
+			if (p->path) {
+				int p_len = strlen(p->path);
+				int f_len = strlen(file);
+
+				if (p_len <= f_len && !strncmp(p->path, file, p_len) &&
+						(file[p_len] == '/' || !file[p_len])) {
+					char new_file[strlen(p->name) + strlen(file+p_len) + 10];
+					sprintf(new_file, "%%%s%%%s", p->name, file+p_len);
+
+					if ( csync_find_next(0, new_file) ) return;
+					if ( recursive && csync_step_into(new_file) ) return;
+				}
 			}
-			
 			p = p->next;
 		}
 
