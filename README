@@ -50,3 +50,14 @@ and is mirrored at
 
 You should definitely read the documentation before trying to setup csync2.
 
+
+Mailing List
+============
+
+There is a csync2 mailing list:
+
+	http://lists.linbit.com/mailman/listinfo/csync2
+
+It is recommended to subscribe to this list if you are using csync2 in
+production environments.
+
