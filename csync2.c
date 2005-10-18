@@ -141,6 +141,10 @@ PACKAGE_STRING " - cluster synchronization tool, 2nd generation\n"
 "		access the database at the same time. Use e.g. when slow\n"
 "		lines are used or huge files are transferred.\n"
 "\n"
+"	-A	Open database in asynchronous mode. This will cause data\n"
+"		corruption if the operating system crashes or the computer\n"
+"		loses power.\n"
+"\n"
 "	-I	Init-run. Use with care and read the documentation first!\n"
 "		You usually do not need this option unless you are\n"
 "		initializing groups with really large file lists.\n"
@@ -264,7 +268,7 @@ int main(int argc, char ** argv)
 		return 1;
 	}
 
-	while ( (opt = getopt(argc, argv, "p:G:P:C:D:N:HBILSTMRvhcuimfxrd")) != -1 ) {
+	while ( (opt = getopt(argc, argv, "p:G:P:C:D:N:HBAILSTMRvhcuimfxrd")) != -1 ) {
 		switch (opt) {
 			case 'p':
 				csync_port = atoi(optarg);
@@ -277,6 +281,9 @@ int main(int argc, char ** argv)
 				break;
 			case 'B':
 				db_blocking_mode = 0;
+				break;
+			case 'A':
+				db_sync_mode = 0;
 				break;
 			case 'I':
 				init_run = 1;

@@ -31,6 +31,7 @@
 	"Database backend is exceedingly busy => Terminating (requesting retry).\n"
 
 int db_blocking_mode = 1;
+int db_sync_mode = 1;
 
 static sqlite *db = 0;
 
@@ -163,6 +164,8 @@ void csync_db_open(const char *file)
 		"	UNIQUE ( peername ) ON CONFLICT IGNORE"
 		")",
 		0, 0, 0);
+	if (!db_sync_mode)
+		sqlite_exec(db, "PRAGMA synchronous = OFF", 0, 0, 0);
 	in_sql_query--;
 }
 

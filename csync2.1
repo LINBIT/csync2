@@ -99,6 +99,11 @@ slows down csync2 but allows multiple csync2 processes to
 access the database at the same time. Use e.g. when slow
 lines are used or huge files are transferred.
 .TP
+.B -A
+Open database in asynchronous mode. This will cause data
+corruption if the operating system crashes or the computer
+loses power.
+.TP
 .B -I
 Init-run. Use with care and read the documentation first!
 You usually do not need this option unless you are
@@ -120,4 +125,5 @@ Warning: Csync2 will refuse to do anything when a /etc/csync2.lock file is found
 csync2 was written by Clifford Wolf <clifford@clifford.at>.
 .PP
 This manual page was written by Michael Prokop <mika@grml.org>,
-for the Debian project (but may be used by others).
+for the Debian project (but may be used by others). It is now
+further maintained by Clifford Wolf.

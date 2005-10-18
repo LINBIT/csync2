@@ -110,6 +110,7 @@ extern void csync_db_fin(void *vmx, const char *err);
 }
 
 extern int db_blocking_mode;
+extern int db_sync_mode;
 
 
 /* rsync.c */
