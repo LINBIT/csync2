@@ -149,6 +149,8 @@ PACKAGE_STRING " - cluster synchronization tool, 2nd generation\n"
 "		You usually do not need this option unless you are\n"
 "		initializing groups with really large file lists.\n"
 "\n"
+"	-X	Also add removals to dirty db when doing a -TI run.\n"
+"\n"
 "	-G Group1,Group2,Group3,...\n"
 "		Only use this groups from config-file.\n"
 "\n"
@@ -252,6 +254,7 @@ int main(int argc, char ** argv)
 	int mode = MODE_NONE;
 	int mode_test_auto_diff = 0;
 	int init_run = 0;
+	int init_run_with_removals = 0;
 	int recursive = 0;
 	int retval = -1;
 	int dry_run = 0;
@@ -268,7 +271,7 @@ int main(int argc, char ** argv)
 		return 1;
 	}
 
-	while ( (opt = getopt(argc, argv, "p:G:P:C:D:N:HBAILSTMRvhcuimfxrd")) != -1 ) {
+	while ( (opt = getopt(argc, argv, "p:G:P:C:D:N:HBAIXLSTMRvhcuimfxrd")) != -1 ) {
 		switch (opt) {
 			case 'p':
 				csync_port = atoi(optarg);
@@ -287,6 +290,9 @@ int main(int argc, char ** argv)
 				break;
 			case 'I':
 				init_run = 1;
+				break;
+			case 'X':
+				init_run_with_removals = 1;
 				break;
 			case 'C':
 				cfgname = optarg;
@@ -637,6 +643,8 @@ int main(int argc, char ** argv)
 			break;
 
 		case MODE_TEST_SYNC:
+			if (init_run && init_run_with_removals)
+				init_run = 2;
 			switch (argc-optind)
 			{
 			case 3:
