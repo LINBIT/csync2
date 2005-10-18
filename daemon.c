@@ -422,9 +422,11 @@ found_asactive: ;
 		if ( cmdtab[cmdnr].update )
 			csync_file_update(tag[2], peer);
 
-		if ( cmdtab[cmdnr].update == 1 )
+		if ( cmdtab[cmdnr].update == 1 ) {
 			csync_debug(1, "Updated %s from %s.\n",
 					tag[2], peer ? peer : "???");
+			csync_schedule_commands(tag[2], 0);
+		}
 
 abort_cmd:
 		if ( cmd_error )
