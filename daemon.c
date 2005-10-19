@@ -111,11 +111,11 @@ enum {
 
 struct csync_command cmdtab[] = {
 	{ "sig",	1, 0, 0, 0, 1, A_SIG	},
-	{ "flush",	1, 0, 0, 0, 1, A_FLUSH	},
 	{ "mark",	1, 0, 0, 0, 1, A_MARK	},
 	{ "type",	1, 0, 0, 0, 1, A_TYPE	},
 	{ "gettm",	1, 0, 0, 0, 1, A_GETTM	},
 	{ "getsz",	1, 0, 0, 0, 1, A_GETSZ	},
+	{ "flush",	1, 1, 0, 0, 1, A_FLUSH	},
 	{ "del",	1, 1, 0, 1, 1, A_DEL	},
 	{ "patch",	1, 1, 2, 1, 1, A_PATCH	},
 	{ "mkdir",	1, 1, 1, 1, 1, A_MKDIR	},
@@ -230,11 +230,6 @@ void csync_daemon_session()
 					conn_printf("octet-stream 0\n");
 			}
 			break;
-		case A_FLUSH:
-			SQL("Flushing dirty entry (if any) for file",
-				"DELETE FROM dirty WHERE filename = '%s'",
-				url_encode(tag[2]));
-			break;
 		case A_MARK:
 			csync_mark(tag[2], peer);
 			break;
@@ -273,6 +268,11 @@ void csync_daemon_session()
 					conn_printf("-1\n");
 				goto next_cmd;
 			}
+			break;
+		case A_FLUSH:
+			SQL("Flushing dirty entry (if any) for file",
+				"DELETE FROM dirty WHERE filename = '%s'",
+				url_encode(tag[2]));
 			break;
 		case A_DEL:
 			csync_unlink(tag[2], 0);
