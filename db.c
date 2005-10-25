@@ -250,7 +250,7 @@ int csync_db_next(void *vmx, const char *err,
 {
 	sqlite_vm *vm = vmx;
 	int rc, busyc = 0;
-	
+
 	csync_debug(4, "Trying to fetch a row from the database.\n");
 
 	while (1) {
@@ -272,7 +272,7 @@ void csync_db_fin(void *vmx, const char *err)
 {
 	sqlite_vm *vm = vmx;
 	int rc, busyc = 0;
-	
+
 	csync_debug(2, "SQL Query finished.\n");
 
 	while (1) {

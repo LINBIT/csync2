@@ -31,7 +31,7 @@ public class Csync2HintDaemonFSEH
 	public static void Main()
 	{
 		string[] args = System.Environment.GetCommandLineArgs();
-	 
+
 		if(args.Length < 2) {
 			Console.Error.WriteLine("Usage: {0} directory [ directory [ ... ] ]", args[0]);
 			return;

@@ -244,7 +244,7 @@ int conn_raw_read(void *buf, size_t count)
 			if (buf_end < 0) { buf_end=0; return -1; }
 		}
 	}
-	
+
 	if ( buf_start < buf_end ) {
 		size_t real_count = buf_end - buf_start;
 		if ( real_count > count ) real_count = count;

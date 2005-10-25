@@ -47,7 +47,7 @@ void csync_send_file(FILE *in)
 	char buffer[512];
 	int rc, chunk;
 	long size;
-	
+
 	fflush(in);
 	size = ftell(in);
 	rewind(in);
