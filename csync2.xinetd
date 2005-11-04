@@ -3,7 +3,7 @@
 service csync2
 {
 	flags		= REUSE
-	socket_type	= stream        
+	socket_type	= stream
 	wait		= no
 	user		= root
 	group		= root
