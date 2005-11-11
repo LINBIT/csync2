@@ -23,8 +23,27 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
+long csync_last_printtime = 0;
 int csync_messages_printed = 0;
+
+void csync_printtime()
+{
+	if (csync_timestamps)
+	{
+		time_t now = time(0);
+		char ftbuffer[128];
+
+		if (csync_last_printtime+300 < now) {
+			csync_last_printtime = now;
+			if ( csync_server_child_pid )
+				fprintf(csync_debug_out, "<%d> ", csync_server_child_pid);
+			strftime(ftbuffer, 128, "%Y-%m-%d %H:%M:%S %Z (GMT%z)", localtime(&now));
+			fprintf(csync_debug_out, "TIMESTAMP: %s\n", ftbuffer);
+		}
+	}
+}
 
 void csync_fatal(const char *fmt, ...)
 {
@@ -38,6 +57,10 @@ void csync_fatal(const char *fmt, ...)
 	va_end(ap);
 
 	csync_db_close();
+
+	csync_last_printtime = 0;
+	csync_printtime();
+
 	exit(1);
 }
 
@@ -55,5 +78,6 @@ void csync_debug(int lv, const char *fmt, ...)
 	va_end(ap);
 
 	csync_messages_printed++;
+	csync_printtime();
 }
 

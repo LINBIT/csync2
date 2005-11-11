@@ -58,6 +58,7 @@ int csync_debug_level = 0;
 FILE *csync_debug_out = 0;
 
 int csync_server_child_pid = 0;
+int csync_timestamps = 0;
 int csync_new_force = 0;
 int csync_port = 30865;
 
@@ -159,6 +160,8 @@ PACKAGE_STRING " - cluster synchronization tool, 2nd generation\n"
 "		Only update this peers (still mark all as dirty).\n"
 "\n"
 "	-F	Add new entries to dirty database with force flag set.\n"
+"\n"
+"	-t	Print timestamps to debug output (e.g. for profiling).\n"
 "\n"
 "Creating key file:\n"
 "	%s -k filename\n"
@@ -274,10 +277,13 @@ int main(int argc, char ** argv)
 		return 1;
 	}
 
-	while ( (opt = getopt(argc, argv, "Fp:G:P:C:D:N:HBAIXLSTMRvhcuimfxrd")) != -1 ) {
+	while ( (opt = getopt(argc, argv, "Ftp:G:P:C:D:N:HBAIXLSTMRvhcuimfxrd")) != -1 ) {
 		switch (opt) {
 			case 'F':
 				csync_new_force = 1;
+				break;
+			case 't':
+				csync_timestamps = 1;
 				break;
 			case 'p':
 				csync_port = atoi(optarg);
@@ -420,6 +426,9 @@ int main(int argc, char ** argv)
 		if (csync_server_loop(mode == MODE_SINGLE)) return 1;
 		mode = MODE_INETD;
 	}
+
+	// print time (if -t is set)
+	csync_printtime();
 
 	/* In inetd mode we need to read the module name from the peer
 	 * before we open the config file and database
@@ -707,6 +716,10 @@ int main(int argc, char ** argv)
 				csync_server_child_pid);
 		fflush(stderr);
 	}
+
+	// print time (if -t is set)
+	csync_last_printtime = 0;
+	csync_printtime();
 
 	return csync_error_count != 0;
 }

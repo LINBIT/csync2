@@ -55,6 +55,7 @@ extern int csync_perm(const char *filename, const char *key, const char *hostnam
 
 /* error.c */
 
+extern void csync_printtime();
 extern void csync_fatal(const char *fmt, ...);
 extern void csync_debug(int lv, const char *fmt, ...);
 
@@ -298,8 +299,10 @@ extern int csync_error_count;
 extern int csync_debug_level;
 extern FILE *csync_debug_out;
 
+extern long csync_last_printtime;
 extern int csync_messages_printed;
 extern int csync_server_child_pid;
+extern int csync_timestamps;
 extern int csync_new_force;
 extern int csync_port;
 

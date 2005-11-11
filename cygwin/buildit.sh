@@ -62,6 +62,7 @@ cp -v /bin/killall.exe /bin/cp.exe /bin/ls.exe /bin/wc.exe $TRGDIR/
 cp -v /bin/find.exe /bin/xargs.exe /bin/rsync.exe $TRGDIR/
 cp -v /bin/grep.exe /bin/gawk.exe /bin/wget.exe $TRGDIR/
 cp -v /bin/rxvt.exe /bin/unzip.exe /bin/libW11.dll $TRGDIR/
+cp -v /bin/diff.exe /bin/date.exe /bin/tail.exe $TRGDIR/
 cp -v /bin/bash.exe $TRGDIR/sh.exe 
 
 copy_dlls $TRGDIR/*.exe $TRGDIR/*.dll
