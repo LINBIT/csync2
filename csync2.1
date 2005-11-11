@@ -112,11 +112,20 @@ initializing groups with really large file lists.
 .B -X
 Also add removals to dirty db when doing a -TI run.
 .TP
+.B -U
+Don't mark all other peers as dirty when doing a -TI run.
+.TP
 .B -G Group1,Group2,Group3,...
 Only use this groups from config-file.
 .TP
 .B -P peer1,peer1,...
 Only update this peers (still mark all as dirty).
+.TP
+.B -F
+Add new entries to dirty database with force flag set.
+.TP
+.B -t
+Print timestamps to debug output (e.g. for profiling).
 .TP
 Creating key file:
 .B csync2 -k filename
