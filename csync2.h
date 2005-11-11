@@ -132,7 +132,7 @@ extern int csync_cmpchecktxt(const char *a, const char *b);
 
 extern void csync_hint(const char *file, int recursive);
 extern void csync_check(const char *filename, int recursive, int init_run);
-extern void csync_mark(const char *file, const char *thispeer);
+extern void csync_mark(const char *file, const char *thispeer, const char *peerfilter);
 
 
 /* update.c */

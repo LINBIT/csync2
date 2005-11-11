@@ -34,7 +34,7 @@ void csync_hint(const char *file, int recursive)
 		"VALUES ('%s', %d)", url_encode(file), recursive);
 }
 
-void csync_mark(const char *file, const char *thispeer)
+void csync_mark(const char *file, const char *thispeer, const char *peerfilter)
 {
 	struct peer *pl = csync_find_peers(file, thispeer);
 	int pl_idx;
@@ -49,14 +49,15 @@ void csync_mark(const char *file, const char *thispeer)
 
 	csync_debug(1, "Marking file as dirty: %s\n", file);
 	for (pl_idx=0; pl[pl_idx].peername; pl_idx++)
-		SQL("Marking File Dirty",
-			"%s INTO dirty (filename, force, myname, peername) "
-			"VALUES ('%s', %s, '%s', '%s')",
-			csync_new_force ? "REPLACE" : "INSERT",
-			url_encode(file),
-			csync_new_force ? "1" : "0",
-			url_encode(pl[pl_idx].myname),
-			url_encode(pl[pl_idx].peername));
+		if (!peerfilter || !strcmp(peerfilter, pl[pl_idx].peername))
+			SQL("Marking File Dirty",
+				"%s INTO dirty (filename, force, myname, peername) "
+				"VALUES ('%s', %s, '%s', '%s')",
+				csync_new_force ? "REPLACE" : "INSERT",
+				url_encode(file),
+				csync_new_force ? "1" : "0",
+				url_encode(pl[pl_idx].myname),
+				url_encode(pl[pl_idx].peername));
 
 	free(pl);
 }
@@ -114,7 +115,7 @@ void csync_check_del(const char *file, int recursive, int init_run)
 	} SQL_END;
 
 	for (t = tl; t != 0; t = t->next) {
-		if (!init_run) csync_mark(t->value, 0);
+		if (!init_run) csync_mark(t->value, 0, 0);
 		SQL("Removing file from DB. It isn't with us anymore.",
 		    "DELETE FROM file WHERE filename = '%s'",
 		    url_encode(t->value));
@@ -192,7 +193,7 @@ void csync_check_mod(const char *file, int recursive, int ignnoent, int init_run
 			    "INSERT INTO file (filename, checktxt) "
 			    "VALUES ('%s', '%s')",
 			    url_encode(file), url_encode(checktxt));
-			if (!init_run) csync_mark(file, 0);
+			if (!init_run) csync_mark(file, 0, 0);
 		}
 		/* fall thru */
 	case 1:

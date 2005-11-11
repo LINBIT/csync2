@@ -62,7 +62,7 @@ int csync_check_dirty(const char *filename, const char *peername)
 		cmd_error = "File is also marked dirty here!";
 	} SQL_END;
 	if (rc && peername)
-		csync_mark(filename, peername);
+		csync_mark(filename, peername, 0);
 	return rc;
 }
 
@@ -190,7 +190,7 @@ void csync_daemon_session()
 			int perm = csync_perm(tag[2], tag[1], peer);
 			if ( perm ) {
 				if ( perm == 2 ) {
-					csync_mark(tag[2], peer);
+					csync_mark(tag[2], peer, 0);
 					cmd_error = "Permission denied for slave!";
 				} else
 					cmd_error = "Permission denied!";
@@ -231,7 +231,7 @@ void csync_daemon_session()
 			}
 			break;
 		case A_MARK:
-			csync_mark(tag[2], peer);
+			csync_mark(tag[2], peer, 0);
 			break;
 		case A_TYPE:
 			{

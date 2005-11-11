@@ -152,6 +152,7 @@ PACKAGE_STRING " - cluster synchronization tool, 2nd generation\n"
 "		initializing groups with really large file lists.\n"
 "\n"
 "	-X	Also add removals to dirty db when doing a -TI run.\n"
+"	-U	Don't mark other peers as dirty when doing a -TI run.\n"
 "\n"
 "	-G Group1,Group2,Group3,...\n"
 "		Only use this groups from config-file.\n"
@@ -261,6 +262,7 @@ int main(int argc, char ** argv)
 	int mode_test_auto_diff = 0;
 	int init_run = 0;
 	int init_run_with_removals = 0;
+	int init_run_straight = 0;
 	int recursive = 0;
 	int retval = -1;
 	int dry_run = 0;
@@ -277,7 +279,7 @@ int main(int argc, char ** argv)
 		return 1;
 	}
 
-	while ( (opt = getopt(argc, argv, "Ftp:G:P:C:D:N:HBAIXLSTMRvhcuimfxrd")) != -1 ) {
+	while ( (opt = getopt(argc, argv, "Ftp:G:P:C:D:N:HBAIXULSTMRvhcuimfxrd")) != -1 ) {
 		switch (opt) {
 			case 'F':
 				csync_new_force = 1;
@@ -305,6 +307,9 @@ int main(int argc, char ** argv)
 				break;
 			case 'X':
 				init_run_with_removals = 1;
+				break;
+			case 'U':
+				init_run_straight = 1;
 				break;
 			case 'C':
 				cfgname = optarg;
@@ -576,7 +581,7 @@ int main(int argc, char ** argv)
 			for (i=optind; i < argc; i++) {
 				char *realname = getrealfn(argv[i]);
 				csync_check_usefullness(realname, recursive);
-				csync_mark(realname, 0);
+				csync_mark(realname, 0, 0);
 
 				if ( recursive ) {
 					char *where_rec = "";
@@ -593,7 +598,7 @@ int main(int argc, char ** argv)
 						url_encode(realname), where_rec)
 					{
 						char *filename = strdup(url_encode(SQL_V[0]));
-						csync_mark(filename, 0);
+						csync_mark(filename, 0, 0);
 						free(filename);
 					} SQL_END;
 				}
@@ -659,7 +664,9 @@ int main(int argc, char ** argv)
 
 		case MODE_TEST_SYNC:
 			if (init_run && init_run_with_removals)
-				init_run = 2;
+				init_run |= 2;
+			if (init_run && init_run_straight)
+				init_run |= 4;
 			switch (argc-optind)
 			{
 			case 3:
