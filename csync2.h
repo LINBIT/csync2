@@ -300,6 +300,7 @@ extern FILE *csync_debug_out;
 
 extern int csync_messages_printed;
 extern int csync_server_child_pid;
+extern int csync_new_force;
 extern int csync_port;
 
 extern char myhostname[];

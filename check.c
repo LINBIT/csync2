@@ -50,8 +50,11 @@ void csync_mark(const char *file, const char *thispeer)
 	csync_debug(1, "Marking file as dirty: %s\n", file);
 	for (pl_idx=0; pl[pl_idx].peername; pl_idx++)
 		SQL("Marking File Dirty",
-			"INSERT INTO dirty (filename, force, myname, peername) "
-			"VALUES ('%s', 0, '%s', '%s')", url_encode(file),
+			"%s INTO dirty (filename, force, myname, peername) "
+			"VALUES ('%s', %s, '%s', '%s')",
+			csync_new_force ? "REPLACE" : "INSERT",
+			url_encode(file),
+			csync_new_force ? "1" : "0",
 			url_encode(pl[pl_idx].myname),
 			url_encode(pl[pl_idx].peername));
 

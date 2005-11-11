@@ -58,6 +58,7 @@ int csync_debug_level = 0;
 FILE *csync_debug_out = 0;
 
 int csync_server_child_pid = 0;
+int csync_new_force = 0;
 int csync_port = 30865;
 
 enum {
@@ -156,6 +157,8 @@ PACKAGE_STRING " - cluster synchronization tool, 2nd generation\n"
 "\n"
 "	-P peer1,peer1,...\n"
 "		Only update this peers (still mark all as dirty).\n"
+"\n"
+"	-F	Add new entries to dirty database with force flag set.\n"
 "\n"
 "Creating key file:\n"
 "	%s -k filename\n"
@@ -271,8 +274,11 @@ int main(int argc, char ** argv)
 		return 1;
 	}
 
-	while ( (opt = getopt(argc, argv, "p:G:P:C:D:N:HBAIXLSTMRvhcuimfxrd")) != -1 ) {
+	while ( (opt = getopt(argc, argv, "Fp:G:P:C:D:N:HBAIXLSTMRvhcuimfxrd")) != -1 ) {
 		switch (opt) {
+			case 'F':
+				csync_new_force = 1;
+				break;
 			case 'p':
 				csync_port = atoi(optarg);
 				break;
