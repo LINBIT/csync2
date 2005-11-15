@@ -50,10 +50,11 @@ int csync_unlink(const char *filename, int ign)
 	return rc;
 }
 
-int csync_check_dirty(const char *filename, const char *peername)
+int csync_check_dirty(const char *filename, const char *peername, int isflush)
 {
 	int rc = 0;
 	csync_check(filename, 0, 0);
+	if (isflush) return 0;
 	SQL_BEGIN("Check if file is dirty",
 		"SELECT 1 FROM dirty WHERE filename = '%s' LIMIT 1",
 		url_encode(filename))
@@ -198,8 +199,8 @@ void csync_daemon_session()
 			}
 		}
 
-		if ( cmdtab[cmdnr].check_dirty &&
-				csync_check_dirty(tag[2], peer) ) goto abort_cmd;
+		if ( cmdtab[cmdnr].check_dirty && csync_check_dirty(tag[2], peer,
+				cmdtab[cmdnr].action == A_FLUSH) ) goto abort_cmd;
 
 		if ( cmdtab[cmdnr].unlink )
 				csync_unlink(tag[2], cmdtab[cmdnr].unlink);
