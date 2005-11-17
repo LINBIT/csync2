@@ -333,6 +333,8 @@ static void new_ignore(char *propname)
 
 %}
 
+%expect 2
+
 %union {
 	char *txt;
 }
@@ -412,9 +414,9 @@ host_list:
 
 host_list_slaves:
 	/* empty */
-|	host_list TK_STRING
+|	host_list_slaves TK_STRING
 		{ add_host($2, strdup($2), 1); }
-|	host_list TK_STRING TK_AT TK_STRING
+|	host_list_slaves TK_STRING TK_AT TK_STRING
 		{ add_host($2, $4, 1); }
 ;
 
