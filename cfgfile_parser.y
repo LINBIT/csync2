@@ -54,6 +54,7 @@ static void new_group(char *name)
 	t->next = csync_group;
 	t->auto_method = -1;
 	t->gname = name;
+	t->backup_generations = 5;
 	csync_group = t;
 }
 
@@ -180,6 +181,17 @@ static void set_auto(char *auto_method)
 
 	csync_group->auto_method = method_id;
 	free(auto_method);
+}
+
+static void set_bak_dir(char *dir)
+{
+	csync_group->backup_directory = dir;
+}
+
+static void set_bak_gen(char *gen)
+{
+	csync_group->backup_generations = atoi(gen);
+	free(gen);
 }
 
 static void check_group()
@@ -343,6 +355,7 @@ static void new_ignore(char *propname)
 %token TK_NOSSL TK_IGNORE TK_GROUP TK_HOST TK_EXCL TK_INCL TK_KEY
 %token TK_ACTION TK_PATTERN TK_EXEC TK_DOLOCAL TK_LOGFILE
 %token TK_PREFIX TK_ON TK_COLON TK_POPEN TK_PCLOSE
+%token TK_BAK_DIR TK_BAK_GEN
 %token <txt> TK_STRING
 
 %%
@@ -401,6 +414,10 @@ stmt:
 		{ set_key($2); }
 |	TK_AUTO TK_STRING
 		{ set_auto($2); }
+|	TK_BAK_DIR TK_STRING
+		{ set_bak_dir($2); }
+|	TK_BAK_GEN TK_STRING
+		{ set_bak_gen($2); }
 ;
 
 host_list:

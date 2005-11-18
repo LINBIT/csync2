@@ -259,6 +259,8 @@ struct csync_group {
 	struct csync_group_action *action;
 	const char *key, *myname, *gname;
 	int auto_method, local_slave;
+	const char *backup_directory;
+	int backup_generations;
 };
 
 struct csync_prefix {

@@ -59,6 +59,9 @@ int include_stack_ptr = 0;
 "prefix"	{ return TK_PREFIX; }
 "on"		{ return TK_ON; }
 
+"backup-directory"	{ return TK_BAK_DIR; }
+"backup-generations"	{ return TK_BAK_GEN; }
+
 "config"	BEGIN(INCL);
 <INCL>[ \t]*	/* eat the whitespaces */
 <INCL>[^ \t\r\n;]+ {
