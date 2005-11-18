@@ -54,7 +54,7 @@ static void new_group(char *name)
 	t->next = csync_group;
 	t->auto_method = -1;
 	t->gname = name;
-	t->backup_generations = 5;
+	t->backup_generations = 3;
 	csync_group = t;
 }
 

@@ -124,7 +124,7 @@ int csync_file_backup(const char *filename)
 			}
 
 			strcpy(backup_filename+bak_dir_len+filename_len, ".0");
-			fd_out = open(backup_filename, O_WRONLY|O_CREAT, 0700);
+			fd_out = open(backup_filename, O_WRONLY|O_CREAT, 0600);
 
 			if (fd_out < 0) {
 				snprintf(error_buffer, 1024,
