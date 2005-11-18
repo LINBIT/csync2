@@ -30,6 +30,7 @@
 #include <utime.h>
 #include <errno.h>
 #include <netdb.h>
+#include <fcntl.h>
 
 #ifdef __CYGWIN__
 #include <w32api/windows.h>
@@ -91,6 +92,72 @@ void csync_file_flush(const char *filename)
 	SQL("Removing file from dirty db",
 		"delete from dirty where filename ='%s'",
 		url_encode(filename));
+}
+
+int csync_file_backup(const char *filename)
+{
+	static char error_buffer[1024];
+	const struct csync_group *g = NULL;
+	while ( (g=csync_find_next(g, filename)) ) {
+		if (g->backup_directory && g->backup_generations > 0) {
+			int bak_dir_len = strlen(g->backup_directory);
+			int filename_len = strlen(filename);
+			char backup_filename[bak_dir_len + filename_len + 10];
+			char backup_otherfilename[bak_dir_len + filename_len + 10];
+			int fd_in, fd_out, i;
+
+			fd_in = open(filename, O_RDONLY);
+			if (fd_in < 0) return;
+
+			memcpy(backup_filename, g->backup_directory, bak_dir_len);
+			for (i=0; i<filename_len; i++)
+				backup_filename[bak_dir_len+i] =
+					filename[i] == '/' ? '_' : filename[i];
+			backup_filename[bak_dir_len] = '/';
+			memcpy(backup_otherfilename, backup_filename,
+					bak_dir_len + filename_len);
+
+			for (i=g->backup_generations-1; i; i--) {
+				snprintf(backup_filename+bak_dir_len+filename_len, 10, ".%d", i-1);
+				snprintf(backup_otherfilename+bak_dir_len+filename_len, 10, ".%d", i);
+				rename(backup_filename, backup_otherfilename);
+			}
+
+			strcpy(backup_filename+bak_dir_len+filename_len, ".0");
+			fd_out = open(backup_filename, O_WRONLY|O_CREAT, 0700);
+
+			if (fd_out < 0) {
+				snprintf(error_buffer, 1024,
+						"Open error while backing up '%s': %s\n",
+						filename, strerror(errno));
+				cmd_error = error_buffer;
+				return 1;
+			}
+
+			while (1) {
+				char buffer[512];
+				int read_len = read(fd_in, buffer, 512);
+				int write_len = 0;
+
+				if (read_len <= 0)
+					break;
+
+				while (write_len < read_len) {
+					int rc = write(fd_out, buffer+write_len, read_len-write_len);
+					if (rc <= 0) {
+						snprintf(error_buffer, 1024,
+								"Write error while backing up '%s': %s\n",
+								filename, strerror(errno));
+						cmd_error = error_buffer;
+						return 1;
+					}
+					write_len += rc;
+				}
+			}
+		}
+	}
+
+	return 0;
 }
 
 struct csync_command {
@@ -276,13 +343,16 @@ void csync_daemon_session()
 				url_encode(tag[2]));
 			break;
 		case A_DEL:
-			csync_unlink(tag[2], 0);
+			if (!csync_file_backup(tag[2]))
+				csync_unlink(tag[2], 0);
 			break;
 		case A_PATCH:
-			conn_printf("OK (send_data).\n");
-			csync_rs_sig(tag[2]);
-			if (csync_rs_patch(tag[2]))
-				cmd_error = strerror(errno);
+			if (!csync_file_backup(tag[2])) {
+				conn_printf("OK (send_data).\n");
+				csync_rs_sig(tag[2]);
+				if (csync_rs_patch(tag[2]))
+					cmd_error = strerror(errno);
+			}
 			break;
 		case A_MKDIR:
 			/* ignore errors on creating directories if the
