@@ -68,6 +68,7 @@ enum {
 	MODE_NONE,
 	MODE_HINT,
 	MODE_CHECK,
+	MODE_CHECK_AND_UPDATE,
 	MODE_UPDATE,
 	MODE_INETD,
 	MODE_SERVER,
@@ -348,8 +349,12 @@ int main(int argc, char ** argv)
 				mode = MODE_CHECK;
 				break;
 			case 'u':
-				if ( mode != MODE_NONE ) help(argv[0]);
-				mode = MODE_UPDATE;
+				if ( mode == MODE_CHECK )
+					mode = MODE_CHECK_AND_UPDATE;
+				else {
+					if ( mode != MODE_NONE ) help(argv[0]);
+					mode = MODE_UPDATE;
+				}
 				break;
 			case 'i':
 				if ( mode == MODE_INETD )
@@ -413,6 +418,7 @@ int main(int argc, char ** argv)
 			mode != MODE_HINT && mode != MODE_MARK &&
 			mode != MODE_FORCE && mode != MODE_SIMPLE &&
 			mode != MODE_UPDATE && mode != MODE_CHECK &&
+			mode != MODE_CHECK_AND_UPDATE &&
 			mode != MODE_LIST_SYNC && mode != MODE_TEST_SYNC)
 		help(argv[0]);
 
@@ -537,6 +543,7 @@ int main(int argc, char ** argv)
 			break;
 
 		case MODE_CHECK:
+		case MODE_CHECK_AND_UPDATE:
 			if ( argc == optind )
 			{
 				SQL_BEGIN("Check all hints",
@@ -564,7 +571,8 @@ int main(int argc, char ** argv)
 					csync_check(realname, recursive, init_run);
 				}
 			}
-			break;
+			if (mode != MODE_CHECK_AND_UPDATE)
+				break;
 
 		case MODE_UPDATE:
 			if ( argc == optind )
