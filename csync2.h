@@ -316,6 +316,8 @@ extern int csync_ignore_uid;
 extern int csync_ignore_gid;
 extern int csync_ignore_mod;
 
+extern int csync_dump_dir_fd;
+
 static inline char *on_cygwin_lowercase(char *s) {
 #ifdef __CYGWIN__
 	int i;

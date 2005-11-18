@@ -26,6 +26,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <errno.h>
 
 void csync_hint(const char *file, int recursive)
 {
@@ -127,9 +128,10 @@ void csync_check_del(const char *file, int recursive, int init_run)
 		free(where_rec);
 }
 
-void csync_check_mod(const char *file, int recursive, int ignnoent, int init_run)
+int csync_check_mod(const char *file, int recursive, int ignnoent, int init_run)
 {
 	int check_type = csync_match_file(file);
+	int dirdump_this = 0, dirdump_parent = 0;
 	struct dirent **namelist;
 	int n, this_is_dirty = 0;
 	const char *checktxt;
@@ -195,6 +197,8 @@ void csync_check_mod(const char *file, int recursive, int ignnoent, int init_run
 			    url_encode(file), url_encode(checktxt));
 			if (!init_run) csync_mark(file, 0, 0);
 		}
+		dirdump_this = 1;
+		dirdump_parent = 1;
 		/* fall thru */
 	case 1:
 		if ( !recursive ) break;
@@ -214,17 +218,30 @@ void csync_check_mod(const char *file, int recursive, int ignnoent, int init_run
 					sprintf(fn, "%s/%s",
 						!strcmp(file, "/") ? "" : file,
 						namelist[n]->d_name);
-					csync_check_mod(fn, recursive, 0, init_run);
+					if (csync_check_mod(fn, recursive, 0, init_run))
+						dirdump_this = 1;
 				}
 				free(namelist[n]);
 			}
 			free(namelist);
 		}
-	  	break;
+		if ( dirdump_this && csync_dump_dir_fd >= 0 ) {
+			int written = 0, len = strlen(file)+1;
+			while (written < len) {
+				int rc = write(csync_dump_dir_fd, file+written, len-written);
+				if (rc <= 0)
+					csync_fatal("Error while writing to dump_dir_fd %d: %s\n",
+							csync_dump_dir_fd, strerror(errno));
+				written += rc;
+			}
+		}
+		break;
 	default:
 		csync_debug(2, "Don't check at all: %s\n", file);
 		break;
 	}
+
+	return dirdump_parent;
 }
 
 void csync_check(const char *filename, int recursive, int init_run)
