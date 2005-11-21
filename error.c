@@ -45,11 +45,22 @@ void csync_printtime()
 	}
 }
 
+void csync_printtime_prefix()
+{
+	time_t now = time(0);
+	char ftbuffer[32];
+	strftime(ftbuffer, 32, "%H:%M:%S", localtime(&now));
+	fprintf(csync_debug_out, "[%s] ", ftbuffer);
+}
+
 void csync_fatal(const char *fmt, ...)
 {
 	va_list ap;
 
-	if ( csync_server_child_pid )
+	if (csync_timestamps)
+		csync_printtime_prefix();
+
+	if (csync_server_child_pid)
 		fprintf(csync_debug_out, "<%d> ", csync_server_child_pid);
 
 	va_start(ap, fmt);
@@ -68,7 +79,12 @@ void csync_debug(int lv, const char *fmt, ...)
 {
 	va_list ap;
 
+	csync_printtime();
+
 	if ( csync_debug_level < lv ) return;
+
+	if (csync_timestamps)
+		csync_printtime_prefix();
 
 	if ( csync_server_child_pid )
 		fprintf(csync_debug_out, "<%d> ", csync_server_child_pid);
@@ -78,6 +94,5 @@ void csync_debug(int lv, const char *fmt, ...)
 	va_end(ap);
 
 	csync_messages_printed++;
-	csync_printtime();
 }
 
