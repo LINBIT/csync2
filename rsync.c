@@ -112,7 +112,7 @@ int csync_recv_file(FILE *out)
 
 int csync_rs_check(const char *filename, int isreg)
 {
-	FILE *basis_file, *sig_file;
+	FILE *basis_file = 0, *sig_file = 0;
 	char buffer1[512], buffer2[512];
 	int rc, chunk, found_diff = 0;
 	int backup_errno;

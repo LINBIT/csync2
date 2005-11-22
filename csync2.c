@@ -35,6 +35,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <signal.h>
+#include <ctype.h>
 
 #ifdef REAL_DBDIR
 #  undef DBDIR

@@ -24,6 +24,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 long csync_last_printtime = 0;
 FILE *csync_timestamp_out = 0;
@@ -47,7 +49,7 @@ void csync_printtime()
 			strftime(ftbuffer, 128, "%Y-%m-%d %H:%M:%S %Z (GMT%z)", localtime(&now));
 
 			if (csync_timestamp_out)
-				fprintf(csync_timestamp_out, "<%d> TIMESTAMP: %s\n", getpid(), ftbuffer);
+				fprintf(csync_timestamp_out, "<%d> TIMESTAMP: %s\n", (int)getpid(), ftbuffer);
 
 			if (csync_timestamps) {
 				if (csync_server_child_pid)
@@ -70,7 +72,7 @@ void csync_printtotaltime()
 
 		if (csync_timestamp_out)
 			fprintf(csync_timestamp_out, "<%d> TOTALTIME: %d:%02d:%02d\n",
-				getpid(), seconds / (60*60), (seconds/60) % 60, seconds % 60);
+				(int)getpid(), seconds / (60*60), (seconds/60) % 60, seconds % 60);
 
 		if (csync_timestamps) {
 			if (csync_server_child_pid)

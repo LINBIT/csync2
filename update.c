@@ -259,7 +259,6 @@ maybe_auto_resolve:
 
 got_error:
 	if (auto_resolve_run)
-got_error_in_autoresolve:
 		csync_debug(0, "ERROR: Auto-resolving failed. Giving up.\n");
 	csync_debug(1, "File stays in dirty state. Try again later...\n");
 }

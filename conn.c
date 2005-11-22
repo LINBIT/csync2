@@ -109,7 +109,7 @@ static int dummy_ssl_verify_callback(int preverify_ok, X509_STORE_CTX *x509_ctx)
 
 int conn_activate_ssl(int role)
 {
-	static sslinit = 0;
+	static int sslinit = 0;
 
 	if (conn_usessl)
 		return 0;
