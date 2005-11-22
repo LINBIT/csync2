@@ -167,6 +167,9 @@ PACKAGE_STRING " - cluster synchronization tool, 2nd generation\n"
 "\n"
 "	-t	Print timestamps to debug output (e.g. for profiling).\n"
 "\n"
+"	-s filename\n"
+"		Print timestamps also to this file.\n"
+"\n"
 "	-W fd	Write a list of directories in which relevant file can be\n"
 "		found to the specified file descriptor (when doing a -c run).\n"
 "		The directory names in this output are zero-terminated.\n"
@@ -286,13 +289,19 @@ int main(int argc, char ** argv)
 		return 1;
 	}
 
-	while ( (opt = getopt(argc, argv, "W:Ftp:G:P:C:D:N:HBAIXULSTMRvhcuimfxrd")) != -1 ) {
+	while ( (opt = getopt(argc, argv, "W:s:Ftp:G:P:C:D:N:HBAIXULSTMRvhcuimfxrd")) != -1 ) {
 		switch (opt) {
 			case 'W':
 				csync_dump_dir_fd = atoi(optarg);
 				if (write(csync_dump_dir_fd, 0, 0) < 0)
 					csync_fatal("Invalid dump_dir_fd %d: %s\n",
 							csync_dump_dir_fd, strerror(errno));
+				break;
+			case 's':
+				csync_timestamp_out = fopen(optarg, "a");
+				if (!csync_timestamp_out)
+					csync_fatal("Can't open timestanp file `%s': %s\n",
+							optarg, strerror(errno));
 				break;
 			case 'F':
 				csync_new_force = 1;
