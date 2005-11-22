@@ -27,6 +27,7 @@
 
 long csync_last_printtime = 0;
 int csync_messages_printed = 0;
+time_t csync_startup_time = 0;
 
 void csync_printtime()
 {
@@ -35,6 +36,9 @@ void csync_printtime()
 		time_t now = time(0);
 		char ftbuffer[128];
 
+		if (!csync_startup_time)
+			csync_startup_time = now;
+
 		if (csync_last_printtime+300 < now) {
 			csync_last_printtime = now;
 			if ( csync_server_child_pid )
@@ -42,6 +46,24 @@ void csync_printtime()
 			strftime(ftbuffer, 128, "%Y-%m-%d %H:%M:%S %Z (GMT%z)", localtime(&now));
 			fprintf(csync_debug_out, "TIMESTAMP: %s\n", ftbuffer);
 		}
+	}
+}
+
+void csync_printtotaltime()
+{
+	if (csync_timestamps)
+	{
+		time_t now = time(0);
+		int seconds = now - csync_startup_time;
+
+		csync_last_printtime = 0;
+		csync_printtime();
+
+		if ( csync_server_child_pid )
+			fprintf(csync_debug_out, "<%d> ", csync_server_child_pid);
+
+		fprintf(csync_debug_out, "TOTALTIME: %d:%02d:%02d\n",
+			seconds / (60*60), (seconds/60) % 60, seconds % 60);
 	}
 }
 

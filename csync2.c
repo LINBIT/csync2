@@ -734,20 +734,18 @@ int main(int argc, char ** argv)
 	csync_run_commands();
 	csync_db_close();
 
-	if ( csync_error_count != 0 || (csync_messages_printed && csync_debug_level) )
-		csync_debug(0, "Finished with %d errors.\n", csync_error_count);
-	if ( retval >= 0 && csync_error_count == 0 ) return retval;
-
 	if ( csync_server_child_pid ) {
 		fprintf(stderr, "<%d> Connection closed.\n",
 				csync_server_child_pid);
 		fflush(stderr);
 	}
 
-	// print time (if -t is set)
-	csync_last_printtime = 0;
-	csync_printtime();
+	if ( csync_error_count != 0 || (csync_messages_printed && csync_debug_level) )
+		csync_debug(0, "Finished with %d errors.\n", csync_error_count);
 
+	csync_printtotaltime();
+
+	if ( retval >= 0 && csync_error_count == 0 ) return retval;
 	return csync_error_count != 0;
 }
 

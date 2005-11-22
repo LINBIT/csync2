@@ -56,6 +56,7 @@ extern int csync_perm(const char *filename, const char *key, const char *hostnam
 /* error.c */
 
 extern void csync_printtime();
+extern void csync_printtotaltime();
 extern void csync_fatal(const char *fmt, ...);
 extern void csync_debug(int lv, const char *fmt, ...);
 
