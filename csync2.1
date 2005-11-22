@@ -127,6 +127,14 @@ Add new entries to dirty database with force flag set.
 .B -t
 Print timestamps to debug output (e.g. for profiling).
 .TP
+.B -s filename
+Print timestamps also to this file.
+.TP
+.B -W fd
+Write a list of directories in which relevant file can be
+found to the specified file descriptor (when doing a -c run).
+The directory names in this output are zero-terminated.
+.TP
 Creating key file:
 .B csync2 -k filename
 .TP
