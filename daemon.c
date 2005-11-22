@@ -107,7 +107,7 @@ int csync_file_backup(const char *filename)
 			int fd_in, fd_out, i;
 
 			fd_in = open(filename, O_RDONLY);
-			if (fd_in < 0) return;
+			if (fd_in < 0) return 0;
 
 			memcpy(backup_filename, g->backup_directory, bak_dir_len);
 			for (i=0; i<filename_len; i++)
