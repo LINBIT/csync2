@@ -52,8 +52,8 @@ AM_CPPFLAGS += -D'ETCDIR="$(sysconfdir)"'
 install-data-local:
 	$(mkinstalldirs) $(DESTDIR)$(sysconfdir)
 	$(mkinstalldirs) $(DESTDIR)$(localstatedir)/lib/csync2
-	test -e $(DESTDIR)$(sysconfdir)/csync2.conf || \
-		$(INSTALL_DATA) $(srcdir)/csync2.conf $(DESTDIR)$(sysconfdir)/csync2.conf
+	test -e $(DESTDIR)$(sysconfdir)/csync2.cfg || \
+		$(INSTALL_DATA) $(srcdir)/csync2.cfg $(DESTDIR)$(sysconfdir)/csync2.cfg
 
 cert:
 	$(mkinstalldirs) $(DESTDIR)$(sysconfdir)
