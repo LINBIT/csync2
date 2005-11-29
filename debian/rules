@@ -44,8 +44,6 @@ install: build
 	dh_installdirs
 	install csync2 $(CURDIR)/debian/csync2/usr/sbin/csync2
 	install csync2_locheck.sh $(CURDIR)/debian/csync2/usr/share/csync2/csync2_locheck.sh
-	echo "# please see the REAMDE file how to configure csync2" >$(CURDIR)/debian/csync2/etc/csync2.cfg
-
 
 # Build architecture-independent files here.
 binary-indep: build install

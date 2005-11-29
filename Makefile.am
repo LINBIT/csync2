@@ -51,6 +51,8 @@ AM_CPPFLAGS += -D'ETCDIR="$(sysconfdir)"'
 
 install-data-local:
 	$(mkinstalldirs) $(localstatedir)/lib/csync2
+	test -e $(sysconfdir)/csync2.conf || \
+		$(INSTALL_DATA) $(srcdir)/csync2.conf $(sysconfdir)/csync2.conf
 
 cert:
 	openssl genrsa -out $(sysconfdir)/csync2_ssl_key.pem 1024 
