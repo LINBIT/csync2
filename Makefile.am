@@ -50,17 +50,20 @@ AM_CPPFLAGS  = -D'DBDIR="$(localstatedir)/lib/csync2"'
 AM_CPPFLAGS += -D'ETCDIR="$(sysconfdir)"'
 
 install-data-local:
-	$(mkinstalldirs) $(localstatedir)/lib/csync2
-	test -e $(sysconfdir)/csync2.conf || \
-		$(INSTALL_DATA) $(srcdir)/csync2.conf $(sysconfdir)/csync2.conf
+	$(mkinstalldirs) $(DESTDIR)$(sysconfdir)
+	$(mkinstalldirs) $(DESTDIR)$(localstatedir)/lib/csync2
+	test -e $(DESTDIR)$(sysconfdir)/csync2.conf || \
+		$(INSTALL_DATA) $(srcdir)/csync2.conf $(DESTDIR)$(sysconfdir)/csync2.conf
 
 cert:
-	openssl genrsa -out $(sysconfdir)/csync2_ssl_key.pem 1024 
-	yes '' | openssl req -new -key $(sysconfdir)/csync2_ssl_key.pem \
-		-out $(sysconfdir)/csync2_ssl_cert.csr
-	openssl x509 -req -days 600 -in $(sysconfdir)/csync2_ssl_cert.csr \
-		-signkey $(sysconfdir)/csync2_ssl_key.pem -out $(sysconfdir)/csync2_ssl_cert.pem
-	rm $(sysconfdir)/csync2_ssl_cert.csr
+	$(mkinstalldirs) $(DESTDIR)$(sysconfdir)
+	openssl genrsa -out $(DESTDIR)$(sysconfdir)/csync2_ssl_key.pem 1024 
+	yes '' | openssl req -new -key $(DESTDIR)$(sysconfdir)/csync2_ssl_key.pem \
+		-out $(DESTDIR)$(sysconfdir)/csync2_ssl_cert.csr
+	openssl x509 -req -days 600 -in $(DESTDIR)$(sysconfdir)/csync2_ssl_cert.csr \
+		-signkey $(DESTDIR)$(sysconfdir)/csync2_ssl_key.pem \
+		-out $(DESTDIR)$(sysconfdir)/csync2_ssl_cert.pem
+	rm $(DESTDIR)$(sysconfdir)/csync2_ssl_cert.csr
 
 
 ## hack for building private librsync and private libsqlite ##
