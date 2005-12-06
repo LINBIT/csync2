@@ -207,7 +207,8 @@ int csync_check_mod(const char *file, int recursive, int ignnoent, int init_run)
 				file, !strcmp(file, "/") ? "" : "/");
 		n = scandir(prefixsubst(file), &namelist, 0, alphasort);
 		if (n < 0) {
-			csync_debug(0, "Error in scandir: %s\n", strerror(errno));
+			csync_debug(0, "%s in scandir: %s (%s)\n",
+				strerror(errno), prefixsubst(file), file);
 			csync_error_count++;
 		} else {
 			while(n--) {
