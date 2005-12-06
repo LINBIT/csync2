@@ -31,7 +31,7 @@ Group:        System/Monitoring
 Requires:     sqlite openssl librsync
 Autoreqprov:  on
 Version:      SNAPSHOT
-Release:      2
+Release:      1
 Source0:      csync2-%{version}.tar.gz
 URL:          http://oss.linbit.com/csync2
 BuildRoot:    %{_tmppath}/%{name}-%{version}-build
@@ -84,17 +84,25 @@ fi
 %doc ChangeLog README NEWS INSTALL TODO AUTHORS
 %{_sbindir}/csync2
 %{_var}/lib/csync2
+%{_mandir}/man1/csync2.1.gz
 %config(noreplace) %{_sysconfdir}/xinetd.d/csync2
+%config(noreplace) %{_sysconfdir}/csync2.cfg
 
 %changelog
+* Tue Dec 06 2005 Clifford Wolf <clifford.wolf@linbit.com>
+- Some fixes and cleanups for RPM 4.4.1
+
 * Sat Jun 04 2005 Clifford Wolf <clifford.wolf@linbit.com>
-- New Upstream Version csync2-1.18-1
 - xinetd init script is now "%config(noreplace)"
+- Some tiny cleanups
 
 * Mon Dec 10 2004 Tim Jackson <tim@timj.co.uk>
 - Added xinetd init script
 - Abstracted some config paths
 - Tidied
+
+* Tue Oct 12 2004 Clifford Wolf <clifford.wolf@linbit.com>
+- Automatic set sepcs file 'Version' tag
 
 * Tue Sep 09 2004 - phil@linbit.com
 - initial package
