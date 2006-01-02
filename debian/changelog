@@ -1,3 +1,9 @@
+csync2 (1.29-1) unstable; urgency=low
+
+  * New Upstream Version.
+
+ -- Clifford Wolf <clifford.wolf@linbit.com>  Mon, 02 Jan 2006 16:31:01 +0100
+
 csync2 (1.28-1) unstable; urgency=low
 
   * New Upstream Version.
