@@ -26,8 +26,9 @@ csync2_SOURCES = action.c cfgfile_parser.y cfgfile_scanner.l check.c	\
 
 AM_YFLAGS = -d
 BUILT_SOURCES = cfgfile_parser.h
-CLEANFILES = cfgfile_parser.c cfgfile_parser.h cfgfile_scanner.c \
-             private_librsync private_libsqlite
+CLEANFILES = cfgfile_parser.c cfgfile_parser.h cfgfile_scanner.c	\
+             private_librsync private_libsqlite config.log		\
+             config.status config.h .deps/*.Po stamp-h1 Makefile
 
 AM_CFLAGS=
 AM_LDFLAGS=
@@ -57,7 +58,7 @@ install-data-local:
 
 cert:
 	$(mkinstalldirs) $(DESTDIR)$(sysconfdir)
-	openssl genrsa -out $(DESTDIR)$(sysconfdir)/csync2_ssl_key.pem 1024 
+	openssl genrsa -out $(DESTDIR)$(sysconfdir)/csync2_ssl_key.pem 1024
 	yes '' | openssl req -new -key $(DESTDIR)$(sysconfdir)/csync2_ssl_key.pem \
 		-out $(DESTDIR)$(sysconfdir)/csync2_ssl_cert.csr
 	openssl x509 -req -days 600 -in $(DESTDIR)$(sysconfdir)/csync2_ssl_cert.csr \

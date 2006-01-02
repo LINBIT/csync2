@@ -1,3 +1,4 @@
+#!/bin/sh
 #
 #  Example /root/.bash_logout file for csync2.
 #
