@@ -57,7 +57,7 @@ case "$1" in
 	svn commit -m "Fixed version info in tag $VERSION"
 
 	sleep 2; ./autogen.sh
-	rm -rf autom4te.cache $( find -name .svn )
+	rm -rf autom4te.cache debian/ $( find -name .svn )
 
 	cd ..
 	tar cvzf $PACKAGE-$VERSION.tar.gz \
