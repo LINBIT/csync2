@@ -517,7 +517,9 @@ int main(int argc, char ** argv)
 	csync_debug(2, "Config-File:   %s\n", file_config);
 
 	yyin = fopen(file_config, "r");
-	if ( !yyin ) csync_fatal("Can't open config file.\n");
+	if ( !yyin )
+		csync_fatal("Can not open config file `%s': %s\n",
+				file_config, strerror(errno));
 	yyparse();
 	fclose(yyin);
 
