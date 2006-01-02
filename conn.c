@@ -28,7 +28,8 @@
 #include <netinet/tcp.h>
 #include <unistd.h>
 #include <netdb.h>
-#include <openssl/ssl.h>
+#include <gnutls/gnutls.h>
+#include <gnutls/openssl.h>
 #include <errno.h>
 
 
@@ -102,12 +103,15 @@ int conn_set(int infd, int outfd)
 char *ssl_keyfile = ETCDIR "/csync2_ssl_key.pem";
 char *ssl_certfile = ETCDIR "/csync2_ssl_cert.pem";
 
+#if 0
+// OpenSSL API
 static int dummy_ssl_verify_callback(int preverify_ok, X509_STORE_CTX *x509_ctx)
 {
 	return 1;
 }
+#endif
 
-int conn_activate_ssl(int role)
+int conn_activate_ssl(int server_role)
 {
 	static int sslinit = 0;
 
@@ -120,7 +124,8 @@ int conn_activate_ssl(int role)
 		sslinit=1;
 	}
 
-	conn_ssl_meth = SSLv23_method();
+	// OpenSSL API
+	conn_ssl_meth = (server_role ? SSLv23_server_method : SSLv23_client_method)();
 	conn_ssl_ctx = SSL_CTX_new(conn_ssl_meth);
 
 	if (SSL_CTX_use_PrivateKey_file(conn_ssl_ctx, ssl_keyfile, SSL_FILETYPE_PEM) <= 0)
@@ -129,15 +134,23 @@ int conn_activate_ssl(int role)
 	if (SSL_CTX_use_certificate_file(conn_ssl_ctx, ssl_certfile, SSL_FILETYPE_PEM) <= 0)
 		csync_fatal("SSL: failed to use certificate file %s.\n", ssl_certfile);
 
+#if 0
+	// OpenSSL API
 	SSL_CTX_set_verify(conn_ssl_ctx, SSL_VERIFY_PEER, &dummy_ssl_verify_callback);
+#endif
 
 	if (! (conn_ssl = SSL_new(conn_ssl_ctx)) )
 		csync_fatal("Creating a new SSL handle failed.\n");
 
+#if 1
+	// GNU TLS API
+	gnutls_certificate_server_set_request(conn_ssl->gnutls_state, GNUTLS_CERT_REQUIRE);
+#endif
+
 	SSL_set_rfd(conn_ssl, conn_fd_in);
 	SSL_set_wfd(conn_ssl, conn_fd_out);
 
-	if ( (role ? SSL_accept : SSL_connect)(conn_ssl) < 1 )
+	if ( (server_role ? SSL_accept : SSL_connect)(conn_ssl) < 1 )
 		csync_fatal("Establishing SSL connection failed.\n");
 
 	conn_usessl = 1;
@@ -147,52 +160,54 @@ int conn_activate_ssl(int role)
 
 int conn_check_peer_cert(const char *peername, int callfatal)
 {
-	X509 *peercert;
-	char hashtxt[SHA_DIGEST_LENGTH*2+1];
-	int i, j, hash_is_ok = -1;
+	const X509 *peercert;
+	int i, cert_is_ok = -1;
 
 	if (!conn_usessl)
 		return 1;
 
 	peercert = SSL_get_peer_certificate(conn_ssl);
 
-	if (!peercert || !peercert->sha1_hash) {
+	if (!peercert || peercert->size <= 0) {
 		if (callfatal)
 			csync_fatal("Peer did not provide an SSL X509 cetrificate.\n");
 		csync_debug(1, "Peer did not provide an SSL X509 cetrificate.\n");
 		return 0;
 	}
 
-	for (i=0; i<SHA_DIGEST_LENGTH; i++) {
-		j = peercert->sha1_hash[i];
-		sprintf(hashtxt+i*2, "%02X", j);
-	}
-
-	SQL_BEGIN("Checking peer x509 sha1 hash.",
-		"SELECT hash FROM x509_sha1 WHERE peername = '%s'",
-		url_encode(peername))
 	{
-		if (!strcmp(SQL_V[0], hashtxt))
-			hash_is_ok = 1;
-		else
-			hash_is_ok = 0;
-	} SQL_END;
+		char certdata[peercert->size*2 + 1];
 
-	if (hash_is_ok < 0) {
-		csync_debug(1, "Adding peer x509 sha1 hash to db: %s\n", hashtxt);
-		SQL("Adding peer x509 sha1 hash to database.",
-			"INSERT INTO x509_sha1 (peername, hash) VALUES ('%s', '%s')",
-			url_encode(peername), url_encode(hashtxt));
-		return 1;
-	}
+		for (i=0; i<peercert->size; i++)
+			sprintf(certdata+i*2, "%02X", peercert->data[i]);
+		certdata[peercert->size*2] = 0;
 
-	csync_debug(2, "Peer x509 sha1 hash is: %s\n", hashtxt);
+		SQL_BEGIN("Checking peer x509 certificate.",
+			"SELECT certdata FROM x509_cert WHERE peername = '%s'",
+			url_encode(peername))
+		{
+			if (!strcmp(SQL_V[0], certdata))
+				cert_is_ok = 1;
+			else
+				cert_is_ok = 0;
+		} SQL_END;
 
-	if (!hash_is_ok) {
-		if (callfatal)
-			csync_fatal("Peer did provide a wrong SSL X509 cetrificate.\n");
-		csync_debug(1, "Peer did provide a wrong SSL X509 cetrificate.\n");
-		return 0;
+		if (cert_is_ok < 0) {
+			csync_debug(1, "Adding peer x509 certificate to db: %s\n", certdata);
+			SQL("Adding peer x509 sha1 hash to database.",
+				"INSERT INTO x509_cert (peername, certdata) VALUES ('%s', '%s')",
+				url_encode(peername), url_encode(certdata));
+			return 1;
+		}
+
+		csync_debug(2, "Peer x509 certificate is: %s\n", certdata);
+
+		if (!cert_is_ok) {
+			if (callfatal)
+				csync_fatal("Peer did provide a wrong SSL X509 cetrificate.\n");
+			csync_debug(1, "Peer did provide a wrong SSL X509 cetrificate.\n");
+			return 0;
+		}
 	}
 
 	return 1;

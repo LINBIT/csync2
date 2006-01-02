@@ -159,8 +159,8 @@ void csync_db_open(const char *file)
 		")",
 		0, 0, 0);
 	sqlite_exec(db,
-		"CREATE TABLE x509_sha1 ("
-		"	peername, hash,"
+		"CREATE TABLE x509_cert ("
+		"	peername, certdata,"
 		"	UNIQUE ( peername ) ON CONFLICT IGNORE"
 		")",
 		0, 0, 0);

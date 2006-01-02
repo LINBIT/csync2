@@ -68,7 +68,7 @@ csync_debug(N, "--> %s %d\n", __FILE__, __LINE__)
 
 extern int conn_open(const char *peername);
 extern int conn_set(int infd, int outfd);
-extern int conn_activate_ssl(int role);
+extern int conn_activate_ssl(int server_role);
 extern int conn_check_peer_cert(const char *peername, int callfatal);
 extern int conn_close();
 

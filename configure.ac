@@ -52,7 +52,8 @@ AC_ARG_WITH([libsqlite-source],
 AM_CONDITIONAL([PRIVATE_LIBSQLITE], [test -n "$libsqlite_source_file"])
 
 # Check for libssl.
-AC_CHECK_LIB([ssl], [SSL_new], , [AC_MSG_ERROR(libssl is required)])
+AM_PATH_LIBGNUTLS(1.0.0, , [ AC_MSG_ERROR([[gnuTLS not found; install gnuTLS-devel package for your system]]) ])        
+AC_CHECK_LIB([gnutls-openssl], [SSL_new], , [AC_MSG_ERROR(libgnutls-openssl is required)])
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
