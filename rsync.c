@@ -36,8 +36,8 @@ static FILE *paranoid_tmpfile()
 	if ( access(P_tmpdir, R_OK|W_OK|X_OK) < 0 )
 		csync_fatal("Temp directory '%s' does not exist!\n", P_tmpdir);
 
-	f = tmpfile();
-	if ( !f ) csync_debug(0, "ERROR: tmpfile() didn't return a valid file handle!\n");
+	if ( !(f = tmpfile()) )
+		csync_fatal("ERROR: tmpfile() didn't return a valid file handle!\n");
 
 	return f;
 }
