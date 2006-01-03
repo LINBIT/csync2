@@ -51,8 +51,14 @@ AC_ARG_WITH([libsqlite-source],
 )
 AM_CONDITIONAL([PRIVATE_LIBSQLITE], [test -n "$libsqlite_source_file"])
 
-# Check for libssl.
+# Check for gnuTLS.
 AM_PATH_LIBGNUTLS(1.0.0, , [ AC_MSG_ERROR([[gnuTLS not found; install gnuTLS-devel package for your system]]) ])        
+
+# This is a bloody hack for fedora core
+CFLAGS="$CFLAGS $LIBGNUTLS_CFLAGS"
+LIBS="$LIBS $LIBGNUTLS_LIBS -ltasn1"
+
+# Check gnuTLS SSL compatibility lib.
 AC_CHECK_LIB([gnutls-openssl], [SSL_new], , [AC_MSG_ERROR(libgnutls-openssl is required)])
 
 AC_CONFIG_FILES([Makefile])
