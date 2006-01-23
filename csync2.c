@@ -477,12 +477,17 @@ int main(int argc, char ** argv)
 		para = cmd ? strtok(0, "\t \r\n") : 0;
 
 		if (cmd && !strcasecmp(cmd, "ssl")) {
+#ifdef HAVE_LIBGNUTLS_OPENSSL
 			conn_printf("OK (activating_ssl).\n");
 			conn_activate_ssl(1);
 
 			if ( !conn_gets(line, 4096) ) return 0;
 			cmd = strtok(line, "\t \r\n");
 			para = cmd ? strtok(0, "\t \r\n") : 0;
+#else
+			conn_printf("This csync2 server is built without SSL support.\n");
+			return 0;
+#endif
 		}
 
 		if (!cmd || strcasecmp(cmd, "config")) {

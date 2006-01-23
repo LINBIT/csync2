@@ -28,19 +28,24 @@
 #include <netinet/tcp.h>
 #include <unistd.h>
 #include <netdb.h>
-#include <gnutls/gnutls.h>
-#include <gnutls/openssl.h>
 #include <errno.h>
 
+#ifdef HAVE_LIBGNUTLS_OPENSSL
+#  include <gnutls/gnutls.h>
+#  include <gnutls/openssl.h>
+#endif
 
 int conn_fd_in  = -1;
 int conn_fd_out = -1;
 int conn_clisok = 0;
+
+#ifdef HAVE_LIBGNUTLS_OPENSSL
 int conn_usessl = 0;
 
 SSL_METHOD *conn_ssl_meth;
 SSL_CTX *conn_ssl_ctx;
 SSL *conn_ssl;
+#endif
 
 int conn_open(const char *peername)
 {
@@ -78,7 +83,9 @@ int conn_open(const char *peername)
 
 	conn_fd_out = conn_fd_in;
 	conn_clisok = 1;
+#ifdef HAVE_LIBGNUTLS_OPENSSL
 	conn_usessl = 0;
+#endif
 
 	return 0;
 }
@@ -90,7 +97,9 @@ int conn_set(int infd, int outfd)
 	conn_fd_in  = infd;
 	conn_fd_out = outfd;
 	conn_clisok = 1;
+#ifdef HAVE_LIBGNUTLS_OPENSSL
 	conn_usessl = 0;
+#endif
 
 	// when running in server mode, this has been done already
 	// in csync2.c with more restrictive error handling..
@@ -100,16 +109,11 @@ int conn_set(int infd, int outfd)
 	return 0;
 }
 
+
+#ifdef HAVE_LIBGNUTLS_OPENSSL
+
 char *ssl_keyfile = ETCDIR "/csync2_ssl_key.pem";
 char *ssl_certfile = ETCDIR "/csync2_ssl_cert.pem";
-
-#if 0
-// OpenSSL API
-static int dummy_ssl_verify_callback(int preverify_ok, X509_STORE_CTX *x509_ctx)
-{
-	return 1;
-}
-#endif
 
 int conn_activate_ssl(int server_role)
 {
@@ -124,7 +128,6 @@ int conn_activate_ssl(int server_role)
 		sslinit=1;
 	}
 
-	// OpenSSL API
 	conn_ssl_meth = (server_role ? SSLv23_server_method : SSLv23_client_method)();
 	conn_ssl_ctx = SSL_CTX_new(conn_ssl_meth);
 
@@ -134,18 +137,10 @@ int conn_activate_ssl(int server_role)
 	if (SSL_CTX_use_certificate_file(conn_ssl_ctx, ssl_certfile, SSL_FILETYPE_PEM) <= 0)
 		csync_fatal("SSL: failed to use certificate file %s.\n", ssl_certfile);
 
-#if 0
-	// OpenSSL API
-	SSL_CTX_set_verify(conn_ssl_ctx, SSL_VERIFY_PEER, &dummy_ssl_verify_callback);
-#endif
-
 	if (! (conn_ssl = SSL_new(conn_ssl_ctx)) )
 		csync_fatal("Creating a new SSL handle failed.\n");
 
-#if 1
-	// GNU TLS API
 	gnutls_certificate_server_set_request(conn_ssl->gnutls_state, GNUTLS_CERT_REQUIRE);
-#endif
 
 	SSL_set_rfd(conn_ssl, conn_fd_in);
 	SSL_set_wfd(conn_ssl, conn_fd_out);
@@ -213,11 +208,22 @@ int conn_check_peer_cert(const char *peername, int callfatal)
 	return 1;
 }
 
+#else
+
+int conn_check_peer_cert(const char *peername, int callfatal)
+{
+	return 1;
+}
+
+#endif /* HAVE_LIBGNUTLS_OPENSSL */
+
 int conn_close()
 {
 	if ( !conn_clisok ) return -1;
 
+#ifdef HAVE_LIBGNUTLS_OPENSSL
 	if ( conn_usessl ) SSL_free(conn_ssl);
+#endif
 
 	if ( conn_fd_in != conn_fd_out) close(conn_fd_in);
 	close(conn_fd_out);
@@ -231,17 +237,21 @@ int conn_close()
 
 static inline int READ(void *buf, size_t count)
 {
+#ifdef HAVE_LIBGNUTLS_OPENSSL
 	if (conn_usessl)
 		return SSL_read(conn_ssl, buf, count);
 	else
+#endif
 		return read(conn_fd_in, buf, count);
 }
 
 static inline int WRITE(const void *buf, size_t count)
 {
+#ifdef HAVE_LIBGNUTLS_OPENSSL
 	if (conn_usessl)
 		return SSL_write(conn_ssl, buf, count);
 	else
+#endif
 		return write(conn_fd_out, buf, count);
 }
 

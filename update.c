@@ -70,6 +70,7 @@ int connect_to_host(const char *peername)
 	if ( conn_open(peername) ) return -1;
 
 	if ( use_ssl ) {
+#if HAVE_LIBGNUTLS_OPENSSL
 		conn_printf("SSL\n");
 		if ( read_conn_status(0, peername) ) {
 			csync_debug(1, "SSL command failed.\n");
@@ -78,6 +79,11 @@ int connect_to_host(const char *peername)
 		}
 		conn_activate_ssl(0);
 		conn_check_peer_cert(peername, 1);
+#else
+		csync_debug(0, "ERROR: Config request SSL but this csync2 is built without SSL support.\n");
+		csync_error_count++;
+		return -1;
+#endif
 	}
 
 	conn_printf("CONFIG %s\n", url_encode(cfgname));
