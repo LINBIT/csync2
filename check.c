@@ -193,13 +193,12 @@ int csync_check_mod(const char *file, int recursive, int ignnoent, int init_run)
 			}
 		} SQL_END;
 
-		if ( this_is_dirty ) {
+		if ( this_is_dirty && !csync_compare_mode ) {
 			SQL("Adding or updating file entry",
 			    "INSERT INTO file (filename, checktxt) "
 			    "VALUES ('%s', '%s')",
 			    url_encode(file), url_encode(checktxt));
-			if (!init_run && !csync_compare_mode)
-				csync_mark(file, 0, 0);
+			if (!init_run) csync_mark(file, 0, 0);
 		}
 		dirdump_this = 1;
 		dirdump_parent = 1;

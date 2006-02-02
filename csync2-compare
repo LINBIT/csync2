@@ -1,0 +1,41 @@
+#!/bin/bash
+
+if [ $# != 3 ]; then
+	echo "Usage: $0 host1 host2 basedir" >&2
+	exit 1
+fi
+
+left="$1"
+right="$2"
+basedir="$3"
+
+diff -u \
+	<( ssh $left "csync2 -or $basedir | sort | xargs md5sum 2> /dev/null" ) \
+	<( ssh $right "csync2 -or $basedir | sort | xargs md5sum 2> /dev/null" ) | \
+awk '
+
+BEGIN {
+	underline = "================================";
+	printf "\n%-32s %-32s %s\n%s %s %s\n\n",
+		"left host ('"$left"')",
+		"right host ('"$right"')",
+		"filename",
+		underline, underline, underline;
+}
+
+/^-[a-z0-9]/  { sub(/^./, ""); all[$2] = 1; left[$2]  = $1; }
+/^\+[a-z0-9]/ { sub(/^./, ""); all[$2] = 1; right[$2] = $1; }
+
+END {
+	nosum = "--------------------------------";
+	for (filename in all) {
+		printf "%-32s %-32s %s\n",
+			(left[filename]  == "" ? nosum : left[filename]),
+			(right[filename] == "" ? nosum : right[filename]),
+			filename;
+	}
+	printf "\n";
+}
+
+'
+

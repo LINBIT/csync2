@@ -18,6 +18,7 @@
 #
 
 sbin_PROGRAMS = csync2
+sbin_SCRIPTS = csync2-compare
 man_MANS = csync2.1
 
 csync2_SOURCES = action.c cfgfile_parser.y cfgfile_scanner.l check.c	\
