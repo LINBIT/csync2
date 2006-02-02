@@ -43,6 +43,7 @@ install: build
 	dh_clean -k 
 	dh_installdirs
 	install csync2 $(CURDIR)/debian/csync2/usr/sbin/csync2
+	install csync2-compare $(CURDIR)/debian/csync2/usr/sbin/csync2-compare
 	install csync2_locheck.sh $(CURDIR)/debian/csync2/usr/share/csync2/csync2_locheck.sh
 	install -m 644 csync2.cfg $(CURDIR)/debian/csync2/etc/csync2.cfg
 
