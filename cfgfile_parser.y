@@ -82,7 +82,7 @@ static void add_host(char *hostname, char *peername, int slave)
 	}
 }
 
-static void add_patt(int isinclude, char *pattern)
+static void add_patt(int patterntype, char *pattern)
 {
 	struct csync_group_pattern *t =
 		calloc(sizeof(struct csync_group_pattern), 1);
@@ -107,7 +107,8 @@ static void add_patt(int isinclude, char *pattern)
 		else
 			break;
 
-	t->isinclude = isinclude;
+	t->isinclude = patterntype >= 1;
+	t->iscompare = patterntype >= 2;
 	t->pattern = pattern;
 	t->next = csync_group->pattern;
 	csync_group->pattern = t;
@@ -353,7 +354,7 @@ static void new_ignore(char *propname)
 }
 
 %token TK_BLOCK_BEGIN TK_BLOCK_END TK_STEND TK_AT TK_AUTO
-%token TK_NOSSL TK_IGNORE TK_GROUP TK_HOST TK_EXCL TK_INCL TK_KEY
+%token TK_NOSSL TK_IGNORE TK_GROUP TK_HOST TK_EXCL TK_INCL TK_COMP TK_KEY
 %token TK_ACTION TK_PATTERN TK_EXEC TK_DOLOCAL TK_LOGFILE
 %token TK_PREFIX TK_ON TK_COLON TK_POPEN TK_PCLOSE
 %token TK_BAK_DIR TK_BAK_GEN
@@ -411,6 +412,7 @@ stmt:
 	TK_HOST host_list
 |	TK_EXCL excl_list
 |	TK_INCL incl_list
+|	TK_COMP comp_list
 |	TK_KEY TK_STRING
 		{ set_key($2); }
 |	TK_AUTO TK_STRING
@@ -448,6 +450,12 @@ incl_list:
 	/* empty */
 |	incl_list TK_STRING
 		{ add_patt(1, on_cygwin_lowercase($2)); }
+;
+
+comp_list:
+	/* empty */
+|	incl_list TK_STRING
+		{ add_patt(2, on_cygwin_lowercase($2)); }
 ;
 
 action:

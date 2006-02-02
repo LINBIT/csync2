@@ -232,7 +232,7 @@ struct csync_group_host {
 
 struct csync_group_pattern {
 	struct csync_group_pattern *next;
-	int isinclude;
+	int isinclude, iscompare;
 	const char *pattern;
 };
 
@@ -323,6 +323,8 @@ extern int csync_ignore_gid;
 extern int csync_ignore_mod;
 
 extern int csync_dump_dir_fd;
+
+extern int csync_compare_mode;
 
 static inline char *on_cygwin_lowercase(char *s) {
 #ifdef __CYGWIN__

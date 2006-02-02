@@ -47,6 +47,7 @@ int include_stack_ptr = 0;
 "host"		{ return TK_HOST; }
 "exclude"	{ return TK_EXCL; }
 "include"	{ return TK_INCL; }
+"compare"	{ return TK_COMP; }
 "key"		{ return TK_KEY; }
 "auto"		{ return TK_AUTO; }
 

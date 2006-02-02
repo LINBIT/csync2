@@ -21,6 +21,8 @@
 #include "csync2.h"
 #include <fnmatch.h>
 
+int csync_compare_mode = 0;
+
 int match_pattern_list(
 		const char *filename, const char *basename,
 		const struct csync_group_pattern *p)
@@ -29,6 +31,10 @@ int match_pattern_list(
 
 	while (p) {
 		int matched = 0;
+
+		if ( p->iscompare && !csync_compare_mode )
+			goto next_pattern;
+
 		if ( p->pattern[0] != '/' && p->pattern[0] != '%' ) {
 			if ( !fnmatch(p->pattern, basename, 0) ) {
 				match_base = p->isinclude;
@@ -46,6 +52,7 @@ int match_pattern_list(
 				p->isinclude ? '+' : '-',
 				p->pattern, filename);
 		}
+next_pattern:
 		p = p->next;
 	}
 
@@ -77,7 +84,9 @@ int csync_step_into(const char *file)
 
 	for (g=csync_group; g; g=g->next) {
 		if ( ! g->myname ) continue;
-		for (p=g->pattern; p; p=p->next)
+		for (p=g->pattern; p; p=p->next) {
+			if ( p->iscompare && !csync_compare_mode )
+				continue;
 			if ( (p->pattern[0] == '/' || p->pattern[0] == '%') && p->isinclude ) {
 				char t[strlen(p->pattern)+1], *l;
 				strcpy(t, p->pattern);
@@ -87,6 +96,7 @@ int csync_step_into(const char *file)
 								return 1;
 				}
 			}
+		}
 	}
 
 	return 0;
