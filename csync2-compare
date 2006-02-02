@@ -14,27 +14,16 @@ diff -u \
 	<( ssh $right "csync2 -or $basedir | sort | xargs md5sum 2> /dev/null" ) | \
 awk '
 
-BEGIN {
-	underline = "================================";
-	printf "\n%-32s %-32s %s\n%s %s %s\n\n",
-		"left host ('"$left"')",
-		"right host ('"$right"')",
-		"filename",
-		underline, underline, underline;
-}
-
 /^-[a-z0-9]/  { sub(/^./, ""); all[$2] = 1; left[$2]  = $1; }
 /^\+[a-z0-9]/ { sub(/^./, ""); all[$2] = 1; right[$2] = $1; }
 
 END {
-	nosum = "--------------------------------";
 	for (filename in all) {
-		printf "%-32s %-32s %s\n",
-			(left[filename]  == "" ? nosum : left[filename]),
-			(right[filename] == "" ? nosum : right[filename]),
+		printf "%s %s %s\n",
+			(left[filename]  == "" ? "-" : "X"),
+			(right[filename] == "" ? "-" : "X"),
 			filename;
 	}
-	printf "\n";
 }
 
 '
