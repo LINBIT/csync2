@@ -174,6 +174,9 @@ int csync_check_mod(const char *file, int recursive, int ignnoent, int init_run)
 		csync_debug(2, "Checking %s.\n", file);
 		checktxt = csync_genchecktxt(&st, file, 0);
 
+		if (csync_compare_mode)
+			printf("%s\n", file);
+
 		SQL_BEGIN("Checking File",
 			"SELECT checktxt FROM file WHERE "
 			"filename = '%s'", url_encode(file))
@@ -195,7 +198,8 @@ int csync_check_mod(const char *file, int recursive, int ignnoent, int init_run)
 			    "INSERT INTO file (filename, checktxt) "
 			    "VALUES ('%s', '%s')",
 			    url_encode(file), url_encode(checktxt));
-			if (!init_run) csync_mark(file, 0, 0);
+			if (!init_run && !csync_compare_mode)
+				csync_mark(file, 0, 0);
 		}
 		dirdump_this = 1;
 		dirdump_parent = 1;
@@ -257,7 +261,10 @@ void csync_check(const char *filename, int recursive, int init_run)
 
 	csync_debug(2, "Running%s check for %s ...\n",
 			recursive ? " recursive" : "", filename);
-	csync_check_del(filename, recursive, init_run);
+
+	if (!csync_compare_mode)
+		csync_check_del(filename, recursive, init_run);
+
 	csync_check_mod(filename, recursive, 1, init_run);
 
 	if (*filename == '/')
@@ -273,7 +280,9 @@ void csync_check(const char *filename, int recursive, int init_run)
 
 					csync_debug(2, "Running%s check for %s ...\n",
 							recursive ? " recursive" : "", new_filename);
-					csync_check_del(new_filename, recursive, init_run);
+
+					if (!csync_compare_mode)
+						csync_check_del(new_filename, recursive, init_run);
 					csync_check_mod(new_filename, recursive, 1, init_run);
 				}
 			}

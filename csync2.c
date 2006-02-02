@@ -82,6 +82,7 @@ enum {
 	MODE_TEST_SYNC,
 	MODE_LIST_DIRTY,
 	MODE_REMOVE_OLD,
+	MODE_COMPARE,
 	MODE_SIMPLE
 };
 
@@ -101,7 +102,8 @@ PACKAGE_STRING " - cluster synchronization tool, 2nd generation\n"
 "	-h [-r] file..		Add (recursive) hints for check to db\n"
 "	-c [-r] file..		Check files and maybe add to dirty db\n"
 "	-u [-d] [-r] file..	Updates files if listed in dirty db\n"
-"	-f file..		Force this file in sync (resolve conflict)\n"
+"	-o [-r] file..		Create list of files in compare-mode\n"
+"	-f [-r] file..		Force this file in sync (resolve conflict)\n"
 "	-m file..		Mark files in database as dirty\n"
 "\n"
 "Simple mode:\n"
@@ -290,7 +292,7 @@ int main(int argc, char ** argv)
 		return 1;
 	}
 
-	while ( (opt = getopt(argc, argv, "W:s:Ftp:G:P:C:D:N:HBAIXULSTMRvhcuimfxrd")) != -1 ) {
+	while ( (opt = getopt(argc, argv, "W:s:Ftp:G:P:C:D:N:HBAIXULSTMRvhcuoimfxrd")) != -1 ) {
 		switch (opt) {
 			case 'W':
 				csync_dump_dir_fd = atoi(optarg);
@@ -366,6 +368,10 @@ int main(int argc, char ** argv)
 					mode = MODE_UPDATE;
 				}
 				break;
+			case 'o':
+				if ( mode != MODE_NONE ) help(argv[0]);
+				mode = MODE_COMPARE;
+				break;
 			case 'i':
 				if ( mode == MODE_INETD )
 					mode = MODE_SERVER;
@@ -428,6 +434,7 @@ int main(int argc, char ** argv)
 			mode != MODE_HINT && mode != MODE_MARK &&
 			mode != MODE_FORCE && mode != MODE_SIMPLE &&
 			mode != MODE_UPDATE && mode != MODE_CHECK &&
+			mode != MODE_COMPARE &&
 			mode != MODE_CHECK_AND_UPDATE &&
 			mode != MODE_LIST_SYNC && mode != MODE_TEST_SYNC)
 		help(argv[0]);
@@ -606,6 +613,15 @@ int main(int argc, char ** argv)
 				csync_update((const char**)realnames, argc-optind, recursive, dry_run);
 				for (i=optind; i < argc; i++)
 					free(realnames[i-optind]);
+			}
+			break;
+
+		case MODE_COMPARE:
+			csync_compare_mode = 1;
+			for (i=optind; i < argc; i++) {
+				char *realname = getrealfn(argv[i]);
+				csync_check_usefullness(realname, recursive);
+				csync_check(realname, recursive, init_run);
 			}
 			break;
 
