@@ -389,6 +389,9 @@ auto_resolve_entry_point:
 					url_encode(target));
 			if ( (last_conn_status = read_conn_status(filename, peername)) )
 				goto maybe_auto_resolve;
+		} else {
+			csync_debug(1, "File is a symlink but radlink() failed.\n", st.st_mode);
+			goto got_error;
 		}
 	} else
 	if ( S_ISSOCK(st.st_mode) ) {
@@ -396,6 +399,9 @@ auto_resolve_entry_point:
 				url_encode(key), url_encode(filename));
 		if ( (last_conn_status = read_conn_status(filename, peername)) )
 			goto maybe_auto_resolve;
+	} else {
+		csync_debug(1, "File type (mode=%o) is not supported.\n", st.st_mode);
+		goto got_error;
 	}
 
 	conn_printf("SETOWN %s %s %d %d\n",
