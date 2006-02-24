@@ -381,7 +381,7 @@ auto_resolve_entry_point:
 	if ( S_ISLNK(st.st_mode) ) {
 		char target[1024];
 		int rc;
-		rc = readlink(filename, target, 1023);
+		rc = readlink(prefixsubst(filename), target, 1023);
 		if ( rc >= 0 ) {
 			target[rc]=0;
 			conn_printf("MKLINK %s %s %s\n",
