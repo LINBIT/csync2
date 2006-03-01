@@ -293,6 +293,9 @@ static void new_prefix_entry(char *pattern, char *path)
 {
 	int i;
 
+	if (path[0] != '/')
+		csync_fatal("Config error: Prefix '%s' is not an absolute path.\n", path);
+
 	if (!csync_prefix->path && !fnmatch(pattern, myhostname, 0)) {
 #if __CYGWIN__
 		if (isalpha(path[0]) && path[1] == ':' &&
