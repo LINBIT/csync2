@@ -457,9 +457,6 @@ int main(int argc, char ** argv)
 	for (i=0; myhostname[i]; i++)
 		myhostname[i] = tolower(myhostname[i]);
 
-	for (i=optind; i < argc; i++)
-		on_cygwin_lowercase(argv[i]);
-
 	/* Stand-alone server mode. This is a hack..
 	 */
 	if ( mode == MODE_SERVER || mode == MODE_SINGLE ) {
@@ -536,6 +533,9 @@ int main(int argc, char ** argv)
 	fclose(yyin);
 
 	csync_db_open(file_database);
+
+	for (i=optind; i < argc; i++)
+		on_cygwin_lowercase(argv[i]);
 
 	switch (mode) {
 		case MODE_SIMPLE:

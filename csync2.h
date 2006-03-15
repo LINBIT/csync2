@@ -326,11 +326,19 @@ extern int csync_dump_dir_fd;
 
 extern int csync_compare_mode;
 
+#ifdef __CYGWIN__
+extern int csync_lowercyg_disable;
+extern int csync_lowercyg_used;
+#endif
+
 static inline char *on_cygwin_lowercase(char *s) {
 #ifdef __CYGWIN__
-	int i;
-	for (i=0; s[i]; i++)
-		s[i] = tolower(s[i]);
+	if (!csync_lowercyg_disable) {
+		int i;
+		for (i=0; s[i]; i++)
+			s[i] = tolower(s[i]);
+	}
+	csync_lowercyg_used = 1;
 #endif
 	return s;
 }

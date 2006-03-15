@@ -34,6 +34,11 @@ int csync_ignore_uid = 0;
 int csync_ignore_gid = 0;
 int csync_ignore_mod = 0;
 
+#ifdef __CYGWIN__
+extern int csync_lowercyg_disable = 0;
+extern int csync_lowercyg_used = 0;
+#endif
+
 extern void yyerror(char* text);
 extern int yylex();
 extern int yylineno;
@@ -348,6 +353,17 @@ static void new_ignore(char *propname)
 	free(propname);
 }
 
+static void disable_cygwin_lowercase_hack()
+{
+#ifdef __CYGWIN__
+	if (csync_lowercyg_used)
+		csync_fatal("Config error: 'nocygwinlowercase' must be at the top of the config file.\n");
+	csync_lowercyg_disable = 1;
+#else
+	csync_fatal("Config error: Found 'nocygwinlowercase' but this is not a cygwin csync2.\n");
+#endif
+}
+
 %}
 
 %expect 2
@@ -358,7 +374,7 @@ static void new_ignore(char *propname)
 
 %token TK_BLOCK_BEGIN TK_BLOCK_END TK_STEND TK_AT TK_AUTO
 %token TK_NOSSL TK_IGNORE TK_GROUP TK_HOST TK_EXCL TK_INCL TK_COMP TK_KEY
-%token TK_ACTION TK_PATTERN TK_EXEC TK_DOLOCAL TK_LOGFILE
+%token TK_ACTION TK_PATTERN TK_EXEC TK_DOLOCAL TK_LOGFILE TK_NOCYGLOWER
 %token TK_PREFIX TK_ON TK_COLON TK_POPEN TK_PCLOSE
 %token TK_BAK_DIR TK_BAK_GEN
 %token <txt> TK_STRING
@@ -379,6 +395,8 @@ block:
 |	TK_NOSSL TK_STRING TK_STRING TK_STEND
 		{ new_nossl($2, $3); }
 |	TK_IGNORE ignore_list TK_STEND
+|	TK_NOCYGLOWER TK_STEND
+		{ disable_cygwin_lowercase_hack(); }
 ;
 
 ignore_list:

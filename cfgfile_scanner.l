@@ -63,6 +63,8 @@ int include_stack_ptr = 0;
 "backup-directory"	{ return TK_BAK_DIR; }
 "backup-generations"	{ return TK_BAK_GEN; }
 
+"no-cygwin-lowercase"	{ return TK_NOCYGLOWER; }
+
 "config"	BEGIN(INCL);
 <INCL>[ \t]*	/* eat the whitespaces */
 <INCL>[^ \t\r\n;]+ {
