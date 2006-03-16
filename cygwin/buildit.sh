@@ -36,7 +36,7 @@ if ! [ -f config.h ]; then
 	./configure \
 		--with-librsync-source=cygwin/librsync-0.9.7.tar.gz \
 		--with-libsqlite-source=cygwin/sqlite-2.8.16.tar.gz \
-		--sysconfdir=$TRGDIR
+		--disable-gnutls --sysconfdir=$TRGDIR
 fi
 
 make private_librsync
