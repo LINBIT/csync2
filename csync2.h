@@ -329,7 +329,16 @@ extern int csync_compare_mode;
 #ifdef __CYGWIN__
 extern int csync_lowercyg_disable;
 extern int csync_lowercyg_used;
+extern int csync_cygwin_case_check(const char *filename);
 #endif
+
+static inline int lstat_strict(const char *filename, struct stat *buf) {
+#ifdef __CYGWIN__
+	if (csync_lowercyg_disable && !csync_cygwin_case_check(filename))
+		return -1;
+#endif
+	return lstat(filename, buf);
+}
 
 static inline char *on_cygwin_lowercase(char *s) {
 #ifdef __CYGWIN__

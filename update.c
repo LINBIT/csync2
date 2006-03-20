@@ -284,7 +284,7 @@ void csync_update_file_mod(const char *peername,
 auto_resolve_entry_point:
 	csync_debug(1, "Updating %s on %s ...\n", filename, peername);
 
-	if ( lstat(prefixsubst(filename), &st) != 0 ) {
+	if ( lstat_strict(prefixsubst(filename), &st) != 0 ) {
 		csync_debug(0, "ERROR: Cant stat %s.\n", filename);
 		csync_error_count++;
 		goto got_error;
@@ -488,7 +488,7 @@ maybe_auto_resolve:
 					if (remotedata == -1)
 						goto remote_file_has_been_removed;
 
-					if ( lstat(prefixsubst(filename), &sbuf) ) goto got_error_in_autoresolve;
+					if ( lstat_strict(prefixsubst(filename), &sbuf) ) goto got_error_in_autoresolve;
 
 					if (auto_method == CSYNC_AUTO_METHOD_YOUNGER ||
 					    auto_method == CSYNC_AUTO_METHOD_OLDER)
@@ -579,7 +579,7 @@ void csync_update_host(const char *peername,
 	 */
 	for (t = tl; t != 0; t = next_t) {
 		next_t = t->next;
-		if ( !lstat(prefixsubst(t->value), &st) != 0 && !csync_check_pure(t->value)) {
+		if ( !lstat_strict(prefixsubst(t->value), &st) != 0 && !csync_check_pure(t->value)) {
 			*last_tn = next_t;
 			t->next = tl_mod;
 			tl_mod = t;

@@ -35,8 +35,8 @@ int csync_ignore_gid = 0;
 int csync_ignore_mod = 0;
 
 #ifdef __CYGWIN__
-extern int csync_lowercyg_disable = 0;
-extern int csync_lowercyg_used = 0;
+int csync_lowercyg_disable = 0;
+int csync_lowercyg_used = 0;
 #endif
 
 extern void yyerror(char* text);

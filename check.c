@@ -28,6 +28,38 @@
 #include <unistd.h>
 #include <errno.h>
 
+
+#ifdef __CYGWIN__
+
+#include <w32api/windows.h>
+
+/* This does only check the case of the last filename element. But that should
+ * be OK for us now...
+ */
+int csync_cygwin_case_check(const char *filename)
+{
+	int filename_len = strlen(filename);
+	int found_file_len;
+	HANDLE found_file_handle;
+	WIN32_FIND_DATA fd;
+
+	/* See if we can find this file. */
+	found_file_handle = FindFirstFile(filename, &fd);
+	if (found_file_handle == INVALID_HANDLE_VALUE)
+		return 0;
+	FindClose(found_file_handle);
+
+	found_file_len = strlen(fd.cFileName);
+
+	/* This should never happen. */
+	if (found_file_len > filename_len)
+		return 0;
+
+	return !strcmp(filename + filename_len - found_file_len, fd.cFileName);
+}
+
+#endif /* __CYGWIN__ */
+
 void csync_hint(const char *file, int recursive)
 {
 	SQL("Adding Hint",
@@ -70,8 +102,9 @@ int csync_check_pure(const char *filename)
 	// For some reason or another does this function __kills__
 	// the performance when using large directories with cygwin.
 	// And there are no symlinks in windows anyways..
-	return 0;
-#else
+	if (!csync_lowercyg_disable)
+		return 0;
+#endif
 
 	struct stat sbuf;
 	int i=0;
@@ -85,10 +118,9 @@ int csync_check_pure(const char *filename)
 			while (myfilename[i] != '/')
 				if (--i <= 0) return 0;
 			myfilename[i]=0;
-			if ( lstat(prefixsubst(myfilename), &sbuf) || S_ISLNK(sbuf.st_mode) ) return 1;
+			if ( lstat_strict(prefixsubst(myfilename), &sbuf) || S_ISLNK(sbuf.st_mode) ) return 1;
 		}
 	}
-#endif
 }
 
 void csync_check_del(const char *file, int recursive, int init_run)
@@ -111,7 +143,7 @@ void csync_check_del(const char *file, int recursive, int init_run)
 			"filename = '%s' %s ORDER BY filename", url_encode(file), where_rec)
 	{
 		const char *filename = url_decode(SQL_V[0]);
-		if ( lstat(prefixsubst(filename), &st) != 0 || csync_check_pure(filename) )
+		if ( lstat_strict(prefixsubst(filename), &st) != 0 || csync_check_pure(filename) )
 			textlist_add(&tl, filename, 0);
 	} SQL_END;
 
@@ -162,7 +194,7 @@ int csync_check_mod(const char *file, int recursive, int ignnoent, int init_run)
 		}
 	}
 
-	if ( check_type>0 && lstat(prefixsubst(file), &st) != 0 ) {
+	if ( check_type>0 && lstat_strict(prefixsubst(file), &st) != 0 ) {
 		if ( ignnoent ) return 0;
 		csync_fatal("This should not happen: "
 				"Can't stat %s.\n", file);

@@ -43,7 +43,7 @@ int csync_unlink(const char *filename, int ign)
 	struct stat st;
 	int rc;
 
-	if ( lstat(prefixsubst(filename), &st) != 0 ) return 0;
+	if ( lstat_strict(prefixsubst(filename), &st) != 0 ) return 0;
 	if ( ign==2 && S_ISREG(st.st_mode) ) return 0;
 	rc = S_ISDIR(st.st_mode) ? rmdir(prefixsubst(filename)) : unlink(prefixsubst(filename));
 
@@ -74,7 +74,7 @@ void csync_file_update(const char *filename, const char *peername)
 	SQL("Removing file from dirty db",
 			"delete from dirty where filename = '%s' and peername = '%s'",
 			url_encode(filename), peername);
-	if ( lstat(prefixsubst(filename), &st) != 0 || csync_check_pure(filename) ) {
+	if ( lstat_strict(prefixsubst(filename), &st) != 0 || csync_check_pure(filename) ) {
 		SQL("Removing file from file db",
 			"delete from file where filename = '%s'",
 			url_encode(filename));
@@ -278,7 +278,7 @@ void csync_daemon_session()
 			{
 				struct stat st;
 
-				if ( lstat(prefixsubst(tag[2]), &st) != 0 ) {
+				if ( lstat_strict(prefixsubst(tag[2]), &st) != 0 ) {
 					if ( errno == ENOENT )
 						conn_printf("OK (not_found).\n---\noctet-stream 0\n");
 					else
@@ -329,7 +329,7 @@ void csync_daemon_session()
 			{
 				struct stat sbuf;
 				conn_printf("OK (data_follows).\n");
-				if (!lstat(prefixsubst(tag[2]), &sbuf))
+				if (!lstat_strict(prefixsubst(tag[2]), &sbuf))
 					conn_printf("%ld\n", cmdtab[cmdnr].action == A_GETTM ?
 							(long)sbuf.st_mtime : (long)sbuf.st_size);
 				else
@@ -370,7 +370,7 @@ void csync_daemon_session()
 
 				if ( !CreateDirectory(TEXT(winfilename), NULL) ) {
 					struct stat st;
-					if ( lstat(prefixsubst(tag[2]), &st) != 0 || !S_ISDIR(st.st_mode)) {
+					if ( lstat_strict(prefixsubst(tag[2]), &st) != 0 || !S_ISDIR(st.st_mode)) {
 						csync_debug(1, "Win32 I/O Error %d in mkdir command: %s\n",
 								(int)GetLastError(), winfilename);
 						cmd_error = "Win32 I/O Error on CreateDirectory()";
@@ -380,7 +380,7 @@ void csync_daemon_session()
 #else
 			if ( mkdir(prefixsubst(tag[2]), 0700) ) {
 				struct stat st;
-				if ( lstat((prefixsubst(tag[2])), &st) != 0 || !S_ISDIR(st.st_mode))
+				if ( lstat_strict((prefixsubst(tag[2])), &st) != 0 || !S_ISDIR(st.st_mode))
 					cmd_error = strerror(errno);
 			}
 #endif
