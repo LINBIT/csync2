@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <errno.h>
 
 
 /* action.c */
@@ -334,8 +335,10 @@ extern int csync_cygwin_case_check(const char *filename);
 
 static inline int lstat_strict(const char *filename, struct stat *buf) {
 #ifdef __CYGWIN__
-	if (csync_lowercyg_disable && !csync_cygwin_case_check(filename))
+	if (csync_lowercyg_disable && !csync_cygwin_case_check(filename)) {
+		errno = ENOENT;
 		return -1;
+	}
 #endif
 	return lstat(filename, buf);
 }

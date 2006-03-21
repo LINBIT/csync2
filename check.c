@@ -38,24 +38,41 @@
  */
 int csync_cygwin_case_check(const char *filename)
 {
-	int filename_len = strlen(filename);
+	if (!strcmp(filename, "/cygdrive"))
+		goto check_ok;
+	if (!strncmp(filename, "/cygdrive/", 10) && strlen(filename) == 11)
+		goto check_ok;
+
+	char winfilename[MAX_PATH];
+	cygwin_conv_to_win32_path(filename, winfilename);
+
+	int winfilename_len = strlen(winfilename);
 	int found_file_len;
 	HANDLE found_file_handle;
 	WIN32_FIND_DATA fd;
 
 	/* See if we can find this file. */
-	found_file_handle = FindFirstFile(filename, &fd);
+	found_file_handle = FindFirstFile(winfilename, &fd);
 	if (found_file_handle == INVALID_HANDLE_VALUE)
-		return 0;
+		goto check_failed;
 	FindClose(found_file_handle);
 
 	found_file_len = strlen(fd.cFileName);
 
 	/* This should never happen. */
-	if (found_file_len > filename_len)
-		return 0;
+	if (found_file_len > winfilename_len)
+		goto check_failed;
 
-	return !strcmp(filename + filename_len - found_file_len, fd.cFileName);
+	if (strcmp(winfilename + winfilename_len - found_file_len, fd.cFileName))
+		goto check_failed;
+
+check_ok:
+	csync_debug(3, "Cygwin/Win32 filename case check ok: %s (%s)\n", winfilename, filename);
+	return 1;
+
+check_failed:
+	csync_debug(2, "Cygwin/Win32 filename case check failed: %s (%s)\n", winfilename, filename);
+	return 0;
 }
 
 #endif /* __CYGWIN__ */
