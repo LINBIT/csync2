@@ -72,12 +72,20 @@ static void exec_init_checker()
 		execl("./csync2.exe", "csync2.exe", "-crv", "/", NULL);
 }
 
-static void exec_checker()
+static void exec_hint_checker()
 {
 	if (non_blocking_mode)
 		execl("./csync2.exe", "csync2.exe", "-Bcv", NULL);
 	else
 		execl("./csync2.exe", "csync2.exe", "-Bcv", NULL);
+}
+
+static void exec_checker()
+{
+	if (non_blocking_mode)
+		execl("./csync2.exe", "csync2.exe", "-Bcvr", "/", NULL);
+	else
+		execl("./csync2.exe", "csync2.exe", "-Bcvr", "/", NULL);
 }
 
 static void exec_updater()
@@ -107,10 +115,16 @@ static struct service service_init_checker = {
 	0, 0, 0, 0
 };
 
-static struct service service_checker = {
+static struct service service_hint_checker = {
 	"Incremenmtal Checker",
-	exec_checker,
+	exec_hint_checker,
 	0, 5, 0, 0
+};
+
+static struct service service_checker = {
+	"Full Checker",
+	exec_checker,
+	0, 300, 0, 0
 };
 
 static struct service service_updater = {
@@ -125,14 +139,23 @@ static struct service service_hintd = {
 	0, 0, 1, 0
 };
 
-static struct service *services[] = {
+static struct service *services_with_hintd[] = {
 	&service_tcp_listener,
 	&service_init_checker,
-	&service_checker,
+	&service_hint_checker,
 	&service_updater,
 	&service_hintd,
 	NULL
 };
+
+static struct service *services_without_hintd[] = {
+	&service_tcp_listener,
+	&service_checker,
+	&service_updater,
+	NULL
+};
+
+static struct service **services;
 
 static int got_ctrl_c = 0;
 
@@ -174,28 +197,34 @@ int main(int argc, char **argv)
 
 	if (argc >= 3 && !strcmp(argv[1], "-B")) {
 		non_blocking_mode = 1;
-		dirname0 = argc >=  3 ? argv[2] : 0;
-		dirname1 = argc >=  4 ? argv[3] : 0;
-		dirname2 = argc >=  5 ? argv[4] : 0;
-		dirname3 = argc >=  6 ? argv[5] : 0;
-		dirname4 = argc >=  7 ? argv[6] : 0;
-		dirname5 = argc >=  8 ? argv[7] : 0;
-		dirname6 = argc >=  9 ? argv[8] : 0;
-		dirname7 = argc >= 10 ? argv[9] : 0;
+		if (strcmp(argv[2], "-")) {
+			dirname0 = argc >=  3 ? argv[2] : 0;
+			dirname1 = argc >=  4 ? argv[3] : 0;
+			dirname2 = argc >=  5 ? argv[4] : 0;
+			dirname3 = argc >=  6 ? argv[5] : 0;
+			dirname4 = argc >=  7 ? argv[6] : 0;
+			dirname5 = argc >=  8 ? argv[7] : 0;
+			dirname6 = argc >=  9 ? argv[8] : 0;
+			dirname7 = argc >= 10 ? argv[9] : 0;
+		}
 	} else
 	if (argc >= 2) {
-		dirname0 = argc >= 2 ? argv[1] : 0;
-		dirname1 = argc >= 3 ? argv[2] : 0;
-		dirname2 = argc >= 4 ? argv[3] : 0;
-		dirname3 = argc >= 5 ? argv[4] : 0;
-		dirname4 = argc >= 6 ? argv[5] : 0;
-		dirname5 = argc >= 7 ? argv[6] : 0;
-		dirname6 = argc >= 8 ? argv[7] : 0;
-		dirname7 = argc >= 9 ? argv[8] : 0;
+		if (strcmp(argv[1], "-")) {
+			dirname0 = argc >= 2 ? argv[1] : 0;
+			dirname1 = argc >= 3 ? argv[2] : 0;
+			dirname2 = argc >= 4 ? argv[3] : 0;
+			dirname3 = argc >= 5 ? argv[4] : 0;
+			dirname4 = argc >= 6 ? argv[5] : 0;
+			dirname5 = argc >= 7 ? argv[6] : 0;
+			dirname6 = argc >= 8 ? argv[7] : 0;
+			dirname7 = argc >= 9 ? argv[8] : 0;
+		}
 	} else {
-		fprintf(stderr, "Usage: %s [-B] datadir\n", argv[0]);
+		fprintf(stderr, "Usage: %s [-B] [datadir [..] | -]\n", argv[0]);
 		return 1;
 	}
+
+	services = dirname0 ? services_with_hintd : services_without_hintd;
 
 	{
 		int p[2];
@@ -289,6 +318,7 @@ int main(int argc, char **argv)
 	printf("Hostname: %s\n", myhostname);
 	printf("Database: %s\n", dbname);
 	printf("\n");
+	if (!dirname0) printf("No Windows FS-Watcher Helper.\n");
 	if (dirname0) printf("Datadir #0: %s\n", dirname0);
 	if (dirname1) printf("Datadir #1: %s\n", dirname1);
 	if (dirname2) printf("Datadir #2: %s\n", dirname2);
