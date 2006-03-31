@@ -51,7 +51,7 @@ case "$1" in
 	svn co $URL/tags/$PACKAGE-$VERSION ../$PACKAGE-$VERSION
 
 	cd ../$PACKAGE-$VERSION
-	svn rm release.sh
+	svn rm release.sh copycheck.sh
 	perl -pi -e "s/SNAPSHOT/$VERSION/g" configure.ac
 	perl -pi -e "s/SNAPSHOT/$VERSION/g" csync2.spec
 	svn commit -m "Fixed version info in tag $VERSION"
