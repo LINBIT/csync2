@@ -661,7 +661,9 @@ int csync_diff(const char *myname, const char *peername, const char *filename)
 	while ( (g=csync_find_next(g, filename)) ) {
 		if ( !g->myname || strcmp(g->myname, myname) ) continue;
 		for (h = g->host; h; h = h->next)
-			if (!strcmp(h->hostname, peername)) goto found_host_check;
+			if (!strcmp(h->hostname, peername)) {
+				goto found_host_check;
+			}
 	}
 	csync_debug(0, "Host pair + file not found in configuration.\n");
 	csync_error_count++;
@@ -862,6 +864,17 @@ int csync_insynctest_all(int init_run, int auto_diff, const char *filename)
 	struct textlist *myname_list = 0, *myname;
 	struct csync_group *g;
 	int ret = 1;
+
+	if (auto_diff && filename) {
+		struct peer *pl = csync_find_peers(filename, 0);
+		int pl_idx;
+
+		for (pl_idx=0; pl[pl_idx].peername; pl_idx++)
+			csync_diff(pl[pl_idx].myname, pl[pl_idx].peername, filename);
+
+		free(pl);
+		return ret;
+	}
 
 	for (g = csync_group; g; g = g->next) {
 		if ( !g->myname ) continue;

@@ -180,7 +180,7 @@ enum {
 struct csync_command cmdtab[] = {
 	{ "sig",	1, 0, 0, 0, 1, A_SIG	},
 	{ "mark",	1, 0, 0, 0, 1, A_MARK	},
-	{ "type",	1, 0, 0, 0, 1, A_TYPE	},
+	{ "type",	2, 0, 0, 0, 1, A_TYPE	},
 	{ "gettm",	1, 0, 0, 0, 1, A_GETTM	},
 	{ "getsz",	1, 0, 0, 0, 1, A_GETSZ	},
 	{ "flush",	1, 1, 0, 0, 1, A_FLUSH	},
@@ -255,7 +255,11 @@ void csync_daemon_session()
 			on_cygwin_lowercase(tag[2]);
 
 		if ( cmdtab[cmdnr].check_perm ) {
+			if ( cmdtab[cmdnr].check_perm == 2 )
+				csync_compare_mode = 1;
 			int perm = csync_perm(tag[2], tag[1], peer);
+			if ( cmdtab[cmdnr].check_perm == 2 )
+				csync_compare_mode = 0;
 			if ( perm ) {
 				if ( perm == 2 ) {
 					csync_mark(tag[2], peer, 0);

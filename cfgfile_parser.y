@@ -230,6 +230,25 @@ static void check_group()
 			t = next;
 		}
 	}
+
+	if (active_peerlist) {
+		struct csync_group_host *h;
+		int i=0, thisplen;
+
+		while (active_peerlist[i]) {
+			thisplen = strcspn(active_peerlist + i, ",");
+
+			for (h=csync_group->host; h; h=h->next)
+				if (strlen(h->hostname) == thisplen && !strncmp(active_peerlist + i, h->hostname, thisplen))
+					goto foundactivepeers;
+
+			i += thisplen;
+			while (active_peerlist[i] == ',') i++;
+		}
+	} else
+foundactivepeers:
+		csync_group->hasactivepeers = 1;
+
 	if (active_grouplist && csync_group->myname)
 	{
 		int i=0, gnamelen = strlen(csync_group->gname);

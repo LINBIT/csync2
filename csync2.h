@@ -264,6 +264,7 @@ struct csync_group {
 	int auto_method, local_slave;
 	const char *backup_directory;
 	int backup_generations;
+	int hasactivepeers;
 };
 
 struct csync_prefix {

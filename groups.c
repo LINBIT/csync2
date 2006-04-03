@@ -68,7 +68,8 @@ const struct csync_group *csync_find_next(
 	else basename = file;
 
 	for (g = g==0 ? csync_group : g->next;  g;  g = g->next) {
-		if ( ! g->myname ) continue;
+		if ( !g->myname ) continue;
+		if ( csync_compare_mode && !g->hasactivepeers ) continue;
 		if ( match_pattern_list(file, basename, g->pattern) ) break;
 	}
 
@@ -83,7 +84,8 @@ int csync_step_into(const char *file)
 	if ( !strcmp(file, "/") ) return 1;
 
 	for (g=csync_group; g; g=g->next) {
-		if ( ! g->myname ) continue;
+		if ( !g->myname ) continue;
+		if ( csync_compare_mode && !g->hasactivepeers ) continue;
 		for (p=g->pattern; p; p=p->next) {
 			if ( p->iscompare && !csync_compare_mode )
 				continue;

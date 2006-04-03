@@ -165,6 +165,7 @@ PACKAGE_STRING " - cluster synchronization tool, 2nd generation\n"
 "\n"
 "	-P peer1,peer1,...\n"
 "		Only update this peers (still mark all as dirty).\n"
+"		Only show files for this peers in -o (compare) mode.\n"
 "\n"
 "	-F	Add new entries to dirty database with force flag set.\n"
 "\n"
@@ -723,9 +724,10 @@ int main(int argc, char ** argv)
 			switch (argc-optind)
 			{
 			case 3:
-				if ( mode_test_auto_diff )
+				if ( mode_test_auto_diff ) {
+					csync_compare_mode = 1;
 					retval = csync_diff(argv[optind], argv[optind+1], argv[optind+2]);
-				else
+				} else
 					if ( csync_insynctest(argv[optind], argv[optind+1], init_run, 0, argv[optind+2]) )
 						retval = 2;
 				break;
@@ -734,6 +736,8 @@ int main(int argc, char ** argv)
 					retval = 2;
 				break;
 			case 1:
+				if ( mode_test_auto_diff )
+					csync_compare_mode = 1;
 				if ( csync_insynctest_all(init_run, mode_test_auto_diff, argv[optind]) )
 					retval = 2;
 				break;
