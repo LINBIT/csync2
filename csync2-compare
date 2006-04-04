@@ -20,8 +20,8 @@ right2="${2#*@}"
 
 basedir="$3"
 
-left_cmd="ssh $left1 'csync2 -or $basedir -P $right2 | sort | xargs md5sum 2> /dev/null'"
-right_cmd="ssh $right1 'csync2 -or $basedir -P $left2 | sort | xargs md5sum 2> /dev/null'"
+left_cmd="ssh $left1 'csync2 -or $basedir -P $right2 | sort | xargs md5sum'"
+right_cmd="ssh $right1 'csync2 -or $basedir -P $left2 | sort | xargs md5sum'"
 
 if [ $verbose -eq 1 ]; then
 	echo
@@ -30,10 +30,36 @@ if [ $verbose -eq 1 ]; then
 	echo
 fi
 
+my_md5sum='perl -w -e '\''
+	use strict;
+	use Digest::MD5;
+
+	foreach my $f (@ARGV) {
+		if (-l $f) {
+			print "LINK:", Digest::MD5->new->add(readlink($f))->hexdigest, " $f\n";
+			next;
+		}
+		if (-f $f) {
+			open(FILE, $f) or die "Can not open >>$f<<: $!";
+			binmode(FILE);
+			print "DATA:", Digest::MD5->new->addfile(*FILE)->hexdigest, " $f\n";
+			close(FILE);
+			next;
+		}
+		print "SPECIALFILE:0 $f\n";
+	}
+'\'
+
+tic="'"
+my_md5sum="${my_md5sum//$tic/$tic\\$tic$tic}"
+
+left_cmd="${left_cmd/md5sum/$my_md5sum}"
+right_cmd="${right_cmd/md5sum/$my_md5sum}"
+
 diff -u <( eval "$left_cmd" ) <( eval "$right_cmd" ) | awk '
 
-/^-[a-z0-9]/  { sub(/^./, ""); all[$2] = 1; left[$2]  = $1; }
-/^\+[a-z0-9]/ { sub(/^./, ""); all[$2] = 1; right[$2] = $1; }
+/^-[a-zA-Z0-9]/  { sub(/^./, ""); all[$2] = 1; left[$2]  = $1; }
+/^\+[a-zA-Z0-9]/ { sub(/^./, ""); all[$2] = 1; right[$2] = $1; }
 
 END {
 	count = 0;
