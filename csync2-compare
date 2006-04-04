@@ -58,28 +58,44 @@ right_cmd="${right_cmd/md5sum/$my_md5sum}"
 
 diff -u <( eval "$left_cmd" ) <( eval "$right_cmd" ) | awk '
 
+function isort(A, n,
+		i, j, hold)
+{
+	for (i=1; i<n; i++)
+	{
+		hold = A[j = i];
+		while (A[j-1] > hold)
+			{ j--; A[j+1] = A[j]; }
+		A[j] = hold;
+	}
+}
+
 /^-[a-zA-Z0-9]/  { gotsomething=1; if ('$verbose') print; sub(/^./, ""); all[$2] = 1; left[$2]  = $1; }
 /^\+[a-zA-Z0-9]/ { gotsomething=1; if ('$verbose') print; sub(/^./, ""); all[$2] = 1; right[$2] = $1; }
 
 END {
-	count = 0;
-	if ('$verbose' && gotsomething) {
-		printf "\n";
-	}
+	outcount = 0;
+
 	for (filename in all) {
-		printf "%s %s %s\n",
+		outlines[filename] = sprintf("%s %s %s",
 			(left[filename]  == "" ? "-" : "X"),
 			(right[filename] == "" ? "-" : "X"),
-			filename;
-		count++;
+			filename);
+		sortindex[outcount] = filename;
+		outcount++;
 	}
-	if ('$verbose') {
-		printf "Found %d differences.\n", count;
-	}
+
+	if ('$verbose' && gotsomething)
+		printf "\n";
+
+	isort(sortindex, outcount);
+	for (i=0; i<outcount; i++)
+		print outlines[sortindex[i]];
+
+	if ('$verbose')
+		printf "Found %d differences.\n", outcount;
 }
-
 '
-
 
 if [ $verbose -eq 1 ]; then
 	echo
