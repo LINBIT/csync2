@@ -58,11 +58,14 @@ right_cmd="${right_cmd/md5sum/$my_md5sum}"
 
 diff -u <( eval "$left_cmd" ) <( eval "$right_cmd" ) | awk '
 
-/^-[a-zA-Z0-9]/  { sub(/^./, ""); all[$2] = 1; left[$2]  = $1; }
-/^\+[a-zA-Z0-9]/ { sub(/^./, ""); all[$2] = 1; right[$2] = $1; }
+/^-[a-zA-Z0-9]/  { gotsomething=1; if ('$verbose') print; sub(/^./, ""); all[$2] = 1; left[$2]  = $1; }
+/^\+[a-zA-Z0-9]/ { gotsomething=1; if ('$verbose') print; sub(/^./, ""); all[$2] = 1; right[$2] = $1; }
 
 END {
 	count = 0;
+	if ('$verbose' && gotsomething) {
+		printf "\n";
+	}
 	for (filename in all) {
 		printf "%s %s %s\n",
 			(left[filename]  == "" ? "-" : "X"),
