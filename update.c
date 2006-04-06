@@ -869,7 +869,7 @@ int csync_insynctest_all(int init_run, int auto_diff, const char *filename)
 		struct peer *pl = csync_find_peers(filename, 0);
 		int pl_idx;
 
-		for (pl_idx=0; pl[pl_idx].peername; pl_idx++)
+		for (pl_idx=0; pl && pl[pl_idx].peername; pl_idx++)
 			csync_diff(pl[pl_idx].myname, pl[pl_idx].peername, filename);
 
 		free(pl);

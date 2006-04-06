@@ -716,7 +716,8 @@ int main(int argc, char ** argv)
 			} SQL_END;
 			break;
 
-		case MODE_TEST_SYNC:
+		case MODE_TEST_SYNC: {
+			char *realname;
 			if (init_run && init_run_with_removals)
 				init_run |= 2;
 			if (init_run && init_run_straight)
@@ -724,11 +725,14 @@ int main(int argc, char ** argv)
 			switch (argc-optind)
 			{
 			case 3:
+				realname = getrealfn(argv[optind+2]);
+				csync_check_usefullness(realname, 0);
+
 				if ( mode_test_auto_diff ) {
 					csync_compare_mode = 1;
-					retval = csync_diff(argv[optind], argv[optind+1], argv[optind+2]);
+					retval = csync_diff(argv[optind], argv[optind+1], realname);
 				} else
-					if ( csync_insynctest(argv[optind], argv[optind+1], init_run, 0, argv[optind+2]) )
+					if ( csync_insynctest(argv[optind], argv[optind+1], init_run, 0, realname) )
 						retval = 2;
 				break;
 			case 2:
@@ -736,9 +740,12 @@ int main(int argc, char ** argv)
 					retval = 2;
 				break;
 			case 1:
+				realname = getrealfn(argv[optind]);
+				csync_check_usefullness(realname, 0);
+
 				if ( mode_test_auto_diff )
 					csync_compare_mode = 1;
-				if ( csync_insynctest_all(init_run, mode_test_auto_diff, argv[optind]) )
+				if ( csync_insynctest_all(init_run, mode_test_auto_diff, realname) )
 					retval = 2;
 				break;
 			case 0:
@@ -747,6 +754,7 @@ int main(int argc, char ** argv)
 				break;
 			}
 			break;
+		}
 
 		case MODE_LIST_DIRTY:
 			retval = 2;

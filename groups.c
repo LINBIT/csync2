@@ -136,8 +136,6 @@ void csync_check_usefullness(const char *file, int recursive)
 			p = p->next;
 		}
 
-
-
 	csync_debug(0, "WARNING: Parameter will be ignored: %s\n", file);
 }
 
