@@ -533,6 +533,14 @@ int main(int argc, char ** argv)
 	yyparse();
 	fclose(yyin);
 
+	{
+		const struct csync_group *g;
+		for (g=csync_group; g; g=g->next)
+			if ( g->myname ) goto found_a_group;
+		csync_fatal("This host (%s) is not a member of any configured group.\n", myhostname);
+found_a_group:;
+	}
+
 	csync_db_open(file_database);
 
 	for (i=optind; i < argc; i++)
