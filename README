@@ -51,6 +51,15 @@ and is mirrored at
 You should definitely read the documentation before trying to setup csync2.
 
 
+More Documentation
+==================
+
+Eric Liang wrote a nice step-by-step introductions for using csync2 on redhat
+machines:
+
+	http://zhenhuiliang.blogspot.com/2006/04/csync2-is-so-cool.html
+
+
 Mailing List
 ============
 
