@@ -40,7 +40,7 @@ int conn_fd_out = -1;
 int conn_clisok = 0;
 
 #ifdef HAVE_LIBGNUTLS_OPENSSL
-int conn_usessl = 0;
+int csync_conn_usessl = 0;
 
 SSL_METHOD *conn_ssl_meth;
 SSL_CTX *conn_ssl_ctx;
@@ -84,7 +84,7 @@ int conn_open(const char *peername)
 	conn_fd_out = conn_fd_in;
 	conn_clisok = 1;
 #ifdef HAVE_LIBGNUTLS_OPENSSL
-	conn_usessl = 0;
+	csync_conn_usessl = 0;
 #endif
 
 	return 0;
@@ -98,7 +98,7 @@ int conn_set(int infd, int outfd)
 	conn_fd_out = outfd;
 	conn_clisok = 1;
 #ifdef HAVE_LIBGNUTLS_OPENSSL
-	conn_usessl = 0;
+	csync_conn_usessl = 0;
 #endif
 
 	// when running in server mode, this has been done already
@@ -119,7 +119,7 @@ int conn_activate_ssl(int server_role)
 {
 	static int sslinit = 0;
 
-	if (conn_usessl)
+	if (csync_conn_usessl)
 		return 0;
 
 	if (!sslinit) {
@@ -148,7 +148,7 @@ int conn_activate_ssl(int server_role)
 	if ( (server_role ? SSL_accept : SSL_connect)(conn_ssl) < 1 )
 		csync_fatal("Establishing SSL connection failed.\n");
 
-	conn_usessl = 1;
+	csync_conn_usessl = 1;
 
 	return 0;
 }
@@ -158,7 +158,7 @@ int conn_check_peer_cert(const char *peername, int callfatal)
 	const X509 *peercert;
 	int i, cert_is_ok = -1;
 
-	if (!conn_usessl)
+	if (!csync_conn_usessl)
 		return 1;
 
 	peercert = SSL_get_peer_certificate(conn_ssl);
@@ -222,7 +222,7 @@ int conn_close()
 	if ( !conn_clisok ) return -1;
 
 #ifdef HAVE_LIBGNUTLS_OPENSSL
-	if ( conn_usessl ) SSL_free(conn_ssl);
+	if ( csync_conn_usessl ) SSL_free(conn_ssl);
 #endif
 
 	if ( conn_fd_in != conn_fd_out) close(conn_fd_in);
@@ -238,7 +238,7 @@ int conn_close()
 static inline int READ(void *buf, size_t count)
 {
 #ifdef HAVE_LIBGNUTLS_OPENSSL
-	if (conn_usessl)
+	if (csync_conn_usessl)
 		return SSL_read(conn_ssl, buf, count);
 	else
 #endif
@@ -248,7 +248,7 @@ static inline int READ(void *buf, size_t count)
 static inline int WRITE(const void *buf, size_t count)
 {
 #ifdef HAVE_LIBGNUTLS_OPENSSL
-	if (conn_usessl)
+	if (csync_conn_usessl)
 		return SSL_write(conn_ssl, buf, count);
 	else
 #endif

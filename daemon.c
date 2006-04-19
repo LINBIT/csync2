@@ -459,6 +459,18 @@ void csync_daemon_session()
 				peer = 0;
 				cmd_error = "Identification failed!";
 			}
+#ifdef HAVE_LIBGNUTLS_OPENSSL
+			if (!csync_conn_usessl) {
+				struct csync_nossl *t;
+				for (t = csync_nossl; t; t=t->next) {
+					if ( !fnmatch(t->pattern_from, myhostname, 0) &&
+					     !fnmatch(t->pattern_to, peer, 0) )
+						goto conn_without_ssl_ok;
+				}
+				cmd_error = "SSL encrypted connection expected!";
+			}
+conn_without_ssl_ok:;
+#endif
 			break;
 		case A_GROUP:
 			if (active_grouplist) {
