@@ -1,11 +1,12 @@
 #!/bin/bash
 
 errors=0
+ignrev="r364"
 
 check() {
 	if ! svn st $1 | grep -q '^?'; then
 		years="2003 2004 2005 2006 2007 2008"
-		for y in `svn log $1 | grep '^r[0-9]' | sed 's,.* \(200.\)-.*,\1,' | sort -u`
+		for y in `svn log $1 | grep '^r[0-9]' | egrep -v "^($ignrev)" | sed 's,.* \(200.\)-.*,\1,' | sort -u`
 		do
 			years=`echo $years | sed "s,$y,,"`
 			if ! grep -q "\*.*Copyright.*$y" $1; then

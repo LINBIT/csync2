@@ -56,8 +56,9 @@ case "$1" in
 	perl -pi -e "s/SNAPSHOT/$VERSION/g" csync2.spec
 	svn commit -m "Fixed version info in tag $VERSION"
 
-	sleep 2; ./autogen.sh
-	rm -rf autom4te.cache debian/ $( find -name .svn )
+	sleep 2
+	wget -O paper.pdf http://www.clifford.at/papers/2005/csync2/paper.pdf
+	./autogen.sh; rm -rf autom4te.cache debian/ $( find -name .svn )
 
 	cd ..
 	tar cvzf $PACKAGE-$VERSION.tar.gz \

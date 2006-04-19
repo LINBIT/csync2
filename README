@@ -40,7 +40,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 Documentation
 =============
 
-The csync2 documentation can be found online at
+The latest version of the csync2 documentation can be found online at
 
 	http://www.clifford.at/papers/2005/csync2/paper.pdf
 
@@ -52,6 +52,9 @@ You should definitely read the documentation before trying to setup csync2.
 
 The TeX source of the paper (as well as some slides for csync2 presentations)
 can be found at <http://www.clifford.at/papers/2005/csync2/>.
+
+The csync2 releases also have a copy of the 'paper.pdf' file bundled in the
+csync2 source tarball.
 
 
 More Documentation
