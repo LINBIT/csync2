@@ -131,6 +131,7 @@ int csync_file_backup(const char *filename)
 						"Open error while backing up '%s': %s\n",
 						filename, strerror(errno));
 				cmd_error = error_buffer;
+				close(fd_in);
 				return 1;
 			}
 
@@ -149,11 +150,15 @@ int csync_file_backup(const char *filename)
 								"Write error while backing up '%s': %s\n",
 								filename, strerror(errno));
 						cmd_error = error_buffer;
+						close(fd_in);
+						close(fd_out);
 						return 1;
 					}
 					write_len += rc;
 				}
 			}
+			close(fd_in);
+			close(fd_out);
 		}
 	}
 
