@@ -82,7 +82,7 @@ int csync_recv_file(FILE *out)
 	long size;
 
 	if ( !conn_gets(buffer, 100) || sscanf(buffer, "octet-stream %ld\n", &size) != 1 ) {
-		if (!strcmp(buffer, "ERROR\n")) { errno=ENODATA; return -1; }
+		if (!strcmp(buffer, "ERROR\n")) { errno=EIO; return -1; }
 		csync_fatal("Format-error while receiving data.\n");
 	}
 
