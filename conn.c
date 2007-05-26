@@ -247,12 +247,31 @@ static inline int READ(void *buf, size_t count)
 
 static inline int WRITE(const void *buf, size_t count)
 {
+	static int n, total;
+
 #ifdef HAVE_LIBGNUTLS_OPENSSL
 	if (csync_conn_usessl)
 		return SSL_write(conn_ssl, buf, count);
 	else
 #endif
-		return write(conn_fd_out, buf, count);
+	{
+		total = 0;
+
+		while (count > total) {
+			n = write(conn_fd_out, ((char *) buf) + total, count - total);
+
+			if (n >= 0)
+				total += n;
+			else {
+				if (errno == EINTR)
+					continue;
+				else
+					return -1;
+			}
+		}
+
+		return total;
+	}
 }
 
 int conn_raw_read(void *buf, size_t count)
