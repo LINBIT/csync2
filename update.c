@@ -682,10 +682,23 @@ found_host_check:
 	conn_printf("TYPE %s %s\n", g->key, filename);
 	if ( read_conn_status(0, peername) ) goto finish;
 
-	printf("--- %s:%s\n+++ %s:%s\n", peername, filename, myname, filename);
-	fflush(stdout);
+	/* FIXME
+	 * verify type of file first!
+	 * (symlink vs. file vs. dir vs. whatever)
+	 */
 
-	snprintf(buffer, 512, "diff -Nu - '%s' | tail -n +3", filename);
+	/* avoid unwanted side effects due to special chars in filenames,
+	 * pass them in the environment */
+	snprintf(buffer,512,"%s:%s",myname,filename);
+	setenv("my_label",buffer,1);
+	snprintf(buffer,512,"%s:%s",peername,filename);
+	setenv("peer_label",buffer,1);
+	snprintf(buffer,512,"%s",filename);
+	setenv("diff_file",buffer,1);
+	/* XXX no error check on setenv
+	 * (could be insufficient space in environment) */
+
+	snprintf(buffer, 512, "diff -Nus --label \"$peer_label\" - --label \"$my_label\" \"$diff_file\"");
 	old_sigpipe_handler = signal(SIGPIPE, SIG_IGN);
 	p = popen(buffer, "w");
 
