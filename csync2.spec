@@ -30,7 +30,7 @@ License:      GPL
 Group:        System/Monitoring
 Requires:     sqlite openssl librsync
 Autoreqprov:  on
-Version:      SNAPSHOT
+Version:      1.34
 Release:      1
 Source0:      csync2-%{version}.tar.gz
 URL:          http://oss.linbit.com/csync2
