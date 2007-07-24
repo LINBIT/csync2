@@ -463,6 +463,7 @@ void csync_daemon_session()
 			} else {
 				peer = 0;
 				cmd_error = "Identification failed!";
+				break;
 			}
 #ifdef HAVE_LIBGNUTLS_OPENSSL
 			if (!csync_conn_usessl) {
