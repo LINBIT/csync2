@@ -367,7 +367,7 @@ restart_entry_point:
 
 	{
 		unsigned char random_number = 0;
-		int rand = open("/dev/random", O_RDONLY);
+		int rand = open("/dev/urandom", O_RDONLY);
 		read(rand, &random_number, sizeof(unsigned char));
 		close(rand);
 
