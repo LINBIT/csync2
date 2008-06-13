@@ -17,7 +17,7 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 # Process this file with autoconf to produce a configure script.
-AC_INIT(csync2, SNAPSHOT, clifford@clifford.at)
+AC_INIT(csync2, SNAPSHOT, csync2@lists.linbit.com)
 AM_INIT_AUTOMAKE
 
 AC_CONFIG_SRCDIR(csync2.c)

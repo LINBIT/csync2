@@ -23,7 +23,7 @@
 # the source tar file.
 
 PACKAGE=csync2
-URL=http://svn.clifford.at/csync2
+URL=http://svn.linbit.com/csync2
 
 case "$1" in
   -*)
