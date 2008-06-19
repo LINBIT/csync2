@@ -545,12 +545,12 @@ void csync_update_host(const char *peername,
 		"SELECT filename, myname, force FROM dirty WHERE peername = '%s' "
 		"ORDER by filename ASC", url_encode(peername))
 	{
-		const char *filename = url_decode(SQL_V[0]);
+		const char *filename = url_decode(SQL_V(0));
 		int i, use_this = patnum == 0;
 		for (i=0; i<patnum && !use_this; i++)
 			if ( compare_files(filename, patlist[i], recursive) ) use_this = 1;
 		if (use_this)
-			textlist_add2(&tl, filename, url_decode(SQL_V[1]), atoi(SQL_V[2]));
+			textlist_add2(&tl, filename, url_decode(SQL_V(1)), atoi(SQL_V(2)));
 	} SQL_END;
 
 	/* just return if there are no files to update */
@@ -626,7 +626,7 @@ void csync_update(const char ** patlist, int patnum, int recursive, int dry_run)
 	SQL_BEGIN("Get hosts from dirty table",
 		"SELECT peername FROM dirty GROUP BY peername ORDER BY random()")
 	{
-		textlist_add(&tl, url_decode(SQL_V[0]), 0);
+		textlist_add(&tl, url_decode(SQL_V(0)), 0);
 	} SQL_END;
 
 	for (t = tl; t != 0; t = t->next) {
@@ -798,7 +798,7 @@ found_host:
 			filename ? url_encode(filename) : "",
 			filename ? "'" : "")
 	{
-		char *l_file = strdup(url_decode(SQL_V[1])), *l_checktxt = strdup(url_decode(SQL_V[0]));
+		char *l_file = strdup(url_decode(SQL_V(1))), *l_checktxt = strdup(url_decode(SQL_V(0)));
 		if ( csync_match_file_host(l_file, myname, peername, 0) ) {
 			if ( remote_eof ) {
 got_remote_eof:
@@ -936,17 +936,17 @@ void csync_remove_old()
 		const struct csync_group *g = 0;
 		const struct csync_group_host *h;
 
-		const char *filename = url_decode(SQL_V[0]); 
+		const char *filename = url_decode(SQL_V(0)); 
 
 		while ((g=csync_find_next(g, filename)) != 0) {
-			if (!strcmp(g->myname, SQL_V[1]))
+			if (!strcmp(g->myname, SQL_V(1)))
 				for (h = g->host; h; h = h->next) {
-					if (!strcmp(h->hostname, SQL_V[2]))
+					if (!strcmp(h->hostname, SQL_V(2)))
 						goto this_dirty_record_is_ok;
 				}
 		}
 
-		textlist_add2(&tl, SQL_V[0], SQL_V[2], 0);
+		textlist_add2(&tl, SQL_V(0), SQL_V(2), 0);
 
 this_dirty_record_is_ok:
 		;
@@ -962,8 +962,8 @@ this_dirty_record_is_ok:
 	SQL_BEGIN("Query file DB",
 	          "SELECT filename FROM file")
 	{
-		if (!csync_find_next(0, url_decode(SQL_V[0])))
-			textlist_add(&tl, SQL_V[0], 0);
+		if (!csync_find_next(0, url_decode(SQL_V(0))))
+			textlist_add(&tl, SQL_V(0), 0);
 	} SQL_END;
 	for (t = tl; t != 0; t = t->next) {
 		csync_debug(1, "Removing %s from file db.\n", t->value);

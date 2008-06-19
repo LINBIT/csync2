@@ -7,7 +7,7 @@
 export DH_VERBOSE=1
 
 
-CFLAGS = -Wall -g
+CFLAGS = -Wall -g -D_FILE_OFFSET_BITS=64
 
 ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
 	CFLAGS += -O0
@@ -21,7 +21,7 @@ endif
 configure: configure-stamp
 configure-stamp:
 	dh_testdir
-	./configure
+	./configure CFLAGS="$(CFLAGS)"
 	touch configure-stamp
 
 build: build-stamp

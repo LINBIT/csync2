@@ -582,8 +582,8 @@ found_a_group:;
 				SQL_BEGIN("Check all hints",
 					"SELECT filename, recursive FROM hint")
 				{
-					textlist_add(&tl, url_decode(SQL_V[0]),
-							atoi(SQL_V[1]));
+					textlist_add(&tl, url_decode(SQL_V(0)),
+							atoi(SQL_V(1)));
 				} SQL_END;
 
 				for (t = tl; t != 0; t = t->next) {
@@ -659,7 +659,7 @@ found_a_group:;
 						"SELECT filename FROM file WHERE filename = '%s' %s",
 						url_encode(realname), where_rec)
 					{
-						char *filename = strdup(url_encode(SQL_V[0]));
+						char *filename = strdup(url_encode(SQL_V(0)));
 						csync_mark(filename, 0, 0);
 						free(filename);
 					} SQL_END;
@@ -695,7 +695,7 @@ found_a_group:;
 			SQL_BEGIN("DB Dump - Hint",
 				"SELECT recursive, filename FROM hint ORDER BY filename")
 			{
-				printf("%s\t%s\n", SQL_V[0], url_decode(SQL_V[1]));
+				printf("%s\t%s\n", SQL_V(0), url_decode(SQL_V(1)));
 				retval = -1;
 			} SQL_END;
 			break;
@@ -705,8 +705,8 @@ found_a_group:;
 			SQL_BEGIN("DB Dump - File",
 				"SELECT checktxt, filename FROM file ORDER BY filename")
 			{
-				if (csync_find_next(0, url_decode(SQL_V[1]))) {
-					printf("%s\t%s\n", url_decode(SQL_V[0]), url_decode(SQL_V[1]));
+				if (csync_find_next(0, url_decode(SQL_V(1)))) {
+					printf("%s\t%s\n", url_decode(SQL_V(0)), url_decode(SQL_V(1)));
 					retval = -1;
 				}
 			} SQL_END;
@@ -717,8 +717,8 @@ found_a_group:;
 			SQL_BEGIN("DB Dump - File",
 				"SELECT checktxt, filename FROM file ORDER BY filename")
 			{
-				if ( csync_match_file_host(url_decode(SQL_V[1]), argv[optind], argv[optind+1], 0) ) {
-					printf("%s\t%s\n", url_decode(SQL_V[0]), url_decode(SQL_V[1]));
+				if ( csync_match_file_host(url_decode(SQL_V(1)), argv[optind], argv[optind+1], 0) ) {
+					printf("%s\t%s\n", url_decode(SQL_V(0)), url_decode(SQL_V(1)));
 					retval = -1;
 				}
 			} SQL_END;
@@ -769,9 +769,9 @@ found_a_group:;
 			SQL_BEGIN("DB Dump - Dirty",
 				"SELECT force, myname, peername, filename FROM dirty ORDER BY filename")
 			{
-				if (csync_find_next(0, url_decode(SQL_V[3]))) {
-					printf("%s\t%s\t%s\t%s\n", atoi(SQL_V[0]) ?  "force" : "chary",
-						url_decode(SQL_V[1]), url_decode(SQL_V[2]), url_decode(SQL_V[3]));
+				if (csync_find_next(0, url_decode(SQL_V(3)))) {
+					printf("%s\t%s\t%s\t%s\n", atoi(SQL_V(0)) ?  "force" : "chary",
+						url_decode(SQL_V(1)), url_decode(SQL_V(2)), url_decode(SQL_V(3)));
 					retval = -1;
 				}
 			} SQL_END;

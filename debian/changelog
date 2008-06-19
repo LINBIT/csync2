@@ -1,3 +1,9 @@
+csync2 (1.34-2) unstable; urgency=low
+
+  * sqlite3 integration
+
+ -- Ard van Breemen <ard@telegraafnet.nl>  Wed, 18 Jun 2008 13:13:22 +0200
+
 csync2 (1.34-1) unstable; urgency=low
 
   * New Upstream Version.

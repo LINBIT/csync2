@@ -100,11 +100,14 @@ extern void csync_db_fin(void *vmx, const char *err);
 	void *SQL_VM = csync_db_begin(SQL_ERR, s, ##__VA_ARGS__); \
 	int SQL_COUNT = 0; \
 	while (1) { \
-		const char **SQL_V, **SQL_N; \
+		const char **dataSQL_V, **dataSQL_N; \
 		int SQL_C; \
 		if ( !csync_db_next(SQL_VM, SQL_ERR, \
-					&SQL_C, &SQL_V, &SQL_N) ) break; \
+					&SQL_C, &dataSQL_V, &dataSQL_N) ) break; \
 		SQL_COUNT++;
+
+#define SQL_V(col) \
+	(dataSQL_V[(col)])
 
 #define SQL_FIN }{
 

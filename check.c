@@ -159,7 +159,7 @@ void csync_check_del(const char *file, int recursive, int init_run)
 			"SELECT filename from file where "
 			"filename = '%s' %s ORDER BY filename", url_encode(file), where_rec)
 	{
-		const char *filename = url_decode(SQL_V[0]);
+		const char *filename = url_decode(SQL_V(0));
 		if ( lstat_strict(prefixsubst(filename), &st) != 0 || csync_check_pure(filename) )
 			textlist_add(&tl, filename, 0);
 	} SQL_END;
@@ -231,7 +231,7 @@ int csync_check_mod(const char *file, int recursive, int ignnoent, int init_run)
 			"filename = '%s'", url_encode(file))
 		{
 			if ( !csync_cmpchecktxt(checktxt,
-						url_decode(SQL_V[0])) ) {
+						url_decode(SQL_V(0))) ) {
 				csync_debug(2, "File has changed: %s\n", file);
 				this_is_dirty = 1;
 			}

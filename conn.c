@@ -181,7 +181,7 @@ int conn_check_peer_cert(const char *peername, int callfatal)
 			"SELECT certdata FROM x509_cert WHERE peername = '%s'",
 			url_encode(peername))
 		{
-			if (!strcmp(SQL_V[0], certdata))
+			if (!strcmp(SQL_V(0), certdata))
 				cert_is_ok = 1;
 			else
 				cert_is_ok = 0;

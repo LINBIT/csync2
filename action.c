@@ -69,7 +69,7 @@ void csync_run_single_command(const char *command, const char *logfile)
 			"SELECT filename from action WHERE command = '%s' "
 			"and logfile = '%s'", command, logfile)
 	{
-		textlist_add(&tl, SQL_V[0], 0);
+		textlist_add(&tl, SQL_V(0), 0);
 	} SQL_END;
 
 	mark = strstr(command_clr, "%%");
@@ -130,7 +130,7 @@ void csync_run_commands()
 	SQL_BEGIN("Checking for sceduled commands",
 			"SELECT command, logfile FROM action GROUP BY command, logfile")
 	{
-		textlist_add2(&tl, SQL_V[0], SQL_V[1], 0);
+		textlist_add2(&tl, SQL_V(0), SQL_V(1), 0);
 	} SQL_END;
 
 	for (t = tl; t != 0; t = t->next)
