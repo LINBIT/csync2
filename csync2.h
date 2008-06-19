@@ -91,9 +91,13 @@ extern void* csync_db_begin(const char *err, const char *fmt, ...);
 extern int csync_db_next(void *vmx, const char *err,
 		int *pN, const char ***pazValue, const char ***pazColName);
 extern void csync_db_fin(void *vmx, const char *err);
+#if defined(HAVE_LIBSQLITE3)
+extern void * csync_db_colblob(void *stmtx,int col);
+#endif
 
 #define SQL(e, s, ...) csync_db_sql(e, s, ##__VA_ARGS__)
 
+#if defined(HAVE_LIBSQLITE)
 #define SQL_BEGIN(e, s, ...) \
 { \
 	char *SQL_ERR = e; \
@@ -108,6 +112,25 @@ extern void csync_db_fin(void *vmx, const char *err);
 
 #define SQL_V(col) \
 	(dataSQL_V[(col)])
+#endif
+
+#if defined(HAVE_LIBSQLITE3)
+
+#define SQL_BEGIN(e, s, ...) \
+{ \
+	char *SQL_ERR = e; \
+	void *SQL_VM = csync_db_begin(SQL_ERR, s, ##__VA_ARGS__); \
+	int SQL_COUNT = 0; \
+	while (1) { \
+		const char **dataSQL_V, **dataSQL_N; \
+		int SQL_C; \
+		if ( !csync_db_next(SQL_VM, SQL_ERR, \
+					&SQL_C, &dataSQL_V, &dataSQL_N) ) break; \
+		SQL_COUNT++;
+
+#define SQL_V(col) \
+	(csync_db_colblob(SQL_VM,(col)))
+#endif
 
 #define SQL_FIN }{
 

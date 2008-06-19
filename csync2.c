@@ -504,8 +504,14 @@ int main(int argc, char ** argv)
 			cfgname = strdup(url_decode(para));
 	}
 
+#if defined(HAVE_LIBSQLITE)
+#define DBEXTENSION ".db"
+#endif
+#if defined(HAVE_LIBSQLITE3)
+#define DBEXTENSION ".db3"
+#endif
 	if ( !*cfgname ) {
-		asprintf(&file_database, "%s/%s.db", dbdir, myhostname);
+		asprintf(&file_database, "%s/%s" DBEXTENSION, dbdir, myhostname);
 		asprintf(&file_config, ETCDIR "/csync2.cfg");
 	} else {
 		int i;
@@ -518,7 +524,7 @@ int main(int argc, char ** argv)
 				return mode != MODE_INETD;
 			}
 
-		asprintf(&file_database, "%s/%s_%s.db", dbdir, myhostname, cfgname);
+		asprintf(&file_database, "%s/%s_%s" DBEXTENSION, dbdir, myhostname, cfgname);
 		asprintf(&file_config, ETCDIR "/csync2_%s.cfg", cfgname);
 	}
 

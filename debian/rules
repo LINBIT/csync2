@@ -21,6 +21,7 @@ endif
 configure: configure-stamp
 configure-stamp:
 	dh_testdir
+	#./configure CFLAGS="$(CFLAGS)" --disable-sqlite3
 	./configure CFLAGS="$(CFLAGS)"
 	touch configure-stamp
 

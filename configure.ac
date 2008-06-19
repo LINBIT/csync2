@@ -42,6 +42,22 @@ AC_ARG_WITH([librsync-source],
 )
 AM_CONDITIONAL([PRIVATE_LIBRSYNC], [test -n "$librsync_source_file"])
 
+AC_ARG_ENABLE([sqlite3],
+	[AC_HELP_STRING([--disable-sqlite3],
+		[enable/disable sqlite3 support (default is enabled)])],
+	[], [ enable_sqlite3=yes ])
+
+if test "$enable_sqlite3" != no
+then
+# Check for libsqlite3.
+AC_ARG_WITH([libsqlite-source],
+	AS_HELP_STRING([--with-libsqlite-source=source-tar-file],
+		[build this libsqlite and link statically against it (hack! hack!)]),
+	AC_SUBST([libsqlite_source_file], $withval),
+	AC_CHECK_LIB([sqlite3], [sqlite3_exec], , [AC_MSG_ERROR(libsqlite3 is required)])
+)
+AM_CONDITIONAL([PRIVATE_LIBSQLITE], [test -n "$libsqlite_source_file"])
+else
 # Check for libsqlite.
 AC_ARG_WITH([libsqlite-source],
 	AS_HELP_STRING([--with-libsqlite-source=source-tar-file],
@@ -50,6 +66,7 @@ AC_ARG_WITH([libsqlite-source],
 	AC_CHECK_LIB([sqlite], [sqlite_exec], , [AC_MSG_ERROR(libsqlite is required)])
 )
 AM_CONDITIONAL([PRIVATE_LIBSQLITE], [test -n "$libsqlite_source_file"])
+fi
 
 AC_ARG_ENABLE([gnutls],
 	[AC_HELP_STRING([--disable-gnutls],
