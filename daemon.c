@@ -507,7 +507,7 @@ found_asactive: ;
 			break;
 		case A_BYE:
 			for (i=0; i<32; i++)
-				tag[i] = strdup(url_decode(tag[i]));
+				free(tag[i]);
 			conn_printf("OK (cu_later).\n");
 			return;
 		}
@@ -529,7 +529,7 @@ abort_cmd:
 
 next_cmd:
 		for (i=0; i<32; i++)
-			tag[i] = strdup(url_decode(tag[i]));
+			free(tag[i]);
 	}
 }
 
