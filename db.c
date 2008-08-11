@@ -248,7 +248,7 @@ void* csync_db_begin(const char *err, const char *fmt, ...)
 
 	while (1) {
 		IFESQL3(
-			rc = sqlite3_prepare(db, sql, 0, &stmt, 0);,
+			rc = sqlite3_prepare(db, sql, -1, &stmt, 0);,
 			rc = sqlite_compile(db, sql, 0, &vm, 0);
 		)
 		if ( rc != SQLITE_BUSY ) break;
