@@ -150,8 +150,8 @@ void csync_check_del(const char *file, int recursive, int init_run)
 		if ( !strcmp(file, "/") )
 			asprintf(&where_rec, "or 1");
 		else
-			asprintf(&where_rec, "or (filename > '%s/' "
-					"and filename < '%s0')",
+			asprintf(&where_rec, "UNION ALL SELECT filename from file where filename > '%s/' "
+					"and filename < '%s0'",
 					url_encode(file), url_encode(file));
 	}
 

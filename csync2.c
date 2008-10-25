@@ -685,8 +685,8 @@ found_a_group:;
 					if ( !strcmp(realname, "/") )
 						asprintf(&where_rec, "or 1");
 					else
-						asprintf(&where_rec, "or (filename > '%s/' "
-							"and filename < '%s0')",
+						asprintf(&where_rec, "UNION ALL SELECT filename from file where filename > '%s/' "
+							"and filename < '%s0'",
 							url_encode(realname), url_encode(realname));
 				}
 
