@@ -648,8 +648,10 @@ found_a_group:;
 		case MODE_MARK:
 			for (i=optind; i < argc; i++) {
 				char *realname = getrealfn(argv[i]);
+				char *pfname;
 				csync_check_usefullness(realname, recursive);
-				csync_mark(realname, 0, 0);
+				pfname=strdup(prefixencode(realname));
+				csync_mark(pfname, 0, 0);
 
 				if ( recursive ) {
 					char *where_rec = "";
@@ -657,19 +659,20 @@ found_a_group:;
 					if ( !strcmp(realname, "/") )
 						asprintf(&where_rec, "or 1");
 					else
-						asprintf(&where_rec, "or (filename > '%s/' "
-							"and filename < '%s0')",
-							url_encode(realname), url_encode(realname));
+						asprintf(&where_rec, "UNION ALL SELECT filename from file where filename > '%s/' "
+							"and filename < '%s0'",
+							url_encode(pfname), url_encode(pfname));
 
 					SQL_BEGIN("Adding dirty entries recursively",
 						"SELECT filename FROM file WHERE filename = '%s' %s",
-						url_encode(realname), where_rec)
+						url_encode(pfname), where_rec)
 					{
-						char *filename = strdup(url_encode(SQL_V(0)));
+						char *filename = strdup(url_decode(SQL_V(0)));
 						csync_mark(filename, 0, 0);
 						free(filename);
 					} SQL_END;
 				}
+				free(pfname);
 			}
 			break;
 

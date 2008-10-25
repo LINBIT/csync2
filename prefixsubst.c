@@ -56,3 +56,35 @@ const char *prefixsubst(const char *in)
 	return 0;
 }
 
+const char *prefixencode(const char *filename) {
+#if __CYGWIN__
+	if (!strcmp(filename, "/")) {
+		filename = "/cygdrive";
+	}
+#endif
+	struct csync_prefix *p = csync_prefix;
+
+	/*
+	 * Canonicalized paths will always contain /
+	 * Prefixsubsted paths will probably contain %
+	 */
+	if (*filename == '/')
+		while (p) {
+			if (p->path) {
+				int p_len = strlen(p->path);
+				int f_len = strlen(filename);
+
+				if (p_len <= f_len && !strncmp(p->path, filename, p_len) &&
+						(filename[p_len] == '/' || !filename[p_len])) {
+					ringbuff_counter = (ringbuff_counter+1) % RINGBUFF_LEN;
+					if (ringbuff[ringbuff_counter])
+						free(ringbuff[ringbuff_counter]);
+					asprintf(&ringbuff[ringbuff_counter], "%%%s%%%s", p->name, filename+p_len);
+					return ringbuff[ringbuff_counter];
+				}
+			}
+			p = p->next;
+		}
+	return filename;
+}
+

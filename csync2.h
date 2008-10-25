@@ -196,6 +196,7 @@ const char *url_decode(const char *in);
 
 /* another ringbuffer here. so use it with care!! */
 const char *prefixsubst(const char *in);
+const char *prefixencode(const char *filename);
 
 
 /* textlist implementation */
