@@ -235,7 +235,9 @@ static int csync_server_loop(int single_connect)
 	if ( bind(listenfd, (struct sockaddr *) &addr, sizeof(addr)) < 0 ) goto error;
 	if ( listen(listenfd, 5) < 0 ) goto error;
 
+	/* we want to "cleanly" shutdown if the connection is lost unexpectedly */
 	signal(SIGPIPE, SIG_IGN);
+	/* server is not interested in its childs, prevent zombies */
 	signal(SIGCHLD, SIG_IGN);
 
 	printf("Csync2 daemon running. Waiting for connections.\n");
@@ -248,6 +250,9 @@ static int csync_server_loop(int single_connect)
 		fflush(stdout); fflush(stderr);
 
 		if (single_connect || !fork()) {
+			/* need to restore default SIGCHLD handler in the session,
+			 * as we may need to wait on them in action.c */
+			signal(SIGCHLD, SIG_DFL);
 			csync_server_child_pid = getpid();
 			fprintf(stderr, "<%d> New connection from %s:%u.\n",
 				csync_server_child_pid,
