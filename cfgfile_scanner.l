@@ -56,6 +56,7 @@ int include_stack_ptr = 0;
 "exec"		{ return TK_EXEC; }
 "logfile"	{ return TK_LOGFILE; }
 "do-local"	{ return TK_DOLOCAL; }
+"do-local-only"	{ return TK_DOLOCALONLY; }
 
 "prefix"	{ return TK_PREFIX; }
 "on"		{ return TK_ON; }

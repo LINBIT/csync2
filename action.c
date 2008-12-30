@@ -38,6 +38,8 @@ void csync_schedule_commands(const char *filename, int islocal)
 
 	while ( (g=csync_find_next(g, filename)) ) {
 		for (a=g->action; a; a=a->next) {
+			if ( !islocal && a->do_local_only )
+				continue;
 			if ( islocal && !a->do_local )
 				continue;
 			if (!a->pattern)

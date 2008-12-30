@@ -280,6 +280,7 @@ struct csync_group_action {
 	struct csync_group_action_command *command;
 	const char *logfile;
 	int do_local;
+	int do_local_only;
 };
 
 struct csync_group {

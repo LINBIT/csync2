@@ -231,6 +231,7 @@ group mygroup                           # A synchronization group (see 3.4.1)
                 exec "/usr/sbin/apache2ctl graceful";
                 logfile "/var/log/csync2_action.log";
                 do-local;
+                # do-local-only;
         }
 
         backup-directory /var/backups/csync2;
@@ -379,7 +380,8 @@ The output of the command is appended to the specified logfile, or to
 Usually the action is only triggered on the targed hosts, not on the host on
 which the file modification has been detected in the first place. The {\tt
 do-local} statement can be used to change this behavior and let \csync2 also
-execute the command on the host from which the modification originated.
+execute the command on the host from which the modification originated. You can 
+use {\ttdo-local-only} to execute the action only on this machine. 
 
 \subsubsection{Conflict Auto-resolving}
 

@@ -304,6 +304,12 @@ static void set_action_dolocal()
 	csync_group->action->do_local = 1;
 }
 
+static void set_action_dolocal_only()
+{
+	csync_group->action->do_local = 1;
+	csync_group->action->do_local_only = 1;
+}
+
 static void new_prefix(const char *pname)
 {
 	struct csync_prefix *p =
@@ -395,7 +401,7 @@ static void disable_cygwin_lowercase_hack()
 %token TK_NOSSL TK_IGNORE TK_GROUP TK_HOST TK_EXCL TK_INCL TK_COMP TK_KEY
 %token TK_ACTION TK_PATTERN TK_EXEC TK_DOLOCAL TK_LOGFILE TK_NOCYGLOWER
 %token TK_PREFIX TK_ON TK_COLON TK_POPEN TK_PCLOSE
-%token TK_BAK_DIR TK_BAK_GEN
+%token TK_BAK_DIR TK_BAK_GEN TK_DOLOCALONLY
 %token <txt> TK_STRING
 
 %%
@@ -517,6 +523,8 @@ action_stmt:
 		{ set_action_logfile($2); }
 |	TK_DOLOCAL
 		{ set_action_dolocal(); }
+|	TK_DOLOCALONLY
+		{ set_action_dolocal_only(); }
 ;
 
 action_pattern_list:
