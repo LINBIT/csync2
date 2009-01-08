@@ -54,7 +54,7 @@ Authors:
 %{?suse_update_config:%{suse_update_config}}
 
 %build
-export CFLAGS="$RPM_OPT_FLAGS -D_FILE_OFFSET_BITS=64 -I/usr/kerberos/include"
+export CFLAGS="$RPM_OPT_FLAGS -I/usr/kerberos/include"
 if ! [ -f configure ]; then ./autogen.sh; fi
 %configure
 

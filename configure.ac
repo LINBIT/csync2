@@ -33,6 +33,9 @@ AC_PROG_INSTALL
 AC_PROG_YACC
 AM_PROG_LEX
 
+# check for large file support
+AC_SYS_LARGEFILE
+
 # Check for librsync.
 AC_ARG_WITH([librsync-source],
 	AS_HELP_STRING([--with-librsync-source=source-tar-file],
