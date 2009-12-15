@@ -25,10 +25,40 @@
 #include <errno.h>
 #include <stdio.h>
 
+/* for tmpfile replacement: */
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
+
 #ifdef __CYGWIN__
 #include <w32api/windows.h>
 #endif
 
+#ifdef _SVID_SOURCE
+static FILE *paranoid_tmpfile()
+{
+	char *name;
+	FILE *f;
+	int fd;
+
+	name = tempnam(csync_tempdir, "csync2");
+	if (!name)
+		csync_fatal("ERROR: tempnam() didn't return a valid filename!\n");
+
+	f = NULL;
+	fd = open(name, O_CREAT | O_EXCL | O_RDWR, S_IWUSR | S_IRUSR);
+	if (fd >= 0) {
+		f = fdopen(fd, "wb+");
+		unlink(name);
+	}
+	if (fd < 0 || !f)
+		csync_fatal("ERROR: Could not open result from tempnam(%s)!\n", name);
+
+	free(name);
+	return f;
+}
+#else
 static FILE *paranoid_tmpfile()
 {
 	FILE *f;
@@ -41,6 +71,7 @@ static FILE *paranoid_tmpfile()
 
 	return f;
 }
+#endif
 
 void csync_send_file(FILE *in)
 {

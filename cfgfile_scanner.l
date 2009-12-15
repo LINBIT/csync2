@@ -61,6 +61,7 @@ int include_stack_ptr = 0;
 "prefix"	{ return TK_PREFIX; }
 "on"		{ return TK_ON; }
 
+"tempdir"		{ return TK_TEMPDIR; }
 "backup-directory"	{ return TK_BAK_DIR; }
 "backup-generations"	{ return TK_BAK_GEN; }
 

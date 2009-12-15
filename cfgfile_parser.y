@@ -33,6 +33,7 @@ struct csync_nossl  *csync_nossl  = 0;
 int csync_ignore_uid = 0;
 int csync_ignore_gid = 0;
 int csync_ignore_mod = 0;
+char *csync_tempdir = NULL;
 
 #ifdef __CYGWIN__
 int csync_lowercyg_disable = 0;
@@ -310,6 +311,11 @@ static void set_action_dolocal_only()
 	csync_group->action->do_local_only = 1;
 }
 
+static void set_tempdir(const char *tempdir)
+{
+	csync_tempdir = strdup(tempdir);
+}
+
 static void new_prefix(const char *pname)
 {
 	struct csync_prefix *p =
@@ -402,6 +408,7 @@ static void disable_cygwin_lowercase_hack()
 %token TK_ACTION TK_PATTERN TK_EXEC TK_DOLOCAL TK_LOGFILE TK_NOCYGLOWER
 %token TK_PREFIX TK_ON TK_COLON TK_POPEN TK_PCLOSE
 %token TK_BAK_DIR TK_BAK_GEN TK_DOLOCALONLY
+%token TK_TEMPDIR
 %token <txt> TK_STRING
 
 %%
@@ -419,6 +426,8 @@ block:
 		{ }
 |	TK_NOSSL TK_STRING TK_STRING TK_STEND
 		{ new_nossl($2, $3); }
+|	TK_TEMPDIR TK_STRING TK_STEND
+		{ set_tempdir($2); }
 |	TK_IGNORE ignore_list TK_STEND
 |	TK_NOCYGLOWER TK_STEND
 		{ disable_cygwin_lowercase_hack(); }
