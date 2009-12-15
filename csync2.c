@@ -190,7 +190,7 @@ PACKAGE_STRING " - cluster synchronization tool, 2nd generation\n"
 int create_keyfile(const char *filename)
 {
 	int fd = open(filename, O_WRONLY|O_CREAT|O_EXCL, 0600);
-	int rand = open("/dev/random", O_RDONLY);
+	int rand = open("/dev/urandom", O_RDONLY);
 	char matrix[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._";
 	unsigned char n;
 	int i;
@@ -201,7 +201,7 @@ int create_keyfile(const char *filename)
 		return 1;
 	}
 	if ( rand == -1 ) {
-		fprintf(stderr, "Can't open /dev/random: %s\n", strerror(errno));
+		fprintf(stderr, "Can't open /dev/urandom: %s\n", strerror(errno));
 		return 1;
 	}
 	for (i=0; i<64; i++) {
