@@ -51,7 +51,7 @@ static IFESQL3(sqlite3,sqlite) *db = 0;
 
 static int get_dblock_timeout()
 {
-	return getpid() % 7 + csync2_lock_timeout;
+	return getpid() % 7 + csync_lock_timeout;
 }
 
 

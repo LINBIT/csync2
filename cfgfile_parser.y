@@ -33,7 +33,7 @@ struct csync_nossl  *csync_nossl  = 0;
 int csync_ignore_uid = 0;
 int csync_ignore_gid = 0;
 int csync_ignore_mod = 0;
-unsigned csync2_lock_timeout = 12;
+unsigned csync_lock_timeout = 12;
 char *csync_tempdir = NULL;
 
 #ifdef __CYGWIN__
