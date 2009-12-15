@@ -130,6 +130,7 @@ void csync_debug(int lv, const char *fmt, ...)
 	va_start(ap, fmt);
 	vfprintf(csync_debug_out, fmt, ap);
 	va_end(ap);
+	fprintf(csync_debug_out,"\n");
 
 	csync_messages_printed++;
 }
