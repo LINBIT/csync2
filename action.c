@@ -109,7 +109,7 @@ void csync_run_single_command(const char *command, const char *logfile)
 		/* 1 */ open(logfile_clr, O_WRONLY|O_CREAT|O_APPEND, 0666);
 		/* 2 */ open(logfile_clr, O_WRONLY|O_CREAT|O_APPEND, 0666);
 
-		execl("/bin/sh", "sh", "-c", real_command, 0);
+		execl("/bin/sh", "sh", "-c", real_command, NULL);
 		_exit(127);
 	}
 
