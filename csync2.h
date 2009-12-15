@@ -329,6 +329,7 @@ extern struct csync_group  *csync_group;
 extern struct csync_prefix *csync_prefix;
 extern struct csync_nossl  *csync_nossl;
 
+extern unsigned csync_lock_timeout;
 extern char *csync_tempdir;
 
 extern int csync_error_count;

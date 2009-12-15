@@ -46,12 +46,12 @@ int db_sync_mode = 1;
 #define IFSQL3(a)
 #define SQL_EXEC sqlite_exec
 #endif
-	
+
 static IFESQL3(sqlite3,sqlite) *db = 0;
 
 static int get_dblock_timeout()
 {
-	return getpid() % 7 + 12;
+	return getpid() % 7 + csync2_lock_timeout;
 }
 
 
