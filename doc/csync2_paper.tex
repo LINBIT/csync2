@@ -434,6 +434,20 @@ is only valid in the root context and accepts the parameters {\tt uid}, {\tt
 gid} and {\tt mod} to turn off handling of user-ids, group-ids and file
 permissions.
 
+\subsubsection{The {\tt tempdir} statement}
+
+The {\tt tempdir} statement specifies the directory to be used for temporary
+files while receiving data through librsync. Note that internally, csync2 uses
+a wrapper around tempnam(3), so the {\tt TMPDIR} environment variable will be
+considered first, then the directory defined here, and if that does not work out,
+the system default or {\tt /tmp} will be used.
+
+\subsubsection{The {\tt lock-timeout} statement}
+
+The {\tt lock-timeout} statement specifies the seconds to wait wor a database lock
+before giving up. Default is 12 seconds. The amount will be slightly randomized
+with a jitter of up to 6 seconds based on the respective process id.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{figure*}[t]
