@@ -210,10 +210,41 @@ struct csync_command cmdtab[] = {
 	{ 0,		0, 0, 0, 0, 0, 0	}
 };
 
+/*
+ * Loops (to cater for multihomed peers) through the address list returned by
+ * gethostbyname(), returns 1 if any match with the address obtained from
+ * getpeername() during session startup.
+ * Otherwise returns 0 (-> identification failed).
+ *
+ * TODO switch to a more getnameinfo in conn_open,
+ * switch to getaddrinfo here (so we don't have to assume AF_INET).
+ * TODO add a "pre-authenticated" pipe mode for use over ssh */
+int verify_peername(const char *name, struct sockaddr_in *peeraddr)
+{
+	char **a;
+	struct hostent *hp;
+
+	hp = gethostbyname(name);
+	/* note: the sin_family vs. h_addrtype check
+	 * is alread AF_INET and AF_INET6, but ... */
+	if ( hp == NULL || peeraddr->sin_family != hp->h_addrtype )
+		return 0;
+
+	a = hp->h_addr_list;
+	while (*a) {
+		/* ... but this is broken for AF_INET6!
+		 * it will give false matches for very many cases.
+		 * See the todos above. */
+		if (!memcmp(*a, &peeraddr->sin_addr, hp->h_length))
+			return conn_check_peer_cert(name, 0);
+		++a;
+	}
+	return 0;
+}
+
 void csync_daemon_session()
 {
 	struct sockaddr_in peername;
-	struct hostent *hp;
 	int peerlen = sizeof(struct sockaddr_in);
 	char line[4096], *peer=0, *tag[32];
 	int i;
@@ -454,14 +485,14 @@ void csync_daemon_session()
 				csync_debug_level = atoi(tag[1]);
 			break;
 		case A_HELLO:
-			if (peer) free(peer);
-			hp = gethostbyname(tag[1]);
-			if ( hp != 0 && peername.sin_family == hp->h_addrtype &&
-			     !memcmp(hp->h_addr, &peername.sin_addr, hp->h_length) &&
-			     conn_check_peer_cert(tag[1], 0)) {
+			if (peer) {
+				free(peer);
+				peer = NULL;
+			}
+			if (verify_peername(tag[1], &peername)) {
 				peer = strdup(tag[1]);
 			} else {
-				peer = 0;
+				peer = NULL;
 				cmd_error = "Identification failed!";
 				break;
 			}
