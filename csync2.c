@@ -36,6 +36,7 @@
 #include <errno.h>
 #include <signal.h>
 #include <ctype.h>
+#include <netdb.h>
 
 #ifdef REAL_DBDIR
 #  undef DBDIR
@@ -48,6 +49,7 @@ static char *dbdir = DBDIR;
 char *cfgname = "";
 
 char myhostname[256] = "";
+char *csync_port = "30865";
 char *active_grouplist = 0;
 char *active_peerlist = 0;
 
@@ -61,7 +63,6 @@ FILE *csync_debug_out = 0;
 int csync_server_child_pid = 0;
 int csync_timestamps = 0;
 int csync_new_force = 0;
-int csync_port = 30865;
 
 int csync_dump_dir_fd = -1;
 
@@ -214,26 +215,74 @@ int create_keyfile(const char *filename)
 	return 0;
 }
 
-static int csync_server_loop(int single_connect)
+static int csync_server_bind(void)
 {
 	struct linger sl = { 1, 5 };
-	struct sockaddr_in addr;
-	int on = 1;
+	struct addrinfo hints;
+	struct addrinfo *result, *rp;
+	int save_errno;
+	int sfd, s, on = 1;
 
-	int listenfd = socket(AF_INET, SOCK_STREAM, 0);
+	memset(&hints, 0, sizeof(struct addrinfo));
+	hints.ai_family = AF_UNSPEC;	/* Allow IPv4 or IPv6 */
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_flags = AI_PASSIVE;
+
+	s = getaddrinfo(NULL, csync_port, &hints, &result);
+	if (s != 0) {
+		csync_debug(1, "Cannot prepare local socket, getaddrinfo: %s\n", gai_strerror(s));
+		return -1;
+	}
+
+	/* getaddrinfo() returns a list of address structures.
+	   Try each address until we successfully bind(2).
+	   If socket(2) (or bind(2)) fails, we (close the socket
+	   and) try the next address. */
+
+	for (rp = result; rp != NULL; rp = rp->ai_next) {
+		sfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+		if (sfd == -1)
+			continue;
+
+		if (setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &on, (socklen_t) sizeof(on)) < 0)
+			goto error;
+		if (setsockopt(sfd, SOL_SOCKET, SO_LINGER, &sl, (socklen_t) sizeof(sl)) < 0)
+			goto error;
+		if (setsockopt(sfd, IPPROTO_TCP, TCP_NODELAY, &on, (socklen_t) sizeof(on)) < 0)
+			goto error;
+
+		if (bind(sfd, rp->ai_addr, rp->ai_addrlen) == 0)
+			break;	/* Success */
+
+		close(sfd);
+	}
+
+	freeaddrinfo(result);	/* No longer needed */
+
+	if (rp == NULL)	/* No address succeeded */
+		return -1;
+
+	return sfd;
+
+error:
+	save_errno = errno;
+	close(sfd);
+	errno = save_errno;
+	return -1;
+}
+
+static int csync_server_loop(int single_connect)
+{
+	union {
+		struct sockaddr sa;
+		struct sockaddr_in sa_in;
+		struct sockaddr_in6 sa_in6;
+		struct sockaddr_storage ss;
+	} addr;
+	int listenfd = csync_server_bind();
 	if (listenfd < 0) goto error;
 
-	bzero(&addr, sizeof(addr));
-	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	addr.sin_port = htons(csync_port);
-
-	if ( setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &on, (socklen_t) sizeof(on)) < 0 ) goto error;
-	if ( setsockopt(listenfd, SOL_SOCKET, SO_LINGER, &sl, (socklen_t) sizeof(sl)) < 0 ) goto error;
-	if ( setsockopt(listenfd, IPPROTO_TCP, TCP_NODELAY, &on, (socklen_t) sizeof(on)) < 0 ) goto error;
-
-	if ( bind(listenfd, (struct sockaddr *) &addr, sizeof(addr)) < 0 ) goto error;
-	if ( listen(listenfd, 5) < 0 ) goto error;
+	if (listen(listenfd, 5) < 0) goto error;
 
 	/* we want to "cleanly" shutdown if the connection is lost unexpectedly */
 	signal(SIGPIPE, SIG_IGN);
@@ -244,20 +293,23 @@ static int csync_server_loop(int single_connect)
 
 	while (1) {
 		int addrlen = sizeof(addr);
-		int conn = accept(listenfd, (struct sockaddr *) &addr, &addrlen);
+		int conn = accept(listenfd, &addr.sa, &addrlen);
 		if (conn < 0) goto error;
 
 		fflush(stdout); fflush(stderr);
 
 		if (single_connect || !fork()) {
+			char hbuf[NI_MAXHOST], sbuf[NI_MAXSERV];
 			/* need to restore default SIGCHLD handler in the session,
 			 * as we may need to wait on them in action.c */
 			signal(SIGCHLD, SIG_DFL);
 			csync_server_child_pid = getpid();
-			fprintf(stderr, "<%d> New connection from %s:%u.\n",
-				csync_server_child_pid,
-				inet_ntoa(addr.sin_addr),
-				ntohs(addr.sin_port));
+			if (getnameinfo(&addr.sa, addrlen,
+					hbuf, sizeof(hbuf), sbuf, sizeof(sbuf),
+					NI_NUMERICHOST | NI_NUMERICSERV) != 0)
+				goto error;
+			fprintf(stderr, "<%d> New connection from %s:%s.\n",
+				csync_server_child_pid, hbuf, sbuf);
 			fflush(stderr);
 
 			dup2(conn, 0);
@@ -319,7 +371,7 @@ int main(int argc, char ** argv)
 				csync_timestamps = 1;
 				break;
 			case 'p':
-				csync_port = atoi(optarg);
+				csync_port = strdup(optarg);
 				break;
 			case 'G':
 				active_grouplist = optarg;

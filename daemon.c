@@ -23,6 +23,7 @@
 #include <sys/stat.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <string.h>
 #include <fnmatch.h>
 #include <stdlib.h>
@@ -210,47 +211,152 @@ struct csync_command cmdtab[] = {
 	{ 0,		0, 0, 0, 0, 0, 0	}
 };
 
+typedef union address {
+	struct sockaddr sa;
+	struct sockaddr_in sa_in;
+	struct sockaddr_in6 sa_in6;
+	struct sockaddr_storage ss;
+} address_t;
+
+const char *csync_inet_ntop(address_t *addr)
+{
+	char buf[INET6_ADDRSTRLEN];
+	char *pretty_print = NULL;
+	sa_family_t af = addr->sa.sa_family;
+	pretty_print = inet_ntop(af,
+		af == AF_INET  ? (void*)&addr->sa_in.sin_addr :
+		af == AF_INET6 ? (void*)&addr->sa_in6.sin6_addr : NULL,
+		&buf, sizeof(buf));
+	return pretty_print;
+}
+
 /*
  * Loops (to cater for multihomed peers) through the address list returned by
  * gethostbyname(), returns 1 if any match with the address obtained from
  * getpeername() during session startup.
  * Otherwise returns 0 (-> identification failed).
  *
- * TODO switch to a more getnameinfo in conn_open,
- * switch to getaddrinfo here (so we don't have to assume AF_INET).
+ * TODO switch to a getnameinfo in conn_open.
  * TODO add a "pre-authenticated" pipe mode for use over ssh */
-int verify_peername(const char *name, struct sockaddr_in *peeraddr)
+int verify_peername(const char *name, address_t *peeraddr)
 {
-	char **a;
-	struct hostent *hp;
+	sa_family_t af = peeraddr->sa.sa_family;
+	struct addrinfo hints;
+	struct addrinfo *result, *rp;
+	size_t len;
+	int try_mapped_ipv4;
+	int s;
 
-	hp = gethostbyname(name);
-	/* note: the sin_family vs. h_addrtype check
-	 * is alread AF_INET and AF_INET6, but ... */
-	if ( hp == NULL || peeraddr->sin_family != hp->h_addrtype )
+	/* Obtain address(es) matching host */
+	memset(&hints, 0, sizeof(struct addrinfo));
+	hints.ai_family = AF_UNSPEC;     /* Allow IPv4 or IPv6 */
+	hints.ai_socktype = SOCK_STREAM; /* Datagram socket */
+
+	s = getaddrinfo(name, NULL, &hints, &result);
+	if (s != 0) {
+		csync_debug(1, "getaddrinfo: %s\n", gai_strerror(s));
 		return 0;
-
-	a = hp->h_addr_list;
-	while (*a) {
-		/* ... but this is broken for AF_INET6!
-		 * it will give false matches for very many cases.
-		 * See the todos above. */
-		if (!memcmp(*a, &peeraddr->sin_addr, hp->h_length))
-			return conn_check_peer_cert(name, 0);
-		++a;
 	}
+
+	try_mapped_ipv4 =
+		af == AF_INET6 &&
+		!memcmp(&peeraddr->sa_in6.sin6_addr,
+			"\0\0\0\0" "\0\0\0\0" "\0\0\xff\xff", 12);
+
+	/* getaddrinfo() returns a list of address structures.
+	 * Try each address. */
+
+	for (rp = result; rp != NULL; rp = rp->ai_next) {
+		/* both IPv4 */
+		if (af == AF_INET && rp->ai_family == AF_INET &&
+		    !memcmp(&((struct sockaddr_in*)rp->ai_addr)->sin_addr,
+			    &peeraddr->sa_in.sin_addr, sizeof(struct in_addr)))
+			break;
+		/* both IPv6 */
+		if (af == AF_INET6 && rp->ai_family == AF_INET6 &&
+		    !memcmp(&((struct sockaddr_in6*)rp->ai_addr)->sin6_addr,
+			    &peeraddr->sa_in6.sin6_addr, sizeof(struct in6_addr)))
+			break;
+		/* peeraddr IPv6, but actually ::ffff:I.P.v.4,
+		 * and forward lookup returned IPv4 only */
+		if (af == AF_INET6 && rp->ai_family == AF_INET &&
+		    try_mapped_ipv4 &&
+		    !memcmp(&((struct sockaddr_in*)rp->ai_addr)->sin_addr,
+			    (unsigned char*)&peeraddr->sa_in6.sin6_addr + 12,
+			    sizeof(struct in_addr)))
+			break;
+	}
+	freeaddrinfo(result);
+	if (rp != NULL) /* memcmp found a match */
+		return conn_check_peer_cert(name, 0);
 	return 0;
+}
+
+/* Why do all this fuzz, and not simply --assume-authenticated?
+ * To limit the impact of an accidental misconfiguration.
+ */
+void set_peername_from_env(address_t *p, const char *env)
+{
+	struct addrinfo hints = {
+		.ai_family = AF_UNSPEC,
+		.ai_socktype = SOCK_STREAM,
+		.ai_flags = AI_NUMERICHOST | AI_NUMERICSERV,
+	};
+	struct addrinfo *result;
+	char *c;
+	int s;
+
+	char *val = getenv(env);
+	csync_debug(3, "getenv(%s): >>%s<<\n", env, val ?: "");
+	if (!val)
+		return;
+	val = strdup(val);
+	if (!val)
+		return;
+
+	c = strchr(val, ' ');
+	if (!c)
+		return;
+	*c = '\0';
+
+	s = getaddrinfo(val, NULL, &hints, &result);
+	if (s != 0) {
+		csync_debug(1, "getaddrinfo: %s\n", gai_strerror(s));
+		return;
+	}
+
+	/* getaddrinfo() may return a list of address structures.
+	 * Use the first one. */
+	if (result)
+		memcpy(p, result->ai_addr, result->ai_addrlen);
+	freeaddrinfo(result);
 }
 
 void csync_daemon_session()
 {
-	struct sockaddr_in peername;
-	int peerlen = sizeof(struct sockaddr_in);
+	struct stat sb;
+	address_t peername = { .sa.sa_family = AF_UNSPEC, };
+	socklen_t peerlen = sizeof(peername);
 	char line[4096], *peer=0, *tag[32];
 	int i;
 
-	if ( getpeername(0, (struct sockaddr*)&peername, &peerlen) == -1 )
-		csync_fatal("Can't run getpeername on fd 0: %s", strerror(errno));
+
+	if (fstat(0, &sb))
+		csync_fatal("Can't run fstat on fd 0: %s", strerror(errno));
+
+	switch (sb.st_mode & S_IFMT) {
+	case S_IFSOCK:
+		if ( getpeername(0, &peername.sa, &peerlen) == -1 )
+			csync_fatal("Can't run getpeername on fd 0: %s", strerror(errno));
+		break;
+	case S_IFIFO:
+		set_peername_from_env(&peername, "SSH_CLIENT");
+		break;
+		/* fall through */
+	default:
+		csync_fatal("I'm only talking to sockets or pipes! %x\n", sb.st_mode & S_IFMT);
+		break;
+	}
 
 	while ( conn_gets(line, 4096) ) {
 		int cmdnr;
@@ -277,13 +383,8 @@ void csync_daemon_session()
 		cmd_error = 0;
 
 		if ( cmdtab[cmdnr].need_ident && !peer ) {
-			union {
-				in_addr_t addr;
-				unsigned char oct[4];
-			} tmp;
-			tmp.addr = peername.sin_addr.s_addr;
-			conn_printf("Dear %d.%d.%d.%d, please identify first.\n",
-					tmp.oct[0], tmp.oct[1], tmp.oct[2], tmp.oct[3]);
+			conn_printf("Dear %s, please identify first.\n",
+				    csync_inet_ntop(&peername) ?: "stranger");
 			goto next_cmd;
 		}
 
@@ -563,4 +664,3 @@ next_cmd:
 			free(tag[i]);
 	}
 }
-

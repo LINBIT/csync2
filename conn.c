@@ -47,35 +47,61 @@ SSL_CTX *conn_ssl_ctx;
 SSL *conn_ssl;
 #endif
 
+
+/* getaddrinfo stuff mostly copied from its manpage */
+int conn_connect(const char *peername)
+{
+	struct addrinfo hints;
+	struct addrinfo *result, *rp;
+	int sfd, s, on = 1;
+
+	/* Obtain address(es) matching host/port */
+	memset(&hints, 0, sizeof(struct addrinfo));
+	hints.ai_family = AF_UNSPEC;	/* Allow IPv4 or IPv6 */
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_flags = 0;
+	hints.ai_protocol = 0;	/* Any protocol */
+
+	s = getaddrinfo(peername, csync_port, &hints, &result);
+	if (s != 0) {
+		csync_debug(1, "Cannot resolve peername, getaddrinfo: %s\n", gai_strerror(s));
+		return -1;
+	}
+
+	/* getaddrinfo() returns a list of address structures.
+	   Try each address until we successfully connect(2).
+	   If socket(2) (or connect(2)) fails, we (close the socket
+	   and) try the next address. */
+
+	for (rp = result; rp != NULL; rp = rp->ai_next) {
+		sfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+		if (sfd == -1)
+			continue;
+
+		if (connect(sfd, rp->ai_addr, rp->ai_addrlen) != -1)
+			break;	/* Success */
+
+		close(sfd);
+	}
+	freeaddrinfo(result);	/* No longer needed */
+
+	if (rp == NULL)	/* No address succeeded */
+		return -1;
+
+	return sfd;
+}
+
 int conn_open(const char *peername)
 {
-        struct sockaddr_in sin;
-        struct hostent *hp;
 	int on = 1;
 
-        hp = gethostbyname(peername);
-        if ( ! hp ) {
-                csync_debug(1, "Can't resolve peername.\n");
-                return -1;
-        }
-
-        conn_fd_in = socket(hp->h_addrtype, SOCK_STREAM, 0);
+        conn_fd_in = conn_connect(peername);
         if (conn_fd_in < 0) {
                 csync_debug(1, "Can't create socket.\n");
                 return -1;
         }
 
-        sin.sin_family = hp->h_addrtype;
-        bcopy(hp->h_addr, &sin.sin_addr, hp->h_length);
-        sin.sin_port = htons(csync_port);
-
-        if (connect(conn_fd_in, (struct sockaddr *)&sin, sizeof (sin)) < 0) {
-                csync_debug(1, "Can't connect to remote host.\n");
-		close(conn_fd_in); conn_fd_in = -1;
-                return -1;
-        }
-
-	if (setsockopt(conn_fd_in, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on) ) < 0 ) {
+	if (setsockopt(conn_fd_in, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on) ) < 0) {
                 csync_debug(1, "Can't set TCP_NODELAY option on TCP socket.\n");
 		close(conn_fd_in); conn_fd_in = -1;
                 return -1;
@@ -86,7 +112,6 @@ int conn_open(const char *peername)
 #ifdef HAVE_LIBGNUTLS_OPENSSL
 	csync_conn_usessl = 0;
 #endif
-
 	return 0;
 }
 
@@ -103,6 +128,7 @@ int conn_set(int infd, int outfd)
 
 	// when running in server mode, this has been done already
 	// in csync2.c with more restrictive error handling..
+	// FIXME don't even try in "ssh" mode
 	if ( setsockopt(conn_fd_out, IPPROTO_TCP, TCP_NODELAY, &on, (socklen_t) sizeof(on)) < 0 )
                 csync_debug(1, "Can't set TCP_NODELAY option on TCP socket.\n");
 
