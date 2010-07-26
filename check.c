@@ -160,6 +160,10 @@ void csync_check_del(const char *file, int recursive, int init_run)
 			"filename = '%s' %s ORDER BY filename", url_encode(file), where_rec)
 	{
 		const char *filename = url_decode(SQL_V(0));
+
+		if (!csync_match_file(filename))
+			continue;
+
 		if ( lstat_strict(prefixsubst(filename), &st) != 0 || csync_check_pure(filename) )
 			textlist_add(&tl, filename, 0);
 	} SQL_END;
