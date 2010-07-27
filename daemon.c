@@ -597,7 +597,7 @@ void csync_daemon_session()
 				cmd_error = "Identification failed!";
 				break;
 			}
-#ifdef HAVE_LIBGNUTLS_OPENSSL
+#ifdef HAVE_LIBGNUTLS
 			if (!csync_conn_usessl) {
 				struct csync_nossl *t;
 				for (t = csync_nossl; t; t=t->next) {

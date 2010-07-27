@@ -30,21 +30,20 @@
 #include <netdb.h>
 #include <errno.h>
 
-#ifdef HAVE_LIBGNUTLS_OPENSSL
+#ifdef HAVE_LIBGNUTLS
 #  include <gnutls/gnutls.h>
-#  include <gnutls/openssl.h>
+#  include <gnutls/x509.h>
 #endif
 
 int conn_fd_in  = -1;
 int conn_fd_out = -1;
 int conn_clisok = 0;
 
-#ifdef HAVE_LIBGNUTLS_OPENSSL
+#ifdef HAVE_LIBGNUTLS
 int csync_conn_usessl = 0;
 
-SSL_METHOD *conn_ssl_meth;
-SSL_CTX *conn_ssl_ctx;
-SSL *conn_ssl;
+static gnutls_session_t conn_tls_session;
+static gnutls_certificate_credentials_t conn_x509_cred;
 #endif
 
 
@@ -109,7 +108,7 @@ int conn_open(const char *peername)
 
 	conn_fd_out = conn_fd_in;
 	conn_clisok = 1;
-#ifdef HAVE_LIBGNUTLS_OPENSSL
+#ifdef HAVE_LIBGNUTLS
 	csync_conn_usessl = 0;
 #endif
 	return 0;
@@ -122,7 +121,7 @@ int conn_set(int infd, int outfd)
 	conn_fd_in  = infd;
 	conn_fd_out = outfd;
 	conn_clisok = 1;
-#ifdef HAVE_LIBGNUTLS_OPENSSL
+#ifdef HAVE_LIBGNUTLS
 	csync_conn_usessl = 0;
 #endif
 
@@ -136,43 +135,106 @@ int conn_set(int infd, int outfd)
 }
 
 
-#ifdef HAVE_LIBGNUTLS_OPENSSL
+#ifdef HAVE_LIBGNUTLS
 
-char *ssl_keyfile = ETCDIR "/csync2_ssl_key.pem";
-char *ssl_certfile = ETCDIR "/csync2_ssl_cert.pem";
+static void ssl_log(int level, const char* msg)
+{ csync_debug(level, "%s", msg); }
+
+static const char *ssl_keyfile = ETCDIR "/csync2_ssl_key.pem";
+static const char *ssl_certfile = ETCDIR "/csync2_ssl_cert.pem";
 
 int conn_activate_ssl(int server_role)
 {
-	static int sslinit = 0;
+	gnutls_alert_description_t alrt;
+	int err;
 
 	if (csync_conn_usessl)
 		return 0;
 
-	if (!sslinit) {
-		SSL_load_error_strings();
-		SSL_library_init();
-		sslinit=1;
+	gnutls_global_init();
+	gnutls_global_set_log_function(ssl_log);
+	gnutls_global_set_log_level(10);
+
+	gnutls_certificate_allocate_credentials(&conn_x509_cred);
+
+	err = gnutls_certificate_set_x509_key_file(conn_x509_cred, ssl_certfile, ssl_keyfile, GNUTLS_X509_FMT_PEM);
+	if(err != GNUTLS_E_SUCCESS) {
+		gnutls_certificate_free_credentials(conn_x509_cred);
+		gnutls_global_deinit();
+
+		csync_fatal(
+			"SSL: failed to use key file %s and/or certificate file %s: %s (%s)\n",
+			ssl_keyfile,
+			ssl_certfile,
+			gnutls_strerror(err),
+			gnutls_strerror_name(err)
+		);
 	}
 
-	conn_ssl_meth = (server_role ? SSLv23_server_method : SSLv23_client_method)();
-	conn_ssl_ctx = SSL_CTX_new(conn_ssl_meth);
+	if(server_role) {
+		gnutls_certificate_free_cas(conn_x509_cred);
 
-	if (SSL_CTX_use_PrivateKey_file(conn_ssl_ctx, ssl_keyfile, SSL_FILETYPE_PEM) <= 0)
-		csync_fatal("SSL: failed to use key file %s.\n", ssl_keyfile);
+		if(gnutls_certificate_set_x509_trust_file(conn_x509_cred, ssl_certfile, GNUTLS_X509_FMT_PEM) < 1) {
+			gnutls_certificate_free_credentials(conn_x509_cred);
+			gnutls_global_deinit();
 
-	if (SSL_CTX_use_certificate_file(conn_ssl_ctx, ssl_certfile, SSL_FILETYPE_PEM) <= 0)
-		csync_fatal("SSL: failed to use certificate file %s.\n", ssl_certfile);
+			csync_fatal(
+				"SSL: failed to use certificate file %s as CA.\n",
+				ssl_certfile
+			);
+		}
+	} else
+		gnutls_certificate_free_ca_names(conn_x509_cred);
 
-	if (! (conn_ssl = SSL_new(conn_ssl_ctx)) )
-		csync_fatal("Creating a new SSL handle failed.\n");
+	gnutls_init(&conn_tls_session, (server_role ? GNUTLS_SERVER : GNUTLS_CLIENT));
+	gnutls_priority_set_direct(conn_tls_session, "PERFORMANCE", NULL);
+	gnutls_credentials_set(conn_tls_session, GNUTLS_CRD_CERTIFICATE, conn_x509_cred);
 
-	gnutls_certificate_server_set_request(conn_ssl->gnutls_state, GNUTLS_CERT_REQUIRE);
+	if(server_role) {
+		gnutls_certificate_send_x509_rdn_sequence(conn_tls_session, 0);
+		gnutls_certificate_server_set_request(conn_tls_session, GNUTLS_CERT_REQUIRE);
+	}
 
-	SSL_set_rfd(conn_ssl, conn_fd_in);
-	SSL_set_wfd(conn_ssl, conn_fd_out);
+	gnutls_transport_set_ptr2(
+		conn_tls_session,
+		(gnutls_transport_ptr_t)conn_fd_in,
+		(gnutls_transport_ptr_t)conn_fd_out
+	);
 
-	if ( (server_role ? SSL_accept : SSL_connect)(conn_ssl) < 1 )
-		csync_fatal("Establishing SSL connection failed.\n");
+	err = gnutls_handshake(conn_tls_session);
+	switch(err) {
+	case GNUTLS_E_SUCCESS:
+		break;
+
+	case GNUTLS_E_WARNING_ALERT_RECEIVED:
+		alrt = gnutls_alert_get(conn_tls_session);
+		fprintf(
+			csync_debug_out,
+			"SSL: warning alert received from peer: %d (%s).\n",
+			alrt, gnutls_alert_get_name(alrt)
+		);
+		break;
+
+	case GNUTLS_E_FATAL_ALERT_RECEIVED:
+		alrt = gnutls_alert_get(conn_tls_session);
+		fprintf(
+			csync_debug_out,
+			"SSL: fatal alert received from peer: %d (%s).\n",
+			alrt, gnutls_alert_get_name(alrt)
+		);
+
+	default:
+		gnutls_bye(conn_tls_session, GNUTLS_SHUT_RDWR);
+		gnutls_deinit(conn_tls_session);
+		gnutls_certificate_free_credentials(conn_x509_cred);
+		gnutls_global_deinit();
+
+		csync_fatal(
+			"SSL: handshake failed: %s (%s)\n",
+			gnutls_strerror(err),
+			gnutls_strerror_name(err)
+		);
+	}
 
 	csync_conn_usessl = 1;
 
@@ -181,15 +243,15 @@ int conn_activate_ssl(int server_role)
 
 int conn_check_peer_cert(const char *peername, int callfatal)
 {
-	const X509 *peercert;
+	const gnutls_datum_t *peercerts;
+	unsigned npeercerts;
 	int i, cert_is_ok = -1;
 
 	if (!csync_conn_usessl)
 		return 1;
 
-	peercert = SSL_get_peer_certificate(conn_ssl);
-
-	if (!peercert || peercert->size <= 0) {
+	peercerts = gnutls_certificate_get_peers(conn_tls_session, &npeercerts);
+	if(peercerts == NULL || npeercerts == 0) {
 		if (callfatal)
 			csync_fatal("Peer did not provide an SSL X509 cetrificate.\n");
 		csync_debug(1, "Peer did not provide an SSL X509 cetrificate.\n");
@@ -197,11 +259,11 @@ int conn_check_peer_cert(const char *peername, int callfatal)
 	}
 
 	{
-		char certdata[peercert->size*2 + 1];
+		char certdata[2*peercerts[0].size + 1];
 
-		for (i=0; i<peercert->size; i++)
-			sprintf(certdata+i*2, "%02X", peercert->data[i]);
-		certdata[peercert->size*2] = 0;
+		for (i=0; i<peercerts[0].size; i++)
+			sprintf(&certdata[2*i], "%02X", peercerts[0].data[i]);
+		certdata[2*i] = 0;
 
 		SQL_BEGIN("Checking peer x509 certificate.",
 			"SELECT certdata FROM x509_cert WHERE peername = '%s'",
@@ -241,14 +303,19 @@ int conn_check_peer_cert(const char *peername, int callfatal)
 	return 1;
 }
 
-#endif /* HAVE_LIBGNUTLS_OPENSSL */
+#endif /* HAVE_LIBGNUTLS */
 
 int conn_close()
 {
 	if ( !conn_clisok ) return -1;
 
-#ifdef HAVE_LIBGNUTLS_OPENSSL
-	if ( csync_conn_usessl ) SSL_free(conn_ssl);
+#ifdef HAVE_LIBGNUTLS
+	if ( csync_conn_usessl ) {
+		gnutls_bye(conn_tls_session, GNUTLS_SHUT_RDWR);
+		gnutls_deinit(conn_tls_session);
+		gnutls_certificate_free_credentials(conn_x509_cred);
+		gnutls_global_deinit();
+	}
 #endif
 
 	if ( conn_fd_in != conn_fd_out) close(conn_fd_in);
@@ -263,9 +330,9 @@ int conn_close()
 
 static inline int READ(void *buf, size_t count)
 {
-#ifdef HAVE_LIBGNUTLS_OPENSSL
+#ifdef HAVE_LIBGNUTLS
 	if (csync_conn_usessl)
-		return SSL_read(conn_ssl, buf, count);
+		return gnutls_record_recv(conn_tls_session, buf, count);
 	else
 #endif
 		return read(conn_fd_in, buf, count);
@@ -275,9 +342,9 @@ static inline int WRITE(const void *buf, size_t count)
 {
 	static int n, total;
 
-#ifdef HAVE_LIBGNUTLS_OPENSSL
+#ifdef HAVE_LIBGNUTLS
 	if (csync_conn_usessl)
-		return SSL_write(conn_ssl, buf, count);
+		return gnutls_record_send(conn_tls_session, buf, count);
 	else
 #endif
 	{

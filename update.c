@@ -70,7 +70,7 @@ int connect_to_host(const char *peername)
 	if ( conn_open(peername) ) return -1;
 
 	if ( use_ssl ) {
-#if HAVE_LIBGNUTLS_OPENSSL
+#if HAVE_LIBGNUTLS
 		conn_printf("SSL\n");
 		if ( read_conn_status(0, peername) ) {
 			csync_debug(1, "SSL command failed.\n");

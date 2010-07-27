@@ -23,7 +23,7 @@
 # norootforbuild
 # neededforbuild  openssl openssl-devel
 
-BuildRequires: sqlite-devel sqlite librsync openssl-devel librsync-devel
+BuildRequires: sqlite-devel sqlite librsync gnutls-devel librsync-devel
 
 Name:         csync2
 License:      GPL

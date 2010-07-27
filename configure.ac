@@ -72,25 +72,19 @@ AM_CONDITIONAL([PRIVATE_LIBSQLITE], [test -n "$libsqlite_source_file"])
 fi
 
 AC_ARG_ENABLE([gnutls],
-	[AC_HELP_STRING([--disable-gnutls],
-		[enable/disable GNU TLS support (default is enabled)])],
+	[AS_HELP_STRING([--disable-gnutls],[enable/disable GNU TLS support (default is enabled)])],
 	[], [ enable_gnutls=yes ])
 
 if test "$enable_gnutls" != no
 then
-
 	# Check for gnuTLS.
 	AM_PATH_LIBGNUTLS(1.0.0, , [ AC_MSG_ERROR([[gnutls not found; install gnutls, gnutls-openssl and libtasn1 packages for your system or run configure with --disable-gnutls]]) ])
 
-	# This is a bloody hack for fedora core
+	## This is a bloody hack for fedora core
 	CFLAGS="$CFLAGS $LIBGNUTLS_CFLAGS"
 	LIBS="$LIBS $LIBGNUTLS_LIBS -ltasn1"
-
-	# Check gnuTLS SSL compatibility lib.
-	AC_CHECK_LIB([gnutls-openssl], [SSL_new], , [AC_MSG_ERROR([[gnutls-openssl not found; install gnutls, gnutls-openssl and libtasn1 packages for your system or run configure with --disable-gnutls]])])
-
 fi
+AM_CONDITIONAL([HAVE_LIBGNUTLS], [test "$enable_gnutls" != no ])
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
-

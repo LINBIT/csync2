@@ -359,7 +359,7 @@ extern int csync_dump_dir_fd;
 
 extern int csync_compare_mode;
 
-#ifdef HAVE_LIBGNUTLS_OPENSSL
+#ifdef HAVE_LIBGNUTLS
 extern int csync_conn_usessl;
 #endif
 
