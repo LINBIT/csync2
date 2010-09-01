@@ -19,17 +19,13 @@
  */
 
 #include "csync2.h"
-#if defined(HAVE_LIBSQLITE3)
-#include <sqlite3.h>
-#else
-#include <sqlite.h>
-#endif
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
 #include <time.h>
+#include "db_api.h"
 
 #define DEADLOCK_MESSAGE \
 	"Database backend is exceedingly busy => Terminating (requesting retry).\n"
@@ -37,23 +33,15 @@
 int db_blocking_mode = 1;
 int db_sync_mode = 1;
 
-#if defined(HAVE_LIBSQLITE3)
-#define IFESQL3(a,b) a
-#define IFSQL3(a) a
-#define SQL_EXEC sqlite3_exec
-#else
-#define IFESQL3(a,b) b
-#define IFSQL3(a)
-#define SQL_EXEC sqlite_exec
-#endif
-
-static IFESQL3(sqlite3,sqlite) *db = 0;
+extern int db_type; 
+static db_conn_p db = 0;
+// TODO make configurable
+int wait = 1;
 
 static int get_dblock_timeout()
 {
 	return getpid() % 7 + csync_lock_timeout;
 }
-
 
 static int tqueries_counter = -50;
 static time_t transaction_begin = 0;
@@ -72,7 +60,7 @@ void csync_db_alarmhandler(int signum)
 	begin_commit_recursion++;
 
 	csync_debug(2, "Database idle in transaction. Forcing COMMIT.\n");
-	SQL("COMMIT TRANSACTION", "COMMIT TRANSACTION");
+	SQL("COMMIT ", "COMMIT ");
 	tqueries_counter = -10;
 
 	begin_commit_recursion--;
@@ -96,7 +84,7 @@ void csync_db_maybegin()
 		transaction_begin = time(0);
 		if (!last_wait_cycle)
 			last_wait_cycle = transaction_begin;
-		SQL("BEGIN TRANSACTION", "BEGIN TRANSACTION");
+		SQL("BEGIN ", "BEGIN ");
 	}
 
 	begin_commit_recursion--;
@@ -117,9 +105,11 @@ void csync_db_maycommit()
 	now = time(0);
 
 	if ((now - last_wait_cycle) > 10) {
-		SQL("COMMIT TRANSACTION", "COMMIT TRANSACTION");
-		csync_debug(2, "Waiting 2 secs so others can lock the database (%d - %d)...\n", (int)now, (int)last_wait_cycle);
-		sleep(2);
+		SQL("COMMIT", "COMMIT ");
+		if (wait) {
+		  csync_debug(2, "Waiting %d secs so others can lock the database (%d - %d)...\n", wait, (int)now, (int)last_wait_cycle);
+		  sleep(wait);
+		}
 		last_wait_cycle = 0;
 		tqueries_counter = -10;
 		begin_commit_recursion--;
@@ -127,7 +117,7 @@ void csync_db_maycommit()
 	}
 
 	if ((tqueries_counter > 1000) || ((now - transaction_begin) > 3)) {
-		SQL("COMMIT TRANSACTION", "COMMIT TRANSACTION");
+	        SQL("COMMIT ", "COMMIT ");
 		tqueries_counter = 0;
 		begin_commit_recursion--;
 		return;
@@ -142,47 +132,49 @@ void csync_db_maycommit()
 
 void csync_db_open(const char *file)
 {
-	IFSQL3(int r;)
-	IFESQL3(r=sqlite3_open(file, &db);,
-		db = sqlite_open(file, 0, 0);)
-	if ( db == 0 IFSQL3(||r))
+        int rc = db_open(file, db_type, &db);
+	if ( rc != DB_OK )
 		csync_fatal("Can't open database: %s\n", file);
+	db_set_logger(db, csync_debug);
 
 	/* ignore errors on table creation */
 	in_sql_query++;
-	SQL_EXEC(db,
+
+	// TODO This only works on SQLite.
+	db_exec(db,
 		"CREATE TABLE file ("
 		"	filename, checktxt,"
 		"	UNIQUE ( filename ) ON CONFLICT REPLACE"
-		")",
-		0, 0, 0);
-	SQL_EXEC(db,
+		")"
+		);
+	db_exec(db,
 		"CREATE TABLE dirty ("
-		"	filename, force, myname, peername,"
+		"	filename, forced, myname, peername,"
 		"	UNIQUE ( filename, peername ) ON CONFLICT IGNORE"
-		")",
-		0, 0, 0);
-	SQL_EXEC(db,
+		")"
+		);
+	db_exec(db,
 		"CREATE TABLE hint ("
 		"	filename, recursive,"
 		"	UNIQUE ( filename, recursive ) ON CONFLICT IGNORE"
-		")",
-		0, 0, 0);
-	SQL_EXEC(db,
+		")"
+		);
+	db_exec(db,
 		"CREATE TABLE action ("
 		"	filename, command, logfile,"
 		"	UNIQUE ( filename, command ) ON CONFLICT IGNORE"
-		")",
-		0, 0, 0);
-	SQL_EXEC(db,
+		")"
+		);
+	db_exec(db,
 		"CREATE TABLE x509_cert ("
 		"	peername, certdata,"
 		"	UNIQUE ( peername ) ON CONFLICT IGNORE"
-		")",
-		0, 0, 0);
+		")"
+		);
 	if (!db_sync_mode)
-		SQL_EXEC(db, "PRAGMA synchronous = OFF", 0, 0, 0);
+		db_exec(db, "PRAGMA synchronous = OFF");
 	in_sql_query--;
+	// return db;
 }
 
 void csync_db_close()
@@ -191,10 +183,10 @@ void csync_db_close()
 
 	begin_commit_recursion++;
 	if (tqueries_counter > 0) {
-		SQL("COMMIT TRANSACTION", "COMMIT TRANSACTION");
+	        SQL("COMMIT ", "COMMIT ");
 		tqueries_counter = -10;
 	}
-	IFESQL3(sqlite3_close,sqlite_close)(db);
+	db_close(db);
 	begin_commit_recursion--;
 	db = 0;
 }
@@ -215,14 +207,14 @@ void csync_db_sql(const char *err, const char *fmt, ...)
 	csync_debug(2, "SQL: %s\n", sql);
 
 	while (1) {
-		rc = SQL_EXEC(db, sql, 0, 0, 0);
-		if ( rc != SQLITE_BUSY ) break;
-		if (busyc++ > get_dblock_timeout()) { db = 0; csync_fatal(DEADLOCK_MESSAGE); }
-		csync_debug(2, "Database is busy, sleeping a sec.\n");
-		sleep(1);
+	  rc = db_exec(db, sql);
+	  if ( rc != DB_BUSY ) break;
+	  if (busyc++ > get_dblock_timeout()) { db = 0; csync_fatal(DEADLOCK_MESSAGE); }
+	  csync_debug(2, "Database is busy, sleeping a sec.\n");
+	  sleep(1);
 	}
 
-	if ( rc != SQLITE_OK && err )
+	if ( rc != DB_OK && err )
 		csync_fatal("Database Error: %s [%d]: %s\n", err, rc, sql);
 	free(sql);
 
@@ -232,11 +224,11 @@ void csync_db_sql(const char *err, const char *fmt, ...)
 
 void* csync_db_begin(const char *err, const char *fmt, ...)
 {
-	IFESQL3(sqlite3_stmt *stmt,sqlite_vm *vm);
+	db_stmt_p stmt;
 	char *sql;
 	va_list ap;
 	int rc, busyc = 0;
-
+	char *ppTail; 
 	va_start(ap, fmt);
 	vasprintf(&sql, fmt, ap);
 	va_end(ap);
@@ -245,77 +237,83 @@ void* csync_db_begin(const char *err, const char *fmt, ...)
 	csync_db_maybegin();
 
 	csync_debug(2, "SQL: %s\n", sql);
-
 	while (1) {
-		IFESQL3(
-			rc = sqlite3_prepare(db, sql, -1, &stmt, 0);,
-			rc = sqlite_compile(db, sql, 0, &vm, 0);
-		)
-		if ( rc != SQLITE_BUSY ) break;
+	        rc = db_prepare_stmt(db, sql, &stmt, &ppTail);
+		if ( rc != DB_BUSY ) break;
 		if (busyc++ > get_dblock_timeout()) { db = 0; csync_fatal(DEADLOCK_MESSAGE); }
 		csync_debug(2, "Database is busy, sleeping a sec.\n");
 		sleep(1);
 	}
 
-	if ( rc != SQLITE_OK && err )
+	if ( rc != DB_OK && err )
 		csync_fatal("Database Error: %s [%d]: %s\n", err, rc, sql);
 	free(sql);
 
-	return IFESQL3(stmt,vm);
+	return stmt;
+}
+
+const char *csync_db_get_column_text(void  *stmt, int column) {
+	return db_stmt_get_column_text(stmt, column);
+}
+
+int csync_db_get_column_int(void *stmt, int column) {
+  return db_stmt_get_column_int((db_stmt_p) stmt, column);
 }
 
 int csync_db_next(void *vmx, const char *err,
 		int *pN, const char ***pazValue, const char ***pazColName)
 {
-	IFESQL3(sqlite3_stmt *stmt=vmx,sqlite_vm *vm=vmx);
+	db_stmt_p stmt = vmx;
 	int rc, busyc = 0;
 
 	csync_debug(4, "Trying to fetch a row from the database.\n");
 
 	while (1) {
-		IFESQL3(
-			rc = sqlite3_step(stmt);,
-			rc = sqlite_step(vm, pN, pazValue, pazColName);
-		)
-		if ( rc != SQLITE_BUSY ) break;
-		if (busyc++ > get_dblock_timeout()) { db = 0; csync_fatal(DEADLOCK_MESSAGE); }
+		rc = db_stmt_next(stmt);
+		if ( rc != DB_BUSY ) 
+		  break;
+		if (busyc++ > get_dblock_timeout()) { 
+		  db = 0; 
+		  csync_fatal(DEADLOCK_MESSAGE); 
+		}
 		csync_debug(2, "Database is busy, sleeping a sec.\n");
 		sleep(1);
 	}
 
-	if ( rc != SQLITE_OK && rc != SQLITE_ROW &&
-	     rc != SQLITE_DONE && err )
+	if ( rc != DB_OK && rc != DB_ROW &&
+	     rc != DB_DONE && err )
 		csync_fatal("Database Error: %s [%d].\n", err, rc);
 
-	return rc == SQLITE_ROW;
+	return rc == DB_ROW;
 }
 
 #if defined(HAVE_LIBSQLITE3)
-void * csync_db_colblob(void *stmtx,int col) {
-       sqlite3_stmt *stmt = stmtx;
-       return sqlite3_column_blob(stmt,col);
+const void * csync_db_colblob(void *stmtx, int col) {
+       db_stmt_p stmt = stmtx;
+       const void *ptr = stmt->get_column_blob(stmt, col);
+       if (stmt->db && stmt->db->logger) {
+	 stmt->db->logger(4, "DB get blob: %s ", (char *) ptr);
+       }
+       return ptr;
 }
 #endif
 
 void csync_db_fin(void *vmx, const char *err)
 {
-	IFESQL3(sqlite3_stmt *stmt=vmx,sqlite_vm *vm=vmx);
+        db_stmt_p stmt = (db_stmt_p) vmx;
 	int rc, busyc = 0;
-
 	csync_debug(2, "SQL Query finished.\n");
 
 	while (1) {
-		IFESQL3(
-			rc = sqlite3_finalize(stmt);,
-			rc = sqlite_finalize(vm, 0);
-		)
-		if ( rc != SQLITE_BUSY ) break;
-		if (busyc++ > get_dblock_timeout()) { db = 0; csync_fatal(DEADLOCK_MESSAGE); }
-		csync_debug(2, "Database is busy, sleeping a sec.\n");
-		sleep(1);
+	  rc = db_stmt_close(stmt);
+	  if ( rc != DB_BUSY ) 
+	    break;
+	  if (busyc++ > get_dblock_timeout()) { db = 0; csync_fatal(DEADLOCK_MESSAGE); }
+	  csync_debug(2, "Database is busy, sleeping a sec.\n");
+	  sleep(1);
 	}
 
-	if ( rc != SQLITE_OK && err )
+	if ( rc != DB_OK && err )
 		csync_fatal("Database Error: %s [%d].\n", err, rc);
 
 	csync_db_maycommit();

@@ -44,7 +44,9 @@ int read_conn_status(const char *file, const char *host)
 	}
 	if ( file )
 		csync_debug(0, "While syncing file %s:\n", file);
-	csync_debug(0, "ERROR from peer %s: %s", host, line);
+	else
+	        file = "<no file>";
+	csync_debug(0, "ERROR from peer(%s): %s %s", file, host, line);
 	csync_error_count++;
 	return !strcmp(line, "File is also marked dirty here!") ? 1 : 2;
 }
@@ -196,7 +198,8 @@ auto_resolve_entry_point:
 			csync_debug(1, "File is already up to date on peer.\n");
 			if ( dry_run ) {
 				printf("?S: %-15s %s\n", peername, filename);
-				return;
+				// DS Remove local dirty, even in dry run
+				// return;
 			}
 			goto skip_action;
 		}
@@ -332,7 +335,8 @@ auto_resolve_entry_point:
 			csync_debug(1, "File is already up to date on peer.\n");
 			if ( dry_run ) {
 				printf("?S: %-15s %s\n", peername, filename);
-				return;
+				// DS also skip on dry_run 
+				// return;
 			}
 			goto skip_action;
 		}
@@ -540,9 +544,9 @@ void csync_update_host(const char *peername,
 	struct textlist *tl_mod = 0, **last_tn=&tl;
 	char *current_name = 0;
 	struct stat st;
-
+	char *myname ; 
 	SQL_BEGIN("Get files for host from dirty table",
-		"SELECT filename, myname, force FROM dirty WHERE peername = '%s' "
+		"SELECT filename, myname, forced FROM dirty WHERE peername = '%s' "
 		"ORDER by filename ASC", url_encode(peername))
 	{
 		const char *filename = url_decode(SQL_V(0));
@@ -584,6 +588,7 @@ void csync_update_host(const char *peername,
 			t->next = tl_mod;
 			tl_mod = t;
 		} else {
+		        csync_debug(3, "Dirty item %s %s %d \n", t->value, t->value2, t->intvalue);
 			if ( !current_name || strcmp(current_name, t->value2) ) {
 				conn_printf("HELLO %s\n", url_encode(t->value2));
 				if ( read_conn_status(t->value, peername) )
@@ -600,6 +605,7 @@ ident_failed_1:
 
 	for (t = tl_mod; t != 0; t = t->next) {
 		if ( !current_name || strcmp(current_name, t->value2) ) {
+		        csync_debug(3, "Dirty item %s %s %d ", t->value, t->value2, t->intvalue); 
 			conn_printf("HELLO %s\n", url_encode(t->value2));
 			if ( read_conn_status(t->value, peername) )
 				goto ident_failed_2;
@@ -624,7 +630,7 @@ void csync_update(const char ** patlist, int patnum, int recursive, int dry_run)
 	struct textlist *tl = 0, *t;
 
 	SQL_BEGIN("Get hosts from dirty table",
-		"SELECT peername FROM dirty GROUP BY peername ORDER BY random()")
+		"SELECT peername FROM dirty GROUP BY peername")
 	{
 		textlist_add(&tl, url_decode(SQL_V(0)), 0);
 	} SQL_END;

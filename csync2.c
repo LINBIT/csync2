@@ -36,6 +36,8 @@
 #include <errno.h>
 #include <signal.h>
 #include <ctype.h>
+#include <syslog.h>
+#include "db_api.h"
 #include <netdb.h>
 
 #ifdef REAL_DBDIR
@@ -43,7 +45,10 @@
 #  define DBDIR REAL_DBDIR
 #endif
 
-static char *file_database = 0;
+char *csync_database = 0;
+
+int db_type = DB_SQLITE3;
+
 static char *file_config = 0;
 static char *dbdir = DBDIR;
 char *cfgname = "";
@@ -59,6 +64,7 @@ extern FILE *yyin;
 int csync_error_count = 0;
 int csync_debug_level = 0;
 FILE *csync_debug_out = 0;
+int csync_syslog = 0;
 
 int csync_server_child_pid = 0;
 int csync_timestamps = 0;
@@ -195,7 +201,7 @@ int create_keyfile(const char *filename)
 	char matrix[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._";
 	unsigned char n;
 	int i;
-
+	int rc;
 	assert(sizeof(matrix) == 65);
 	if ( fd == -1 ) {
 		fprintf(stderr, "Can't create key file: %s\n", strerror(errno));
@@ -206,10 +212,10 @@ int create_keyfile(const char *filename)
 		return 1;
 	}
 	for (i=0; i<64; i++) {
-		read(rand, &n, 1);
-		write(fd, matrix+(n&63), 1);
+		rc = read(rand, &n, 1);
+		rc = write(fd, matrix+(n&63), 1);
 	}
-	write(fd, "\n", 1);
+	rc = write(fd, "\n", 1);
 	close(rand);
 	close(fd);
 	return 0;
@@ -222,7 +228,6 @@ static int csync_server_bind(void)
 	struct addrinfo *result, *rp;
 	int save_errno;
 	int sfd, s, on = 1;
-
 	memset(&hints, 0, sizeof(struct addrinfo));
 	hints.ai_family = AF_UNSPEC;	/* Allow IPv4 or IPv6 */
 	hints.ai_socktype = SOCK_STREAM;
@@ -350,8 +355,13 @@ int main(int argc, char ** argv)
 		return 1;
 	}
 
-	while ( (opt = getopt(argc, argv, "W:s:Ftp:G:P:C:D:N:HBAIXULSTMRvhcuoimfxrd")) != -1 ) {
+	while ( (opt = getopt(argc, argv, "a:W:s:Ftp:G:P:C:D:N:HBAIXULlSTMRvhcuoimfxrd")) != -1 ) {
+
 		switch (opt) {
+		        case 'a': 
+     			        csync_database = optarg;
+				db_type = DB_MYSQL;
+				break;
 			case 'W':
 				csync_dump_dir_fd = atoi(optarg);
 				if (write(csync_dump_dir_fd, 0, 0) < 0)
@@ -405,6 +415,10 @@ int main(int argc, char ** argv)
 				break;
 			case 'v':
 				csync_debug_level++;
+				break;
+			case 'l':
+				csync_syslog = 1;
+				openlog("csync2", LOG_ODELAY, LOG_LOCAL0);
 				break;
 			case 'h':
 				if ( mode != MODE_NONE ) help(argv[0]);
@@ -560,7 +574,6 @@ int main(int argc, char ** argv)
 		if (para)
 			cfgname = strdup(url_decode(para));
 	}
-
 #if defined(HAVE_LIBSQLITE)
 #define DBEXTENSION ".db"
 #endif
@@ -568,10 +581,12 @@ int main(int argc, char ** argv)
 #define DBEXTENSION ".db3"
 #endif
 	if ( !*cfgname ) {
-		asprintf(&file_database, "%s/%s" DBEXTENSION, dbdir, myhostname);
-		asprintf(&file_config, ETCDIR "/csync2.cfg");
+	  int rc;
+	     if (!csync_database) 
+	       rc = asprintf(&csync_database, "%s/%s" DBEXTENSION, dbdir, myhostname);
+	     rc = asprintf(&file_config, ETCDIR "/csync2.cfg");
 	} else {
-		int i;
+	  int i, rc;
 
 		for (i=0; cfgname[i]; i++)
 			if ( !(cfgname[i] >= '0' && cfgname[i] <= '9') &&
@@ -581,20 +596,21 @@ int main(int argc, char ** argv)
 				return mode != MODE_INETD;
 			}
 
-		asprintf(&file_database, "%s/%s_%s" DBEXTENSION, dbdir, myhostname, cfgname);
-		asprintf(&file_config, ETCDIR "/csync2_%s.cfg", cfgname);
+	     if (!csync_database) 
+	       rc = asprintf(&csync_database, "%s/%s_%s" DBEXTENSION, dbdir, myhostname, cfgname);
+	     rc = asprintf(&file_config, ETCDIR "/csync2_%s.cfg", cfgname);
 	}
 
-	csync_debug(2, "My hostname is %s.\n", myhostname);
-	csync_debug(2, "Database-File: %s\n", file_database);
 	csync_debug(2, "Config-File:   %s\n", file_config);
-
 	yyin = fopen(file_config, "r");
 	if ( !yyin )
 		csync_fatal("Can not open config file `%s': %s\n",
 				file_config, strerror(errno));
 	yyparse();
 	fclose(yyin);
+
+	csync_debug(2, "My hostname is %s.\n", myhostname);
+	csync_debug(2, "Database-File: %s\n", csync_database);
 
 	{
 		const struct csync_group *g;
@@ -604,7 +620,7 @@ int main(int argc, char ** argv)
 found_a_group:;
 	}
 
-	csync_db_open(file_database);
+	csync_db_open(csync_database);
 
 	for (i=optind; i < argc; i++)
 		on_cygwin_lowercase(argv[i]);
@@ -711,12 +727,13 @@ found_a_group:;
 				csync_mark(pfname, 0, 0);
 
 				if ( recursive ) {
+				  int rc;
 					char *where_rec = "";
 
 					if ( !strcmp(realname, "/") )
-						asprintf(&where_rec, "or 1");
+						rc = asprintf(&where_rec, "or 1");
 					else
-						asprintf(&where_rec, "UNION ALL SELECT filename from file where filename > '%s/' "
+						rc =asprintf(&where_rec, "UNION ALL SELECT filename from file where filename > '%s/' "
 							"and filename < '%s0'",
 							url_encode(pfname), url_encode(pfname));
 
@@ -737,18 +754,19 @@ found_a_group:;
 			for (i=optind; i < argc; i++) {
 				char *realname = getrealfn(argv[i]);
 				char *where_rec = "";
+				int rc;
 
 				if ( recursive ) {
 					if ( !strcmp(realname, "/") )
-						asprintf(&where_rec, "or 1");
+						rc = asprintf(&where_rec, "or 1");
 					else
-						asprintf(&where_rec, "or (filename > '%s/' "
+						rc = asprintf(&where_rec, "or (filename > '%s/' "
 							"and filename < '%s0')",
 							url_encode(realname), url_encode(realname));
 				}
 
 				SQL("Mark file as to be forced",
-					"UPDATE dirty SET force = 1 WHERE filename = '%s' %s",
+					"UPDATE dirty SET forced = 1 WHERE filename = '%s' %s",
 					url_encode(realname), where_rec);
 
 				if ( recursive )
@@ -833,7 +851,7 @@ found_a_group:;
 		case MODE_LIST_DIRTY:
 			retval = 2;
 			SQL_BEGIN("DB Dump - Dirty",
-				"SELECT force, myname, peername, filename FROM dirty ORDER BY filename")
+				"SELECT forced, myname, peername, filename FROM dirty ORDER BY filename")
 			{
 				if (csync_find_next(0, url_decode(SQL_V(3)))) {
 					printf("%s\t%s\t%s\t%s\n", atoi(SQL_V(0)) ?  "force" : "chary",

@@ -21,7 +21,9 @@
 #ifndef CSYNC2_H
 #define CSYNC2_H 1
 
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 
 #include "config.h"
 #include <stdio.h>
@@ -92,8 +94,9 @@ extern int csync_db_next(void *vmx, const char *err,
 		int *pN, const char ***pazValue, const char ***pazColName);
 extern void csync_db_fin(void *vmx, const char *err);
 #if defined(HAVE_LIBSQLITE3)
-extern void * csync_db_colblob(void *stmtx,int col);
+extern const void * csync_db_colblob(void *stmtx,int col);
 #endif
+
 
 #define SQL(e, s, ...) csync_db_sql(e, s, ##__VA_ARGS__)
 
@@ -131,7 +134,6 @@ extern void * csync_db_colblob(void *stmtx,int col);
 #define SQL_V(col) \
 	(csync_db_colblob(SQL_VM,(col)))
 #endif
-
 #define SQL_FIN }{
 
 #define SQL_END \
@@ -332,8 +334,11 @@ extern struct csync_nossl  *csync_nossl;
 extern unsigned csync_lock_timeout;
 extern char *csync_tempdir;
 
+extern char *csync_database;
+
 extern int csync_error_count;
 extern int csync_debug_level;
+extern int csync_syslog;
 extern FILE *csync_debug_out;
 
 extern long csync_last_printtime;

@@ -23,14 +23,15 @@ man_MANS = csync2.1
 
 csync2_SOURCES = action.c cfgfile_parser.y cfgfile_scanner.l check.c	\
                  checktxt.c csync2.c daemon.c db.c error.c getrealfn.c	\
-                 groups.c rsync.c update.c urlencode.c conn.c prefixsubst.c
+                 groups.c rsync.c update.c urlencode.c conn.c prefixsubst.c \
+		 db_api.c db_sqlite.c db_sqlite2.c db_mysql.c
 
 AM_YFLAGS = -d
 BUILT_SOURCES = cfgfile_parser.h
 CLEANFILES = cfgfile_parser.c cfgfile_parser.h cfgfile_scanner.c	\
              private_librsync private_libsqlite config.log		
 
-DISTCLEANFILES = config.status config.h .deps/*.Po stamp-h1 Makefile
+DISTCLEANFILES = config.status config.h .deps/*.Po stamp-h1 Makefile configure
 
 AM_CFLAGS=
 AM_LDFLAGS=

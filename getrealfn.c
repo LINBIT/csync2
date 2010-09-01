@@ -52,9 +52,12 @@ char *getrealfn(const char *filename)
 
 	/* make the path absolute */
 	if ( *tempfn != '/' ) {
+	        int rc;
 		char *t2, *t1 = my_get_current_dir_name();
-		asprintf(&t2, "%s/%s", t1, tempfn);
-		free(t1); free(tempfn); tempfn = t2;
+		rc = asprintf(&t2, "%s/%s", t1, tempfn);
+		free(t1); 
+		free(tempfn); 
+		tempfn = t2;
 	}
 
 	/* remove leading slashes from tempfn */
@@ -108,7 +111,7 @@ char *getrealfn(const char *filename)
 		if ( !chdir(tempfn) ) {
 			char *t2, *t1 = my_get_current_dir_name();
 			if ( st_mark ) {
-				asprintf(&t2, "%s/%s", t1, st_mark+1);
+				int rc = asprintf(&t2, "%s/%s", t1, st_mark+1);
 				free(tempfn); free(t1); tempfn = t2;
 			} else {
 				free(tempfn); tempfn = t1;

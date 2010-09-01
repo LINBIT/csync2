@@ -101,9 +101,9 @@ void csync_mark(const char *file, const char *thispeer, const char *peerfilter)
 	for (pl_idx=0; pl[pl_idx].peername; pl_idx++)
 		if (!peerfilter || !strcmp(peerfilter, pl[pl_idx].peername))
 			SQL("Marking File Dirty",
-				"%s INTO dirty (filename, force, myname, peername) "
+				"%s INTO dirty (filename, forced, myname, peername) "
 				"VALUES ('%s', %s, '%s', '%s')",
-				csync_new_force ? "REPLACE" : "INSERT",
+			        csync_new_force ? "REPLACE" : "REPLACE", // DS A
 				url_encode(file),
 				csync_new_force ? "1" : "0",
 				url_encode(pl[pl_idx].myname),
@@ -207,14 +207,14 @@ void csync_check_del(const char *file, int recursive, int init_run)
 	char *where_rec = "";
 	struct textlist *tl = 0, *t;
 	struct stat st;
-
+	int rc; 
 	if ( recursive ) {
 		if ( !strcmp(file, "/") )
-			asprintf(&where_rec, "or 1");
+		  rc = asprintf(&where_rec, "or 1");
 		else
-			asprintf(&where_rec, "UNION ALL SELECT filename from file where filename > '%s/' "
-					"and filename < '%s0'",
-					url_encode(file), url_encode(file));
+		  rc = asprintf(&where_rec, "UNION ALL SELECT filename from file where filename > '%s/' "
+				"and filename < '%s0'",
+				url_encode(file), url_encode(file));
 	}
 
 	SQL_BEGIN("Checking for removed files",
@@ -310,7 +310,7 @@ int csync_check_mod(const char *file, int recursive, int ignnoent, int init_run)
 
 		if ( this_is_dirty && !csync_compare_mode ) {
 			SQL("Adding or updating file entry",
-			    "INSERT INTO file (filename, checktxt) "
+			    "REPLACE INTO file (filename, checktxt) "
 			    "VALUES ('%s', '%s')",
 			    url_encode(file), url_encode(checktxt));
 			if (!init_run) csync_mark(file, 0, 0);

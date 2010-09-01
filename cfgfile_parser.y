@@ -53,11 +53,12 @@ void yyerror(char *text)
 static void new_group(char *name)
 {
 	int static autonum = 1;
+	int rc; 
 	struct csync_group *t =
 		calloc(sizeof(struct csync_group), 1);
 
 	if (name == 0)
-		asprintf(&name, "group_%d", autonum++);
+		rc = asprintf(&name, "group_%d", autonum++);
 
 	t->next = csync_group;
 	t->auto_method = -1;
@@ -322,6 +323,18 @@ static void set_tempdir(const char *tempdir)
 	csync_tempdir = strdup(tempdir);
 }
 
+static void set_database(const char *filename)
+{
+	FILE *keyfile;
+	char line[1024];
+	if ( (keyfile = fopen(filename, "r")) == 0 ||
+	     fgets(line, 1024, keyfile) == 0 )
+		csync_fatal("Config error: Can't read database file %s.\n", filename);
+
+	csync_database = strdup(line);
+	// TODO fix leak. 
+}
+
 static void new_prefix(const char *pname)
 {
 	struct csync_prefix *p =
@@ -410,7 +423,7 @@ static void disable_cygwin_lowercase_hack()
 }
 
 %token TK_BLOCK_BEGIN TK_BLOCK_END TK_STEND TK_AT TK_AUTO
-%token TK_NOSSL TK_IGNORE TK_GROUP TK_HOST TK_EXCL TK_INCL TK_COMP TK_KEY
+%token TK_NOSSL TK_IGNORE TK_GROUP TK_HOST TK_EXCL TK_INCL TK_COMP TK_KEY TK_DATABASE
 %token TK_ACTION TK_PATTERN TK_EXEC TK_DOLOCAL TK_LOGFILE TK_NOCYGLOWER
 %token TK_PREFIX TK_ON TK_COLON TK_POPEN TK_PCLOSE
 %token TK_BAK_DIR TK_BAK_GEN TK_DOLOCALONLY
@@ -433,6 +446,8 @@ block:
 		{ }
 |	TK_NOSSL TK_STRING TK_STRING TK_STEND
 		{ new_nossl($2, $3); }
+|	TK_DATABASE TK_STRING TK_STEND
+		{ set_database($2); }
 |	TK_TEMPDIR TK_STRING TK_STEND
 		{ set_tempdir($2); }
 |	TK_IGNORE ignore_list TK_STEND

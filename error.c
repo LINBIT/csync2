@@ -26,6 +26,7 @@
 #include <time.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <syslog.h>
 
 long csync_last_printtime = 0;
 FILE *csync_timestamp_out = 0;
@@ -117,21 +118,29 @@ void csync_debug(int lv, const char *fmt, ...)
 {
 	va_list ap;
 
-	csync_printtime();
-
 	if ( csync_debug_level < lv ) return;
 
-	if (csync_timestamps)
-		csync_printtime_prefix();
+ 	if (!csync_syslog) {
+	  csync_printtime();
+	
+	  if (csync_timestamps)
+	    csync_printtime_prefix();
 
-	if ( csync_server_child_pid )
-		fprintf(csync_debug_out, "<%d> ", csync_server_child_pid);
+	  if ( csync_server_child_pid )
+	    fprintf(csync_debug_out, "<%d> ", csync_server_child_pid);
 
-	va_start(ap, fmt);
-	vfprintf(csync_debug_out, fmt, ap);
-	va_end(ap);
-	fprintf(csync_debug_out,"\n");
-
+	  va_start(ap, fmt);
+	  vfprintf(csync_debug_out, fmt, ap);
+	  va_end(ap);
+	  // Good / bad with extra line
+	  fprintf(csync_debug_out,"\n");
+	}
+	else {
+	  va_start(ap,fmt);
+	  vsyslog(LOG_DEBUG, fmt, ap);
+	  va_end(ap);
+	}
 	csync_messages_printed++;
 }
 
+/* Test 3 */

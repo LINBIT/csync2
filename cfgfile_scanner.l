@@ -42,6 +42,7 @@ int include_stack_ptr = 0;
 
 "nossl"		{ return TK_NOSSL; }
 "ignore"	{ return TK_IGNORE; }
+"database"	{ return TK_DATABASE; }
 
 "group"		{ return TK_GROUP; }
 "host"		{ return TK_HOST; }
