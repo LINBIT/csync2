@@ -1,1 +1,6 @@
 Universal peace and a good attitude for everyone.
+
+Apart from this:
+
+DB abstraction: check for installed databases on configure
+	and enable/disable them for compilation.
