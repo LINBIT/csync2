@@ -215,7 +215,7 @@ void csync_db_sql(const char *err, const char *fmt, ...)
 	}
 
 	if ( rc != DB_OK && err )
-		csync_fatal("Database Error: %s [%d]: %s\n", err, rc, sql);
+		csync_fatal("Database Error: %s [%d]: %s on executing %s\n", err, rc, db_errmsg(db), sql);
 	free(sql);
 
 	csync_db_maycommit();
@@ -246,7 +246,7 @@ void* csync_db_begin(const char *err, const char *fmt, ...)
 	}
 
 	if ( rc != DB_OK && err )
-		csync_fatal("Database Error: %s [%d]: %s\n", err, rc, sql);
+		csync_fatal("Database Error: %s [%d]: %s on executing %s\n", err, rc, db_errmsg(db), sql);
 	free(sql);
 
 	return stmt;
@@ -282,7 +282,7 @@ int csync_db_next(void *vmx, const char *err,
 
 	if ( rc != DB_OK && rc != DB_ROW &&
 	     rc != DB_DONE && err )
-		csync_fatal("Database Error: %s [%d].\n", err, rc);
+		csync_fatal("Database Error: %s [%d]: %s\n", err, rc, db_errmsg(db));
 
 	return rc == DB_ROW;
 }
@@ -314,7 +314,7 @@ void csync_db_fin(void *vmx, const char *err)
 	}
 
 	if ( rc != DB_OK && err )
-		csync_fatal("Database Error: %s [%d].\n", err, rc);
+		csync_fatal("Database Error: %s [%d]: %s\n", err, rc, db_errmsg(db));
 
 	csync_db_maycommit();
 	in_sql_query--;

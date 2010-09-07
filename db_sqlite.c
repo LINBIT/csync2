@@ -63,6 +63,7 @@ int db_sqlite_open(const char *file, db_conn_p *conn_p)
   conn->close   = db_sqlite_close;
   conn->exec    = db_sqlite_exec;
   conn->prepare = db_sqlite_prepare;
+  conn->errmsg  = NULL;
   return db_sqlite_error_map(rc);
 }
 

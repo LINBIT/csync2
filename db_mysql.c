@@ -101,6 +101,7 @@ int db_mysql_open(const char *file, db_conn_p *conn_p)
   conn->close = db_mysql_close;
   conn->exec = db_mysql_exec;
   conn->prepare = db_mysql_prepare;
+  conn->errmsg = db_mysql_errmsg;
   //  conn->sql = db_mysql_sql;
 
   return rc;
@@ -119,6 +120,15 @@ void db_mysql_close(db_conn_p conn)
     return;
   mysql_close(conn->private);
   conn->private = 0;
+}
+
+const char *db_mysql_errmsg(db_conn_p conn)
+{
+  if (!conn)
+    return "(no connection)";
+  if (!conn->private)
+    return "(no private data in conn)";
+  return mysql_error(conn->private);
 }
 
 int db_mysql_exec(db_conn_p conn, const char *sql) {

@@ -75,6 +75,13 @@ void db_close(db_conn_p conn)
   conn->close(conn);
 }
 
+const char *db_errmsg(db_conn_p conn) 
+{
+  if (conn->errmsg)
+    return conn->errmsg(conn);
+  return "(no error message function available)";
+}
+
 int db_exec(db_conn_p conn, const char *sql) {
   return conn->exec(conn, sql);
 }

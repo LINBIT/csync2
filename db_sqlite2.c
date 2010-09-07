@@ -47,6 +47,7 @@ int db_sqlite2_open(const char *file, db_conn_p *conn_p)
   conn->close = db_sqlite2_close;
   conn->exec = db_sqlite2_exec;
   conn->prepare = db_sqlite2_prepare;
+  conn->errmsg  = NULL;
   return rc;
 }
 

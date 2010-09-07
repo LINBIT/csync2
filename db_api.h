@@ -24,6 +24,7 @@ struct db_conn_t {
   int       (*prepare)(db_conn_p conn, const char *statement, db_stmt_p *stmt, char **value);
   void      (*close)  (db_conn_p conn);
   void      (*logger) (int lv, const char *fmt, ...);
+  const char* (*errmsg) (db_conn_p conn);
 };
 
 struct db_stmt_t {
