@@ -149,6 +149,11 @@ int db_mysql_prepare(db_conn_p conn, const char *sql, db_stmt_p *stmt_p,
   /* TODO avoid strlen, use configurable limit? */
   rc = mysql_query(conn->private, sql);
   MYSQL_RES *mysql_stmt = mysql_store_result(conn->private);
+  if (mysql_stmt == NULL) {
+    csync_debug(0, "Error in mysql_store_result: %s", mysql_error(conn->private));
+    return DB_ERROR;
+  }
+
   stmt->private = mysql_stmt;
   /* TODO error mapping / handling */
   *stmt_p = stmt;
