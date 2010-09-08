@@ -63,7 +63,7 @@ int db_sqlite_open(const char *file, db_conn_p *conn_p)
   conn->close   = db_sqlite_close;
   conn->exec    = db_sqlite_exec;
   conn->prepare = db_sqlite_prepare;
-  conn->errmsg  = NULL;
+  conn->errmsg  = db_sqlite_errmsg;
   return db_sqlite_error_map(rc);
 }
 
@@ -75,6 +75,15 @@ void db_sqlite_close(db_conn_p conn)
     return;
   sqlite3_close(conn->private);
   conn->private = 0;
+}
+
+const char *db_sqlite_errmsg(db_conn_p conn)
+{
+  if (!conn)
+    return "(no connection)";
+  if (!conn->private)
+    return "(no private data in conn)";
+  return sqlite3_errmsg(conn->private);
 }
 
 int db_sqlite_exec(db_conn_p conn, const char *sql) {
