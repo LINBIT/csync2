@@ -107,6 +107,9 @@ then
 	# Check MySQL compatibility lib.
 	AC_CHECK_LIB([mysqlclient], [mysql_get_client_info], , [AC_MSG_ERROR([[mysql not found; install mysql-devel and dependencies for MySQL Support]])])
 
+	# Check MySQL development header
+	AC_CHECK_HEADERS([mysql/mysql.h])
+
 fi
 AM_CONDITIONAL([HAVE_LIBMYSQL], [test "$enable_mysql" != no ])
 

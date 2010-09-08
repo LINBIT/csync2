@@ -11,8 +11,8 @@ int   db_sqlite_prepare(db_conn_p conn, const char *sql, db_stmt_p *stmt_p, char
 int   db_sqlite_stmt_next(db_stmt_p stmt);
 const char* db_sqlite_stmt_get_column_text(db_stmt_p stmt, int column);
 const void* db_sqlite_stmt_get_column_blob(db_stmt_p stmt, int column);
-// TODO Add error handing
 int   db_sqlite_stmt_get_column_int(db_stmt_p stmt, int column);
 int   db_sqlite_stmt_close(db_stmt_p stmt);
+const char *db_sqlite_errmsg(db_conn_p conn);
 
 #endif

@@ -61,6 +61,15 @@ void db_sqlite2_close(db_conn_p conn)
   conn->private = 0;
 }
 
+const char *db_sqlite2_errmsg(db_conn_p conn)
+{
+  if (!conn)
+    return "(no connection)";
+  if (!conn->private)
+    return "(no private data in conn)";
+  return sqlite_errmsg(conn->private);
+}
+
 int db_sqlite2_exec(db_conn_p conn, const char *sql) {
   int rc;
   if (!conn) 
