@@ -92,7 +92,7 @@ int db_mysql_open(const char *file, db_conn_p *conn_p)
 
   db =  mysql_real_connect(db, host, user, pass, database, port, unix_socket, 0);
   if (!db) {
-    fprintf(stderr, "Failed to connect to database: Error: %s\n", mysql_error(db));
+    csync_fatal("Failed to connect to database: Error: ``%s''\n", mysql_error(db));
   }
     
   db_conn_p conn = malloc(sizeof(*conn));
