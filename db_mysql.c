@@ -90,11 +90,10 @@ int db_mysql_open(const char *file, db_conn_p *conn_p)
     return rc;
   }
 
-  db =  mysql_real_connect(db, host, user, pass, database, port, unix_socket, 0);
-  if (!db) {
-    csync_fatal("Failed to connect to database: Error: ``%s''\n", mysql_error(db));
+  if (mysql_real_connect(db, host, user, pass, database, port, unix_socket, 0) == NULL) {
+    csync_fatal("Failed to connect to database: Error: %s\n", mysql_error(db));
   }
-    
+
   db_conn_p conn = malloc(sizeof(*conn));
   *conn_p = conn;
   conn->private = db;
