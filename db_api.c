@@ -52,6 +52,11 @@ int db_open(const char *file, int type, db_conn_p *db)
   case DB_MYSQL:
     rc = db_mysql_open(db_str, db);
     break;
+#else
+  case DB_MYSQL:
+    csync_fatal("No Mysql support configured. Please reconfigure with --enable-mysql (database is %s).\n", file);    
+    rc = DB_ERROR;
+    break;
 #endif
   default:
     csync_fatal("Database type not found. Can't open database%s \n", file);    
