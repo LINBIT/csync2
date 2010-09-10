@@ -113,5 +113,13 @@ int db_stmt_close(db_stmt_p stmt)
   return stmt->close(stmt);
 }
 
+int db_schema_version(db_conn_p db)
+{
+        SQL_BEGIN("Checking if file table exists")
+                "SELECT count(*) from file")
+        {
+                textlist_add(&tl, url_decode(SQL_V(0)), 0);
+        } SQL_END;
+}
 
 

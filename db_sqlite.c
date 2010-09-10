@@ -165,4 +165,64 @@ int db_sqlite_stmt_close(db_stmt_p stmt)
   free(stmt);
   return db_sqlite_error_map(rc);
 }
+
+
+static int db_sqlite_schema_version(db_conn_p db)
+{
+
+}
+
+int db_sqlite_upgrade_to_schema(db_conn_p db, int version)
+{
+	if (version < 0)
+		return DB_OK;
+
+	if (version > 0)
+		return DB_ERROR;
+
+	csync_debug(2, "Upgrading database schema to version %d.\n", version);
+
+	if (db_exec(db,
+		"CREATE TABLE file ("
+		"	filename, checktxt,"
+		"	UNIQUE ( filename ) ON CONFLICT REPLACE"
+		")"
+		) != DB_OK)
+		return DB_ERROR;
+
+	if (db_exec(db,
+		"CREATE TABLE dirty ("
+		"	filename, forced, myname, peername,"
+		"	UNIQUE ( filename, peername ) ON CONFLICT IGNORE"
+		")"
+		) != DB_OK)
+		return DB_ERROR;
+
+	if (db_exec(db,
+		"CREATE TABLE hint ("
+		"	filename, recursive,"
+		"	UNIQUE ( filename, recursive ) ON CONFLICT IGNORE"
+		")"
+		) != DB_OK)
+		return DB_ERROR;
+
+	if (db_exec(db,
+		"CREATE TABLE action ("
+		"	filename, command, logfile,"
+		"	UNIQUE ( filename, command ) ON CONFLICT IGNORE"
+		")"
+		) != DB_OK)
+		return DB_ERROR;
+
+	if (db_exec(db,
+		"CREATE TABLE x509_cert ("
+		"	peername, certdata,"
+		"	UNIQUE ( peername ) ON CONFLICT IGNORE"
+		")"
+		) != DB_OK)
+		return DB_ERROR;
+
+	return DB_OK;
+}
+
 #endif

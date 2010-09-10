@@ -1,8 +1,14 @@
 Universal peace and a good attitude for everyone.
 
-Apart from this:
+Check for mysql/mysql.h to exist in configure.
+	Done
 
 DB abstraction: check for installed databases on configure
 	and enable/disable them for compilation.
 
-Check for mysql/mysql.h to exist in configure.
+---------------------------------------------------------------------------
+
+Implement table creation with schema support.
+	In progress.
+
+Have command to pipe connection through (for SSH support for example)

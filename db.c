@@ -140,37 +140,9 @@ void csync_db_open(const char *file)
 	/* ignore errors on table creation */
 	in_sql_query++;
 
-	// TODO This only works on SQLite.
-	db_exec(db,
-		"CREATE TABLE file ("
-		"	filename, checktxt,"
-		"	UNIQUE ( filename ) ON CONFLICT REPLACE"
-		")"
-		);
-	db_exec(db,
-		"CREATE TABLE dirty ("
-		"	filename, forced, myname, peername,"
-		"	UNIQUE ( filename, peername ) ON CONFLICT IGNORE"
-		")"
-		);
-	db_exec(db,
-		"CREATE TABLE hint ("
-		"	filename, recursive,"
-		"	UNIQUE ( filename, recursive ) ON CONFLICT IGNORE"
-		")"
-		);
-	db_exec(db,
-		"CREATE TABLE action ("
-		"	filename, command, logfile,"
-		"	UNIQUE ( filename, command ) ON CONFLICT IGNORE"
-		")"
-		);
-	db_exec(db,
-		"CREATE TABLE x509_cert ("
-		"	peername, certdata,"
-		"	UNIQUE ( peername ) ON CONFLICT IGNORE"
-		")"
-		);
+	if (db_schema_version(db) < 0)
+		db_upgrade_to_schema(db, 0);
+
 	if (!db_sync_mode)
 		db_exec(db, "PRAGMA synchronous = OFF");
 	in_sql_query--;
