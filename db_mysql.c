@@ -94,7 +94,7 @@ int db_mysql_open(const char *file, db_conn_p *conn_p)
     csync_fatal("Failed to connect to database: Error: %s\n", mysql_error(db));
   }
 
-  db_conn_p conn = malloc(sizeof(*conn));
+  db_conn_p conn = calloc(1, sizeof(*conn));
   *conn_p = conn;
   conn->private = db;
   conn->close = db_mysql_close;

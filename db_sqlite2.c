@@ -41,7 +41,7 @@ int db_sqlite2_open(const char *file, db_conn_p *conn_p)
   if ( db == 0 ) {
     return DB_ERROR;
   };
-  db_conn_p conn = malloc(sizeof(*conn));
+  db_conn_p conn = calloc(1, sizeof(*conn));
   *conn_p = conn;
   conn->private = db;
   conn->close = db_sqlite2_close;
