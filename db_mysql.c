@@ -95,6 +95,9 @@ int db_mysql_open(const char *file, db_conn_p *conn_p)
   }
 
   db_conn_p conn = calloc(1, sizeof(*conn));
+  if (conn == NULL) {
+    return DB_ERROR;
+  }
   *conn_p = conn;
   conn->private = db;
   conn->close = db_mysql_close;
