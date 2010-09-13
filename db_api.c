@@ -117,7 +117,7 @@ int db_schema_version(db_conn_p db)
 {
 	int version = -1;
 
-        SQL_BEGIN("Checking if file table exists",
+        SQL_BEGIN(NULL,   /* ignore errors */
                 "SELECT count(*) from file")
         {
 		version = 0;

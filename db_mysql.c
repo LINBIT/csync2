@@ -150,6 +150,9 @@ int db_mysql_exec(db_conn_p conn, const char *sql) {
 int db_mysql_prepare(db_conn_p conn, const char *sql, db_stmt_p *stmt_p, 
 		     char **pptail) {
   int rc = DB_ERROR;
+
+  *stmt_p = NULL;
+
   if (!conn)
     return DB_NO_CONNECTION;
 

@@ -124,12 +124,14 @@ extern const void * csync_db_colblob(void *stmtx,int col);
 	char *SQL_ERR = e; \
 	void *SQL_VM = csync_db_begin(SQL_ERR, s, ##__VA_ARGS__); \
 	int SQL_COUNT = 0; \
-	while (1) { \
-		const char **dataSQL_V, **dataSQL_N; \
-		int SQL_C; \
-		if ( !csync_db_next(SQL_VM, SQL_ERR, \
-					&SQL_C, &dataSQL_V, &dataSQL_N) ) break; \
-		SQL_COUNT++;
+\
+	if (SQL_VM) { \
+		while (1) { \
+			const char **dataSQL_V, **dataSQL_N; \
+			int SQL_C; \
+			if ( !csync_db_next(SQL_VM, SQL_ERR, \
+						&SQL_C, &dataSQL_V, &dataSQL_N) ) break; \
+			SQL_COUNT++;
 
 #define SQL_V(col) \
 	(csync_db_colblob(SQL_VM,(col)))
@@ -137,6 +139,7 @@ extern const void * csync_db_colblob(void *stmtx,int col);
 #define SQL_FIN }{
 
 #define SQL_END \
+		} \
 	} \
 	csync_db_fin(SQL_VM, SQL_ERR); \
 }

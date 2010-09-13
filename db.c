@@ -274,6 +274,10 @@ void csync_db_fin(void *vmx, const char *err)
 {
         db_stmt_p stmt = (db_stmt_p) vmx;
 	int rc, busyc = 0;
+
+	if (vmx == NULL)
+	   return;
+
 	csync_debug(2, "SQL Query finished.\n");
 
 	while (1) {
