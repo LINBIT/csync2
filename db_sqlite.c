@@ -64,6 +64,7 @@ int db_sqlite_open(const char *file, db_conn_p *conn_p)
   conn->exec    = db_sqlite_exec;
   conn->prepare = db_sqlite_prepare;
   conn->errmsg  = db_sqlite_errmsg;
+  conn->upgrade_to_schema = db_sqlite_upgrade_to_schema;
   return db_sqlite_error_map(rc);
 }
 
@@ -166,11 +167,6 @@ int db_sqlite_stmt_close(db_stmt_p stmt)
   return db_sqlite_error_map(rc);
 }
 
-
-static int db_sqlite_schema_version(db_conn_p db)
-{
-
-}
 
 int db_sqlite_upgrade_to_schema(db_conn_p db, int version)
 {

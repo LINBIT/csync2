@@ -115,11 +115,24 @@ int db_stmt_close(db_stmt_p stmt)
 
 int db_schema_version(db_conn_p db)
 {
-        SQL_BEGIN("Checking if file table exists")
+	int version = -1;
+
+        SQL_BEGIN("Checking if file table exists",
                 "SELECT count(*) from file")
         {
-                textlist_add(&tl, url_decode(SQL_V(0)), 0);
+		version = 0;
         } SQL_END;
+
+	return version;
+}
+
+
+int db_upgrade_to_schema(db_conn_p db, int version)
+{
+	if (db->upgrade_to_schema)
+		return db->upgrade_to_schema(db, version);
+
+	return DB_ERROR;
 }
 
 
