@@ -19,7 +19,7 @@
  */
 
 #include "db_api.h"
-#ifndef defined(HAVE_LIBSQLITE)
+#ifndef HAVE_LIBSQLITE
 /* dummy function to implement a open that fails */
 int db_sqlite2_open(const char *file, db_conn_p *conn_p) {
   return DB_ERROR;
@@ -51,6 +51,7 @@ int db_sqlite2_open(const char *file, db_conn_p *conn_p)
   conn->exec = db_sqlite2_exec;
   conn->prepare = db_sqlite2_prepare;
   conn->errmsg  = NULL;
+  conn->upgrade_to_schema = db_sqlite2_upgrade_to_schema;
   return rc;
 }
 
@@ -160,4 +161,60 @@ int db_sqlite2_stmt_close(db_stmt_p stmt)
   free(stmt);
   return rc; 
 }
+
+
+int db_sqlite2_upgrade_to_schema(db_conn_p db, int version)
+{
+	if (version < 0)
+		return DB_OK;
+
+	if (version > 0)
+		return DB_ERROR;
+
+	csync_debug(2, "Upgrading database schema to version %d.\n", version);
+
+	if (db_exec(db,
+		"CREATE TABLE file ("
+		"	filename, checktxt,"
+		"	UNIQUE ( filename ) ON CONFLICT REPLACE"
+		")"
+		) != DB_OK)
+		return DB_ERROR;
+
+	if (db_exec(db,
+		"CREATE TABLE dirty ("
+		"	filename, forced, myname, peername,"
+		"	UNIQUE ( filename, peername ) ON CONFLICT IGNORE"
+		")"
+		) != DB_OK)
+		return DB_ERROR;
+
+	if (db_exec(db,
+		"CREATE TABLE hint ("
+		"	filename, recursive,"
+		"	UNIQUE ( filename, recursive ) ON CONFLICT IGNORE"
+		")"
+		) != DB_OK)
+		return DB_ERROR;
+
+	if (db_exec(db,
+		"CREATE TABLE action ("
+		"	filename, command, logfile,"
+		"	UNIQUE ( filename, command ) ON CONFLICT IGNORE"
+		")"
+		) != DB_OK)
+		return DB_ERROR;
+
+	if (db_exec(db,
+		"CREATE TABLE x509_cert ("
+		"	peername, certdata,"
+		"	UNIQUE ( peername ) ON CONFLICT IGNORE"
+		")"
+		) != DB_OK)
+		return DB_ERROR;
+
+	return DB_OK;
+}
+
+
 #endif
