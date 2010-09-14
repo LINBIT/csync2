@@ -9,6 +9,7 @@ DB abstraction: check for installed databases on configure
 ---------------------------------------------------------------------------
 
 Implement table creation with schema support.
-	In progress.
+	In progress. Test for SQLite 2.
+	Implement for Mysql
 
 Have command to pipe connection through (for SSH support for example)
