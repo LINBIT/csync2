@@ -6,12 +6,17 @@ Check for mysql/mysql.h to exist in configure.
 DB abstraction: check for installed databases on configure
 	and enable/disable them for compilation.
 
+Create MySQL database if it doesn't exist.
 ---------------------------------------------------------------------------
 
 Implement table creation with schema support.
 	In progress. Test for SQLite 2.
-	Implement for Mysql
 
 Have command to pipe connection through (for SSH support for example)
 
 Make database configurable.
+
+Have check return value for asprintf () .. have a macro that does a csync_fatal 
+	if there is no memory.
+
+Bug: empty password does not work in mysql.

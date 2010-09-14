@@ -31,6 +31,7 @@
 
 #ifdef HAVE_LIBMYSQLCLIENT
 #include <mysql/mysql.h>
+#include <mysql/mysqld_error.h>
 #endif
 
 
@@ -84,14 +85,34 @@ int db_mysql_open(const char *file, db_conn_p *conn_p)
   char *host, *user, *pass, *database, *unix_socket;
   unsigned int port;
   char *db_url = malloc(strlen(file)+1);
+  char *create_database_statement;
+
   strcpy(db_url, file);
-  int rc =db_mysql_parse_url(db_url, &host, &user, &pass, &database, &port, &unix_socket);
+  int rc = db_mysql_parse_url(db_url, &host, &user, &pass, &database, &port, &unix_socket);
   if (rc != DB_OK) {
     return rc;
   }
 
   if (mysql_real_connect(db, host, user, pass, database, port, unix_socket, 0) == NULL) {
-    csync_fatal("Failed to connect to database: Error: %s\n", mysql_error(db));
+    if (mysql_errno(db) == ER_BAD_DB_ERROR) {
+      if (mysql_real_connect(db, host, user, pass, NULL, port, unix_socket, 0) != NULL) {
+	if (asprintf(&create_database_statement, "create database %s", database) < 0)
+	  csync_fatal("Out of memory");
+
+	csync_debug(2, "creating database %s\n", database);
+        if (mysql_query(db, create_database_statement) != 0)
+          csync_fatal("Cannot create database %s: Error: %s\n", database, mysql_error(db));
+	free(create_database_statement);
+
+	mysql_close(db);
+	db = mysql_init(0);
+
+        if (mysql_real_connect(db, host, user, pass, database, port, unix_socket, 0) == NULL)
+          goto fatal;
+      }
+    } else
+fatal:
+      csync_fatal("Failed to connect to database: Error: %s\n", mysql_error(db));
   }
 
   db_conn_p conn = calloc(1, sizeof(*conn));
@@ -165,7 +186,7 @@ int db_mysql_prepare(db_conn_p conn, const char *sql, db_stmt_p *stmt_p,
   rc = mysql_query(conn->private, sql);
   MYSQL_RES *mysql_stmt = mysql_store_result(conn->private);
   if (mysql_stmt == NULL) {
-    csync_debug(4, "Error in mysql_store_result: %s", mysql_error(conn->private));
+    csync_debug(2, "Error in mysql_store_result: %s", mysql_error(conn->private));
     return DB_ERROR;
   }
 
