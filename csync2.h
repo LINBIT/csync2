@@ -33,6 +33,8 @@
 #include <errno.h>
 
 
+#define DB_SCHEMA_VERSION 0
+
 /* action.c */
 
 extern void csync_schedule_commands(const char *filename, int islocal);

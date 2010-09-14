@@ -13,3 +13,5 @@ Implement table creation with schema support.
 	Implement for Mysql
 
 Have command to pipe connection through (for SSH support for example)
+
+Make database configurable.

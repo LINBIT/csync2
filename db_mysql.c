@@ -104,7 +104,7 @@ int db_mysql_open(const char *file, db_conn_p *conn_p)
   conn->exec = db_mysql_exec;
   conn->prepare = db_mysql_prepare;
   conn->errmsg = db_mysql_errmsg;
-  //  conn->sql = db_mysql_sql;
+  conn->upgrade_to_schema = db_mysql_upgrade_to_schema;
 
   return rc;
 #else
@@ -165,7 +165,7 @@ int db_mysql_prepare(db_conn_p conn, const char *sql, db_stmt_p *stmt_p,
   rc = mysql_query(conn->private, sql);
   MYSQL_RES *mysql_stmt = mysql_store_result(conn->private);
   if (mysql_stmt == NULL) {
-    csync_debug(0, "Error in mysql_store_result: %s", mysql_error(conn->private));
+    csync_debug(4, "Error in mysql_store_result: %s", mysql_error(conn->private));
     return DB_ERROR;
   }
 
@@ -223,5 +223,68 @@ int db_mysql_stmt_close(db_stmt_p stmt)
   free(stmt);
   return DB_OK; 
 }
+
+
+int db_mysql_upgrade_to_schema(db_conn_p db, int version)
+{
+	if (version < 0)
+		return DB_OK;
+
+	if (version > 0)
+		return DB_ERROR;
+
+	csync_debug(2, "Upgrading database schema to version %d.\n", version);
+
+	if (db_exec(db,
+		"CREATE TABLE `action` ("
+		"  `filename` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,"
+		"  `command` text,"
+		"  `logfile` text,"
+		"  UNIQUE KEY `filename` (`filename`,`command`(20))"
+		")"
+		) != DB_OK)
+		return DB_ERROR;
+
+	if (db_exec(db,
+		"CREATE TABLE `dirty` ("
+		"  `filename` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,"
+		"  `forced`   int(11)      DEFAULT NULL,"
+		"  `myname`   varchar(50)  DEFAULT NULL,"
+		"  `peername` varchar(50)  DEFAULT NULL,"
+		"  UNIQUE KEY `filename` (`filename`,`peername`),"
+		"  KEY `dirty_host` (`peername`(10))"
+		")"
+		) != DB_OK)
+		return DB_ERROR;
+
+	if (db_exec(db,
+		"CREATE TABLE `file` ("
+		"  `filename` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,"
+		"  `checktxt` varchar(200) DEFAULT NULL,"
+		"  UNIQUE KEY `filename` (`filename`)"
+		")"
+		) != DB_OK)
+		return DB_ERROR;
+
+	if (db_exec(db,
+		"CREATE TABLE `hint` ("
+		"  `filename` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,"
+		"  `recursive` int(11)     DEFAULT NULL"
+		")"
+		) != DB_OK)
+		return DB_ERROR;
+
+	if (db_exec(db,
+		"CREATE TABLE `x509_cert` ("
+		"  `peername` varchar(50)  DEFAULT NULL,"
+		"  `certdata` varchar(255) DEFAULT NULL,"
+		"  UNIQUE KEY `peername` (`peername`)"
+		")"
+		) != DB_OK)
+		return DB_ERROR;
+
+	return DB_OK;
+}
+
 
 #endif
