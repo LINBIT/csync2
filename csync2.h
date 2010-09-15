@@ -35,6 +35,24 @@
 
 #define DB_SCHEMA_VERSION 0
 
+/* asprintf with test for no memory. Use these macros without trailing ';' */
+
+#define ASPRINTF(s, fmt, ...) {\
+	int __ret;\
+	if ((__ret = asprintf(s, fmt, ##__VA_ARGS__)) < 0) \
+		csync_fatal("Out of memory in asprintf at %s:%d\n", __FILE__, __LINE__);\
+	__ret;\
+}
+
+
+#define VASPRINTF(s, fmt, args) {\
+	int __ret;\
+	if ((__ret = vasprintf(s, fmt, args)) < 0) \
+		csync_fatal("Out of memory in vasprintf at %s:%d\n", __FILE__, __LINE__);\
+	__ret;\
+}
+
+
 /* action.c */
 
 extern void csync_schedule_commands(const char *filename, int islocal);

@@ -7,16 +7,23 @@ DB abstraction: check for installed databases on configure
 	and enable/disable them for compilation.
 
 Create MySQL database if it doesn't exist.
----------------------------------------------------------------------------
 
 Implement table creation with schema support.
-	In progress. Test for SQLite 2.
+	We don't have a schema table yet, add it when it is needed.
+
+Have check return value for asprintf () .. have a macro that does a csync_fatal 
+	if there is no memory.
+
+---------------------------------------------------------------------------
+
+Test schema support for SQLite 2.
 
 Have command to pipe connection through (for SSH support for example)
 
 Make database configurable.
 
-Have check return value for asprintf () .. have a macro that does a csync_fatal 
-	if there is no memory.
+From Gerhard Rieger:
+	If there are more than one node to sync with print nodes that are not reachable.
 
-Bug: empty password does not work in mysql.
+	Segfault when syncing a file where one side is a directory and the other one
+		is a link.

@@ -171,7 +171,7 @@ void csync_db_sql(const char *err, const char *fmt, ...)
 	int rc, busyc = 0;
 
 	va_start(ap, fmt);
-	vasprintf(&sql, fmt, ap);
+	VASPRINTF(&sql, fmt, ap)
 	va_end(ap);
 
 	in_sql_query++;
@@ -203,7 +203,7 @@ void* csync_db_begin(const char *err, const char *fmt, ...)
 	int rc, busyc = 0;
 	char *ppTail; 
 	va_start(ap, fmt);
-	vasprintf(&sql, fmt, ap);
+	VASPRINTF(&sql, fmt, ap)
 	va_end(ap);
 
 	in_sql_query++;

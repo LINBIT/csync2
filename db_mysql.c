@@ -96,8 +96,7 @@ int db_mysql_open(const char *file, db_conn_p *conn_p)
   if (mysql_real_connect(db, host, user, pass, database, port, unix_socket, 0) == NULL) {
     if (mysql_errno(db) == ER_BAD_DB_ERROR) {
       if (mysql_real_connect(db, host, user, pass, NULL, port, unix_socket, 0) != NULL) {
-	if (asprintf(&create_database_statement, "create database %s", database) < 0)
-	  csync_fatal("Out of memory");
+	ASPRINTF(&create_database_statement, "create database %s", database)
 
 	csync_debug(2, "creating database %s\n", database);
         if (mysql_query(db, create_database_statement) != 0)

@@ -207,14 +207,14 @@ void csync_check_del(const char *file, int recursive, int init_run)
 	char *where_rec = "";
 	struct textlist *tl = 0, *t;
 	struct stat st;
-	int rc; 
+
 	if ( recursive ) {
 		if ( !strcmp(file, "/") )
-		  rc = asprintf(&where_rec, "or 1");
+		  ASPRINTF(&where_rec, "or 1")
 		else
-		  rc = asprintf(&where_rec, "UNION ALL SELECT filename from file where filename > '%s/' "
+		  ASPRINTF(&where_rec, "UNION ALL SELECT filename from file where filename > '%s/' "
 				"and filename < '%s0'",
-				url_encode(file), url_encode(file));
+				url_encode(file), url_encode(file))
 	}
 
 	SQL_BEGIN("Checking for removed files",

@@ -589,12 +589,11 @@ int main(int argc, char ** argv)
 #define DBEXTENSION ".db3"
 #endif
 	if ( !*cfgname ) {
-	  int rc;
-	     if (!csync_database) 
-	       rc = asprintf(&csync_database, "%s/%s" DBEXTENSION, dbdir, myhostname);
-	     rc = asprintf(&file_config, ETCDIR "/csync2.cfg");
+	     if (!csync_database)
+	       ASPRINTF(&csync_database, "%s/%s" DBEXTENSION, dbdir, myhostname)
+	     ASPRINTF(&file_config, ETCDIR "/csync2.cfg")
 	} else {
-	  int i, rc;
+		int i;
 
 		for (i=0; cfgname[i]; i++)
 			if ( !(cfgname[i] >= '0' && cfgname[i] <= '9') &&
@@ -604,9 +603,9 @@ int main(int argc, char ** argv)
 				return mode != MODE_INETD;
 			}
 
-	     if (!csync_database) 
-	       rc = asprintf(&csync_database, "%s/%s_%s" DBEXTENSION, dbdir, myhostname, cfgname);
-	     rc = asprintf(&file_config, ETCDIR "/csync2_%s.cfg", cfgname);
+		if (!csync_database) 
+			ASPRINTF(&csync_database, "%s/%s_%s" DBEXTENSION, dbdir, myhostname, cfgname)
+		ASPRINTF(&file_config, ETCDIR "/csync2_%s.cfg", cfgname)
 	}
 
 	csync_debug(2, "Config-File:   %s\n", file_config);
@@ -735,15 +734,14 @@ found_a_group:;
 				csync_mark(pfname, 0, 0);
 
 				if ( recursive ) {
-				  int rc;
 					char *where_rec = "";
 
 					if ( !strcmp(realname, "/") )
-						rc = asprintf(&where_rec, "or 1");
+						ASPRINTF(&where_rec, "or 1")
 					else
-						rc =asprintf(&where_rec, "UNION ALL SELECT filename from file where filename > '%s/' "
+						ASPRINTF(&where_rec, "UNION ALL SELECT filename from file where filename > '%s/' "
 							"and filename < '%s0'",
-							url_encode(pfname), url_encode(pfname));
+							url_encode(pfname), url_encode(pfname))
 
 					SQL_BEGIN("Adding dirty entries recursively",
 						"SELECT filename FROM file WHERE filename = '%s' %s",
@@ -762,15 +760,14 @@ found_a_group:;
 			for (i=optind; i < argc; i++) {
 				char *realname = getrealfn(argv[i]);
 				char *where_rec = "";
-				int rc;
 
 				if ( recursive ) {
 					if ( !strcmp(realname, "/") )
-						rc = asprintf(&where_rec, "or 1");
+						ASPRINTF(&where_rec, "or 1")
 					else
-						rc = asprintf(&where_rec, "or (filename > '%s/' "
+						ASPRINTF(&where_rec, "or (filename > '%s/' "
 							"and filename < '%s0')",
-							url_encode(realname), url_encode(realname));
+							url_encode(realname), url_encode(realname))
 				}
 
 				SQL("Mark file as to be forced",
