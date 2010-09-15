@@ -325,14 +325,7 @@ static void set_tempdir(const char *tempdir)
 
 static void set_database(const char *filename)
 {
-	FILE *keyfile;
-	char line[1024];
-	if ( (keyfile = fopen(filename, "r")) == 0 ||
-	     fgets(line, 1024, keyfile) == 0 )
-		csync_fatal("Config error: Can't read database file %s.\n", filename);
-
-	csync_database = strdup(line);
-	// TODO fix leak. 
+	csync_database = strdup(filename);
 }
 
 static void new_prefix(const char *pname)
