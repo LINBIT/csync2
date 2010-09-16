@@ -20,7 +20,7 @@ int db_mysql_open(const char *file, db_conn_p *db);
 
 int db_detect_type(const char **db_str, int type) {
   const char *db_types[] = { "mysql://", "sqlite3://", "sqlite2://", "pgsql://", 0 };
-  int types[]            = { DB_MYSQL,   DB_SQLITE2,   DB_SQLITE3,   DB_PGSQL }; 
+  int types[]            = { DB_MYSQL,   DB_SQLITE3,   DB_SQLITE2,   DB_PGSQL }; 
   int index; 
   for (index = 0; 1 ; index++) {
     if (db_types[index] == 0) 

@@ -14,16 +14,22 @@ Implement table creation with schema support.
 Have check return value for asprintf () .. have a macro that does a csync_fatal 
 	if there is no memory.
 
+Make database configurable.
+
 ---------------------------------------------------------------------------
 
 Test schema support for SQLite 2.
 
 Have command to pipe connection through (for SSH support for example)
 
-Make database configurable.
-
 From Gerhard Rieger:
 	If there are more than one node to sync with print nodes that are not reachable.
 
 	Segfault when syncing a file where one side is a directory and the other one
 		is a link.
+
+sqlite3:// url not working
+
+-a should be stronger than configured database in /etc/csync2.cfg
+
+postgres support?
