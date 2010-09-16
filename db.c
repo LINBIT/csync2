@@ -135,6 +135,7 @@ void csync_db_open(const char *file)
         int rc = db_open(file, db_type, &db);
 	if ( rc != DB_OK )
 		csync_fatal("Can't open database: %s\n", file);
+
 	db_set_logger(db, csync_debug);
 
 	/* ignore errors on table creation */

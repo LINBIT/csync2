@@ -44,9 +44,15 @@ int db_open(const char *file, int type, db_conn_p *db)
   switch (type) {
   case DB_SQLITE2:
     rc = db_sqlite2_open(db_str, db);
+
+    if (rc != DB_OK && db_str[0] != '/')
+      fprintf(csync_debug_out, "Cannot open database file: %s, maybe you need three slashes (like sqlite:///var/lib/csync2/csync2.db)\n", db_str);
     break;
   case DB_SQLITE3:
     rc = db_sqlite_open(db_str, db);
+
+    if (rc != DB_OK && db_str[0] != '/')
+      fprintf(csync_debug_out, "Cannot open database file: %s, maybe you need three slashes (like sqlite:///var/lib/csync2/csync2.db)\n", db_str);
     break;
 #ifdef HAVE_LIBMYSQLCLIENT
   case DB_MYSQL:
@@ -59,11 +65,9 @@ int db_open(const char *file, int type, db_conn_p *db)
     break;
 #endif
   default:
-    csync_fatal("Database type not found. Can't open database%s \n", file);    
+    csync_fatal("Database type not found. Can't open database %s\n", file);
     rc = DB_ERROR;
   }
-  if ( rc != DB_OK )
-    csync_fatal("Can't open database: %s\n", file);
   if (*db)
     (*db)->logger = 0;
   return rc;
