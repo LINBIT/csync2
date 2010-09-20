@@ -29,7 +29,30 @@ From Gerhard Rieger:
 		is a link.
 
 sqlite3:// url not working
+	It works but it needs an extra slash like in sqlite3:///var/lib/... 
 
 -a should be stronger than configured database in /etc/csync2.cfg
 
-postgres support?
+postgres support
+
+dl_open for all sql related calls
+	we don't want to depend on libmysql/libsqlite/whatever on install.
+	TODO: how to express that we need at least one sql client library in Debian/RPM
+
+test long filenames with mysql
+
+Performance tests: when does it make sense to use mysql instead of sqlite?
+
+From Dennis:
+
+Filename column is too short, but this is due to the fact that mysql 5 only 
+supports keys length of max 1000 bytes.
+
+So the filename+peername must be below 333 UTF characters (since mysql looks at 
+worst-case when generating the tables). 
+
+Weird characters in filename cuts off the filename at the character. I have a 
+danish letter (å encoded in iso-8859-1: \370) still present in my 
+now UTF-8 filesystem names. 
+
+Have schema version table.
