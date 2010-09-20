@@ -153,9 +153,41 @@ const char *db_mysql_errmsg(db_conn_p conn)
   return mysql_error(conn->private);
 }
 
+static void print_warnings(int level, MYSQL *m)
+{
+  int rc;
+  MYSQL_RES *res;
+  int f;
+  MYSQL_ROW row;
+
+  if (m == NULL)
+    csync_fatal("print_warnings: m is NULL");
+
+  rc = mysql_query(m, "SHOW WARNINGS");
+  if (rc != 0)
+    csync_fatal("print_warnings: Failed to get warning messages");
+
+  res = mysql_store_result(m);
+  if (res == NULL)
+    csync_fatal("print_warnings: Failed to get result set for warning messages");
+
+  f = mysql_num_fields(res);
+  if (f < 2)
+    csync_fatal("print_warnings: Strange: show warnings result set has less than 2 rows");
+
+  row = mysql_fetch_row(res);
+
+  while (row) {
+    csync_debug(level, "MySql Warning: %s\n", row[2]);
+    row = mysql_fetch_row(res);
+  }
+
+  mysql_free_result(res);
+}
+
 int db_mysql_exec(db_conn_p conn, const char *sql) {
   int rc = DB_ERROR;
-  if (!conn) 
+  if (!conn)
     return DB_NO_CONNECTION; 
 
   if (!conn->private) {
@@ -163,6 +195,15 @@ int db_mysql_exec(db_conn_p conn, const char *sql) {
     return DB_NO_CONNECTION_REAL;
   }
   rc = mysql_query(conn->private, sql);
+
+/* Treat warnings as errors. For example when a column is too short this should
+   be an error. */
+
+  if (mysql_warning_count(conn->private) > 0) {
+    print_warnings(1, conn->private);
+    return DB_ERROR;
+  }
+
   /* On error parse, create DB ERROR element */
   return rc;
 }
@@ -183,9 +224,26 @@ int db_mysql_prepare(db_conn_p conn, const char *sql, db_stmt_p *stmt_p,
   db_stmt_p stmt = malloc(sizeof(*stmt));
   /* TODO avoid strlen, use configurable limit? */
   rc = mysql_query(conn->private, sql);
+
+/* Treat warnings as errors. For example when a column is too short this should
+   be an error. */
+
+  if (mysql_warning_count(conn->private) > 0) {
+    print_warnings(1, conn->private);
+    return DB_ERROR;
+  }
+
   MYSQL_RES *mysql_stmt = mysql_store_result(conn->private);
   if (mysql_stmt == NULL) {
     csync_debug(2, "Error in mysql_store_result: %s", mysql_error(conn->private));
+    return DB_ERROR;
+  }
+
+/* Treat warnings as errors. For example when a column is too short this should
+   be an error. */
+
+  if (mysql_warning_count(conn->private) > 0) {
+    print_warnings(1, conn->private);
     return DB_ERROR;
   }
 

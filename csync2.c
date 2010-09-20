@@ -366,8 +366,8 @@ int main(int argc, char ** argv)
 	while ( (opt = getopt(argc, argv, "a:W:s:Ftp:G:P:C:D:N:HBAIXULlSTMRvhcuoimfxrd")) != -1 ) {
 
 		switch (opt) {
-		        case 'a': 
-     			        csync_database = optarg;
+		        case 'a':
+			        csync_database = optarg;
 				db_type = DB_MYSQL;
 				break;
 			case 'W':
