@@ -56,3 +56,6 @@ danish letter (å encoded in iso-8859-1: \370) still present in my
 now UTF-8 filesystem names. 
 
 Have schema version table.
+
+From Martin: Provide up-to-date packages.
+	Resuse build.sh script from drbd-proxy.
