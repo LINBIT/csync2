@@ -315,21 +315,21 @@ int db_mysql_upgrade_to_schema(db_conn_p db, int version)
 
 	if (db_exec(db,
 		"CREATE TABLE `action` ("
-		"  `filename` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,"
+		"  `filename` varchar(4096) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,"
 		"  `command` text,"
 		"  `logfile` text,"
-		"  UNIQUE KEY `filename` (`filename`,`command`(20))"
+		"  UNIQUE KEY `filename` (`filename`(326),`command`(20))"
 		")"
 		) != DB_OK)
 		return DB_ERROR;
 
 	if (db_exec(db,
 		"CREATE TABLE `dirty` ("
-		"  `filename` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,"
+		"  `filename` varchar(4096) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,"
 		"  `forced`   int(11)      DEFAULT NULL,"
 		"  `myname`   varchar(50)  DEFAULT NULL,"
 		"  `peername` varchar(50)  DEFAULT NULL,"
-		"  UNIQUE KEY `filename` (`filename`,`peername`),"
+		"  UNIQUE KEY `filename` (`filename`(316),`peername`),"
 		"  KEY `dirty_host` (`peername`(10))"
 		")"
 		) != DB_OK)
@@ -337,16 +337,16 @@ int db_mysql_upgrade_to_schema(db_conn_p db, int version)
 
 	if (db_exec(db,
 		"CREATE TABLE `file` ("
-		"  `filename` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,"
+		"  `filename` varchar(4096) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,"
 		"  `checktxt` varchar(200) DEFAULT NULL,"
-		"  UNIQUE KEY `filename` (`filename`)"
+		"  UNIQUE KEY `filename` (`filename`(333))"
 		")"
 		) != DB_OK)
 		return DB_ERROR;
 
 	if (db_exec(db,
 		"CREATE TABLE `hint` ("
-		"  `filename` varchar(255) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,"
+		"  `filename` varchar(4096) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,"
 		"  `recursive` int(11)     DEFAULT NULL"
 		")"
 		) != DB_OK)
