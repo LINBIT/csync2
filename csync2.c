@@ -582,15 +582,7 @@ int main(int argc, char ** argv)
 		if (para)
 			cfgname = strdup(url_decode(para));
 	}
-#if defined(HAVE_LIBSQLITE)
-#define DBEXTENSION ".db"
-#endif
-#if defined(HAVE_LIBSQLITE3)
-#define DBEXTENSION ".db3"
-#endif
 	if ( !*cfgname ) {
-	     if (!csync_database)
-	       ASPRINTF(&csync_database, "%s/%s" DBEXTENSION, dbdir, myhostname)
 	     ASPRINTF(&file_config, ETCDIR "/csync2.cfg")
 	} else {
 		int i;
@@ -603,8 +595,6 @@ int main(int argc, char ** argv)
 				return mode != MODE_INETD;
 			}
 
-		if (!csync_database) 
-			ASPRINTF(&csync_database, "%s/%s_%s" DBEXTENSION, dbdir, myhostname, cfgname)
 		ASPRINTF(&file_config, ETCDIR "/csync2_%s.cfg", cfgname)
 	}
 
@@ -615,6 +605,9 @@ int main(int argc, char ** argv)
 				file_config, strerror(errno));
 	yyparse();
 	fclose(yyin);
+
+	if (!csync_database)
+		csync_database = db_default_database(dbdir, myhostname, cfgname);
 
 	csync_debug(2, "My hostname is %s.\n", myhostname);
 	csync_debug(2, "Database-File: %s\n", csync_database);

@@ -298,3 +298,33 @@ void csync_db_fin(void *vmx, const char *err)
 	in_sql_query--;
 }
 
+#if defined(HAVE_LIBSQLITE)
+#define DBEXTENSION ".db"
+#endif
+#if defined(HAVE_LIBSQLITE3)
+#define DBEXTENSION ".db3"
+#endif
+
+char *db_default_database(char *dbdir, char *myhostname, char *cfg_name)
+{
+	char *db;
+
+#if defined(HAVE_LIBSQLITE) || defined(HAVE_LIBSQLITE3)
+/* TODO: check if library is installed */
+
+	if (cfg_name[0] != '\0')
+		ASPRINTF(&db, "%s/%s_%s" DBEXTENSION, dbdir, myhostname, cfgname)
+	else
+		ASPRINTF(&db, "%s/%s" DBEXTENSION, dbdir, myhostname)
+#elif defined(HAVE_LIBMYSQLCLIENT)
+	if (cfg_name[0] != '\0')
+		ASPRINTF(&db, "mysql://root@localhost/csync2_%s_%s" DBEXTENSION, myhostname, cfgname)
+	else
+		ASPRINTF(&db, "mysql://root@localhost/csync2_%s" DBEXTENSION, myhostname)
+
+#else
+#error "No database backend available. Please install either libmysqlclient or libsqlite, reconfigure and recompile"
+#endif
+
+	return db;
+}

@@ -325,7 +325,8 @@ static void set_tempdir(const char *tempdir)
 
 static void set_database(const char *filename)
 {
-	csync_database = strdup(filename);
+	if (!csync_database)
+		csync_database = strdup(filename);
 }
 
 static void new_prefix(const char *pname)

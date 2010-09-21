@@ -16,6 +16,21 @@ Have check return value for asprintf () .. have a macro that does a csync_fatal
 
 Make database configurable.
 
+From Dennis:
+Filename column is too short, but this is due to the fact that mysql 5 only 
+supports keys length of max 1000 bytes.
+So the filename+peername must be below 333 UTF characters (since mysql looks at 
+worst-case when generating the tables). 
+	Sort of fixed. Fields are 4096 bytes now (highest MAXPATHLEN of all
+	supported platforms) but only the first 1000 chars are unique.
+
+sqlite3:// url not working
+	It works but it needs an extra slash like in sqlite3:///var/lib/... 
+	Now have a howto if slash is missing and database file is not found.
+
+-a should be stronger than configured database in /etc/csync2.cfg
+	Works now.
+
 ---------------------------------------------------------------------------
 
 Test schema support for SQLite 2.
@@ -28,11 +43,6 @@ From Gerhard Rieger:
 	Segfault when syncing a file where one side is a directory and the other one
 		is a link.
 
-sqlite3:// url not working
-	It works but it needs an extra slash like in sqlite3:///var/lib/... 
-
--a should be stronger than configured database in /etc/csync2.cfg
-
 postgres support
 
 dl_open for all sql related calls
@@ -44,13 +54,6 @@ test long filenames with mysql
 Performance tests: when does it make sense to use mysql instead of sqlite?
 
 From Dennis:
-
-Filename column is too short, but this is due to the fact that mysql 5 only 
-supports keys length of max 1000 bytes.
-
-So the filename+peername must be below 333 UTF characters (since mysql looks at 
-worst-case when generating the tables). 
-
 Weird characters in filename cuts off the filename at the character. I have a 
 danish letter (å encoded in iso-8859-1: \370) still present in my 
 now UTF-8 filesystem names. 
