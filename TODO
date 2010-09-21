@@ -31,6 +31,15 @@ sqlite3:// url not working
 -a should be stronger than configured database in /etc/csync2.cfg
 	Works now.
 
+test long filenames with mysql
+	Work now
+
+From Dennis:
+Weird characters in filename cuts off the filename at the character. I have a 
+danish letter (å encoded in iso-8859-1: \370) still present in my 
+now UTF-8 filesystem names. 
+	Couldn't reproduce tried with German umlauts.
+
 ---------------------------------------------------------------------------
 
 Test schema support for SQLite 2.
@@ -49,16 +58,11 @@ dl_open for all sql related calls
 	we don't want to depend on libmysql/libsqlite/whatever on install.
 	TODO: how to express that we need at least one sql client library in Debian/RPM
 
-test long filenames with mysql
-
 Performance tests: when does it make sense to use mysql instead of sqlite?
 
-From Dennis:
-Weird characters in filename cuts off the filename at the character. I have a 
-danish letter (å encoded in iso-8859-1: \370) still present in my 
-now UTF-8 filesystem names. 
-
 Have schema version table.
+
+Compile even when there is no libsqlite (mysql support only)
 
 From Martin: Provide up-to-date packages.
 	Resuse build.sh script from drbd-proxy.
