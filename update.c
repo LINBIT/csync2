@@ -562,7 +562,7 @@ void csync_update_host(const char *peername,
 
 	if ( connect_to_host(peername) ) {
 		csync_error_count++;
-		csync_debug(0, "ERROR: Connection to remote host failed.\n");
+		csync_debug(0, "ERROR: Connection to remote host `%s' failed.\n", peername);
 		csync_debug(1, "Host stays in dirty state. "
 				"Try again later...\n");
 		return;
@@ -678,7 +678,7 @@ found_host_check:
 
 	if ( connect_to_host(peername) ) {
 		csync_error_count++;
-		csync_debug(0, "ERROR: Connection to remote host failed.\n");
+		csync_debug(0, "ERROR: Connection to remote host `%s' failed.\n", peername);
 		return 0;
 	}
 
@@ -780,7 +780,7 @@ found_host_check:
 
 	if ( connect_to_host(peername) ) {
 		csync_error_count++;
-		csync_debug(0, "ERROR: Connection to remote host failed.\n");
+		csync_debug(0, "ERROR: Connection to remote host `%s' failed.\n", peername);
 		return 0;
 	}
 
