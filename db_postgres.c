@@ -1,7 +1,8 @@
 /*
  *  
  *  
- *  Copyright (C) 2010  Dennis Schafroth <dennis@schafroth.com>>
+ *  Copyright (C) 2010  Dennis Schafroth <dennis@schafroth.com>
+ *  Copyright (C) 2010  Johannes Thoma <johannes.thoma@gmx.at>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -27,17 +28,16 @@
 #include <time.h>
 #include <string.h>
 #include "db_api.h"
-#include "db_mysql.h"
+#include "db_postgres.h"
 
-#ifdef HAVE_LIBMYSQLCLIENT
-#include <mysql/mysql.h>
-#include <mysql/mysqld_error.h>
+#ifdef HAVE_POSTGRES_FE_H
+#include <postgres/postgres_fe.h>
 #endif
 
 
 static int mysql_is_initialized = 0;
 
-int db_mysql_parse_url(char *url, char **host, char **user, char **pass, char **database, unsigned int *port, char **unix_socket) 
+int db_pgsql_parse_url(char *url, char **host, char **user, char **pass, char **database, unsigned int *port, char **unix_socket) 
 {
   char *pos = strchr(url, '@'); 
   if (pos) {
@@ -78,7 +78,7 @@ int db_mysql_parse_url(char *url, char **host, char **user, char **pass, char **
   return DB_OK;
 }
 
-int db_mysql_open(const char *file, db_conn_p *conn_p)
+int db_pgsql_open(const char *file, db_conn_p *conn_p)
 {
 #ifdef HAVE_LIBMYSQLCLIENT
   MYSQL *db = mysql_init(0);
@@ -87,16 +87,13 @@ int db_mysql_open(const char *file, db_conn_p *conn_p)
   char *db_url = malloc(strlen(file)+1);
   char *create_database_statement;
 
-  if (db_url == NULL)
-    csync_fatal("No memory for db_url\n");
-
   strcpy(db_url, file);
   int rc = db_mysql_parse_url(db_url, &host, &user, &pass, &database, &port, &unix_socket);
   if (rc != DB_OK) {
     return rc;
   }
 
-  if (mysql_real_connect(db, host, user, pass, database, port, unix_socket, 0) == NULL) {
+  if (PQconnectdb(db, host, user, pass, database, port, unix_socket, 0) == NULL) {
     if (mysql_errno(db) == ER_BAD_DB_ERROR) {
       if (mysql_real_connect(db, host, user, pass, NULL, port, unix_socket, 0) != NULL) {
 	ASPRINTF(&create_database_statement, "create database %s", database)
