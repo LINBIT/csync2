@@ -47,7 +47,8 @@ Test schema support for SQLite 2.
 Have command to pipe connection through (for SSH support for example)
 
 From Gerhard Rieger:
-	If there are more than one node to sync with print nodes that are not reachable.
+If there are more than one node to sync with print nodes that are not reachable.
+	Done, test it
 
 	Segfault when syncing a file where one side is a directory and the other one
 		is a link.
@@ -66,3 +67,5 @@ Compile even when there is no libsqlite (mysql support only)
 
 From Martin: Provide up-to-date packages.
 	Resuse build.sh script from drbd-proxy.
+
+Build packages for all supported distros.
