@@ -64,6 +64,17 @@ int db_open(const char *file, int type, db_conn_p *db)
     rc = DB_ERROR;
     break;
 #endif
+#ifdef HAVE_LIBPQ
+  case DB_PGSQL:
+    rc = db_pqsql_open(db_str, db);
+    break;
+#else
+  case DB_PGSQL:
+    csync_fatal("No Postgres SQL support configured. Please reconfigure with --enable-postgres (database is %s).\n", file);    
+    rc = DB_ERROR;
+    break;
+#endif
+
   default:
     csync_fatal("Database type not found. Can't open database %s\n", file);
     rc = DB_ERROR;

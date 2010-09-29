@@ -30,14 +30,11 @@
 #include "db_api.h"
 #include "db_postgres.h"
 
-#ifdef HAVE_POSTGRES_FE_H
-#include <postgres/postgres_fe.h>
+#ifdef HAVE_POSTGRESQL_LIBPQ_FE_H
+#include <postgresql/libpq-fe.h>
 #endif
 
-
-static int mysql_is_initialized = 0;
-
-int db_pgsql_parse_url(char *url, char **host, char **user, char **pass, char **database, unsigned int *port, char **unix_socket) 
+static int db_pgsql_parse_url(char *url, char **host, char **user, char **pass, char **database, unsigned int *port) 
 {
   char *pos = strchr(url, '@'); 
   if (pos) {
@@ -74,26 +71,38 @@ int db_pgsql_parse_url(char *url, char **host, char **user, char **pass, char **
     (*pos) = 0;
     *port = atoi(pos+1);
   }
-  *unix_socket = 0;
   return DB_OK;
 }
 
 int db_pgsql_open(const char *file, db_conn_p *conn_p)
 {
-#ifdef HAVE_LIBMYSQLCLIENT
-  MYSQL *db = mysql_init(0);
-  char *host, *user, *pass, *database, *unix_socket;
+  PGconn *pg_conn;
+  char *host, *user, *pass, *database;
   unsigned int port;
   char *db_url = malloc(strlen(file)+1);
   char *create_database_statement;
+  char *pg_conn_info;
+
+  if (db_url == NULL)
+    csync_fatal("No memory for db_url\n");
 
   strcpy(db_url, file);
-  int rc = db_mysql_parse_url(db_url, &host, &user, &pass, &database, &port, &unix_socket);
+  int rc = db_pgsql_parse_url(db_url, &host, &user, &pass, &database, &port);
   if (rc != DB_OK) {
     return rc;
   }
 
-  if (PQconnectdb(db, host, user, pass, database, port, unix_socket, 0) == NULL) {
+  ASPRINTF(&pg_conn_info, "host='%s' user='%s' password='%s' dbname='%s' port=%d",
+	host, user, pass, database, port);
+
+  pg_conn = PQconnectdb(pg_conn_info);
+  if (pg_conn == NULL)
+    csync_fatal("No memory for postgress connection handle\n");
+
+  if (PQstatus(pg_conn) != CONNECTION_OK)
+    csync_fatal("couldn't connect to postgres server.");
+
+#if 0
     if (mysql_errno(db) == ER_BAD_DB_ERROR) {
       if (mysql_real_connect(db, host, user, pass, NULL, port, unix_socket, 0) != NULL) {
 	ASPRINTF(&create_database_statement, "create database %s", database)
@@ -127,12 +136,13 @@ fatal:
   conn->upgrade_to_schema = db_mysql_upgrade_to_schema;
 
   return rc;
-#else
   return DB_ERROR;
 #endif
+
+  return DB_OK;
 }
 
-#ifdef HAVE_LIBMYSQLCLIENT
+#if 0
 
 void db_mysql_close(db_conn_p conn)
 {

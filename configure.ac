@@ -97,6 +97,11 @@ AC_ARG_ENABLE([mysql],
 		[enable/disable MySQL support (default is disabled)])],
 	[], [ enable_mysql=no ])
 
+AC_ARG_ENABLE([postgres],
+	[AC_HELP_STRING([--enable-postgres],
+		[enable/disable Postgres support (default is disabled)])],
+	[], [ enable_postgres=no ])
+
 if test "$enable_mysql" == yes
 then
 	# Check for mysql.
@@ -111,6 +116,17 @@ then
 	AC_CHECK_HEADERS([mysql/mysql.h], , [AC_MSG_ERROR([[mysql header not found; install mysql-devel and dependencies for MySQL Support]])])
 
 fi
+
+if test "$enable_postgres" == yes
+then
+	AC_CHECK_LIB([pq], [PQconnectdb], , [AC_MSG_ERROR([[postgres client libary not found; install libpq and dependencies for Postgres support]])])
+        AC_CHECK_HEADERS([postgresql/libpq-fe.h], , [AC_MSG_ERROR([[postgres header not found; install libpq-dev and dependencies for Postgres support]])])
+
+	CFLAGS="$CFLAGS -DHAVE_POSTGRES=1"
+	LIBS="$LIBS -lpq"
+fi
+
+
 AM_CONDITIONAL([HAVE_LIBMYSQL], [test "$enable_mysql" != no ])
 
 AC_CONFIG_FILES([Makefile])

@@ -35,8 +35,6 @@
 #endif
 
 
-static int mysql_is_initialized = 0;
-
 int db_mysql_parse_url(char *url, char **host, char **user, char **pass, char **database, unsigned int *port, char **unix_socket) 
 {
   char *pos = strchr(url, '@'); 
