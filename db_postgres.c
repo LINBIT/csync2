@@ -34,27 +34,32 @@
 #include <postgresql/libpq-fe.h>
 #endif
 
+#if (!defined HAVE_POSTGRES)
+int db_pgsql_open(const char *file, db_conn_p *conn_p)
+{
+	return DB_ERROR;
+}
+#else
+
+/* This function parses a URL string like pgsql://[user[:passwd]@]hostname[:port]/database.
+   and returns the result in the given parameters.
+
+   If an optional keyword is not given, the value of the parameter is not changed.
+*/
+
 static int db_pgsql_parse_url(char *url, char **host, char **user, char **pass, char **database, unsigned int *port) 
 {
   char *pos = strchr(url, '@'); 
   if (pos) {
-    // Optional user/passwd
     *(pos) = 0;
     *(user) = url;
     url = pos + 1;
-    // TODO password
+
     pos = strchr(*user, ':');
     if (pos) {
       *(pos) = 0;
       *(pass) = (pos +1);
     }
-    else
-      *pass = 0;
-  }
-  else {
-    // No user/pass password 
-    *user = 0;
-    *pass = 0;
   }
   *host = url;
   pos = strchr(*host, '/');
@@ -62,9 +67,6 @@ static int db_pgsql_parse_url(char *url, char **host, char **user, char **pass, 
     // Database
     (*pos) = 0;
     *database = pos+1;
-  }
-  else {
-    *database = 0;
   }
   pos = strchr(*host, ':');
   if (pos) {
@@ -78,7 +80,7 @@ int db_pgsql_open(const char *file, db_conn_p *conn_p)
 {
   PGconn *pg_conn;
   char *host, *user, *pass, *database;
-  unsigned int port;
+  unsigned int port = 5432;  /* default postgres port */
   char *db_url = malloc(strlen(file)+1);
   char *create_database_statement;
   char *pg_conn_info;
@@ -86,11 +88,15 @@ int db_pgsql_open(const char *file, db_conn_p *conn_p)
   if (db_url == NULL)
     csync_fatal("No memory for db_url\n");
 
+  user = "postgres";
+  pass = "";
+  host = "localhost";
+  database = "csync2";
+
   strcpy(db_url, file);
   int rc = db_pgsql_parse_url(db_url, &host, &user, &pass, &database, &port);
-  if (rc != DB_OK) {
+  if (rc != DB_OK)
     return rc;
-  }
 
   ASPRINTF(&pg_conn_info, "host='%s' user='%s' password='%s' dbname='%s' port=%d",
 	host, user, pass, database, port);
@@ -99,8 +105,11 @@ int db_pgsql_open(const char *file, db_conn_p *conn_p)
   if (pg_conn == NULL)
     csync_fatal("No memory for postgress connection handle\n");
 
-  if (PQstatus(pg_conn) != CONNECTION_OK)
-    csync_fatal("couldn't connect to postgres server.");
+  if (PQstatus(pg_conn) != CONNECTION_OK) {
+    csync_debug(0, "Connection failed: %s", PQerrorMessage(pg_conn));
+    PQfinish(pg_conn);
+    return DB_ERROR;
+  }
 
 #if 0
     if (mysql_errno(db) == ER_BAD_DB_ERROR) {
@@ -122,83 +131,50 @@ int db_pgsql_open(const char *file, db_conn_p *conn_p)
 fatal:
       csync_fatal("Failed to connect to database: Error: %s\n", mysql_error(db));
   }
+#endif
 
   db_conn_p conn = calloc(1, sizeof(*conn));
-  if (conn == NULL) {
-    return DB_ERROR;
-  }
-  *conn_p = conn;
-  conn->private = db;
-  conn->close = db_mysql_close;
-  conn->exec = db_mysql_exec;
-  conn->prepare = db_mysql_prepare;
-  conn->errmsg = db_mysql_errmsg;
-  conn->upgrade_to_schema = db_mysql_upgrade_to_schema;
 
-  return rc;
-  return DB_ERROR;
-#endif
+  if (conn == NULL)
+    csync_fatal("No memory for conn\n");
+
+  *conn_p = conn;
+  conn->private = pg_conn;
+  conn->close = db_postgres_close;
+  conn->exec = db_postgres_exec;
+  conn->prepare = db_postgres_prepare;
+//  conn->errmsg = db_mysql_errmsg;
+//  conn->upgrade_to_schema = db_mysql_upgrade_to_schema;
 
   return DB_OK;
 }
 
-#if 0
 
-void db_mysql_close(db_conn_p conn)
+void db_postgres_close(db_conn_p conn)
 {
   if (!conn)
     return;
   if (!conn->private) 
     return;
-  mysql_close(conn->private);
+  PGfinish(conn->private);
   conn->private = 0;
 }
 
-const char *db_mysql_errmsg(db_conn_p conn)
+const char *db_postgres_errmsg(db_conn_p conn)
 {
   if (!conn)
     return "(no connection)";
   if (!conn->private)
     return "(no private data in conn)";
-  return mysql_error(conn->private);
+  return PQerrorMessage(conn->private);
 }
 
-static void print_warnings(int level, MYSQL *m)
+
+int db_postgres_exec(db_conn_p conn, const char *sql) 
 {
-  int rc;
-  MYSQL_RES *res;
-  int f;
-  MYSQL_ROW row;
-
-  if (m == NULL)
-    csync_fatal("print_warnings: m is NULL");
-
-  rc = mysql_query(m, "SHOW WARNINGS");
-  if (rc != 0)
-    csync_fatal("print_warnings: Failed to get warning messages");
-
-  res = mysql_store_result(m);
-  if (res == NULL)
-    csync_fatal("print_warnings: Failed to get result set for warning messages");
-
-  f = mysql_num_fields(res);
-  if (f < 2)
-    csync_fatal("print_warnings: Strange: show warnings result set has less than 2 rows");
-
-  row = mysql_fetch_row(res);
-
-  while (row) {
-    csync_debug(level, "MySql Warning: %s\n", row[2]);
-    row = mysql_fetch_row(res);
-  }
-
-  mysql_free_result(res);
-}
-
-int db_mysql_exec(db_conn_p conn, const char *sql) {
   int rc = DB_ERROR;
   if (!conn)
-    return DB_NO_CONNECTION; 
+    return DB_NO_CONNECTION;
 
   if (!conn->private) {
     /* added error element */
@@ -375,4 +351,5 @@ int db_mysql_upgrade_to_schema(db_conn_p db, int version)
 }
 
 
+#endif /*0*/
 #endif

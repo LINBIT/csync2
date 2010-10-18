@@ -186,7 +186,8 @@ static void print_warnings(int level, MYSQL *m)
   mysql_free_result(res);
 }
 
-int db_mysql_exec(db_conn_p conn, const char *sql) {
+int db_mysql_exec(db_conn_p conn, const char *sql) 
+{
   int rc = DB_ERROR;
   if (!conn)
     return DB_NO_CONNECTION; 

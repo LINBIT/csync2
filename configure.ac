@@ -122,7 +122,7 @@ then
 	AC_CHECK_LIB([pq], [PQconnectdb], , [AC_MSG_ERROR([[postgres client libary not found; install libpq and dependencies for Postgres support]])])
         AC_CHECK_HEADERS([postgresql/libpq-fe.h], , [AC_MSG_ERROR([[postgres header not found; install libpq-dev and dependencies for Postgres support]])])
 
-	CFLAGS="$CFLAGS -DHAVE_POSTGRES=1"
+	AC_DEFINE([HAVE_POSTGRES], 1, [Define if postgres support is wanted])
 	LIBS="$LIBS -lpq"
 fi
 
