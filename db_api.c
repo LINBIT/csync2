@@ -84,48 +84,76 @@ int db_open(const char *file, int type, db_conn_p *db)
   return rc;
 }
 
-int db_set_logger(db_conn_p conn, void (*logger)(int lv, const char *fmt, ...)) {
-  conn->logger = logger; 
+void db_set_logger(db_conn_p conn, void (*logger)(int lv, const char *fmt, ...)) {
+  if (conn == NULL)
+    csync_fatal("No connection in set_logger.\n");
+
+  conn->logger = logger;
 }
 
 void db_close(db_conn_p conn)
 {
-  if (!conn) 
+  if (!conn || !conn->close)
     return;
   conn->close(conn);
 }
 
-const char *db_errmsg(db_conn_p conn) 
+const char *db_errmsg(db_conn_p conn)
 {
-  if (conn->errmsg)
+  if (conn && conn->errmsg)
     return conn->errmsg(conn);
+
   return "(no error message function available)";
 }
 
 int db_exec(db_conn_p conn, const char *sql) {
-  return conn->exec(conn, sql);
+  if (conn && conn->exec)
+    return conn->exec(conn, sql);
+
+  csync_debug(0, "No exec function in db_exec.\n");
+  return DB_ERROR;
 }
 
 int db_prepare_stmt(db_conn_p conn, const char *sql, db_stmt_p *stmt, char **pptail) {
-  return conn->prepare(conn, sql, stmt, pptail);
+  if (conn && conn->prepare)
+    return conn->prepare(conn, sql, stmt, pptail);
+
+  csync_debug(0, "No prepare function in db_prepare_stmt.\n");
+  return DB_ERROR;
 }
 
 const char *db_stmt_get_column_text(db_stmt_p stmt, int column) {
-  return stmt->get_column_text(stmt, column);
+  if (stmt && stmt->get_column_text)
+    return stmt->get_column_text(stmt, column);
+
+  csync_debug(0, "No stmt in db_stmt_get_column_text / no function.\n");
+  return NULL;
 }
 
 int db_stmt_get_column_int(db_stmt_p stmt, int column) {
-  return stmt->get_column_int(stmt, column);
+  if (stmt && stmt->get_column_int)
+    return stmt->get_column_int(stmt, column);
+
+  csync_debug(0, "No stmt in db_stmt_get_column_int / no function.\n");
+  return 0;
 }
 
 int db_stmt_next(db_stmt_p stmt)
 {
-  return stmt->next(stmt);
+  if (stmt && stmt->next)
+    return stmt->next(stmt);
+
+  csync_debug(0, "No stmt in db_stmt_next / no function.\n");
+  return DB_ERROR;
 }
 
 int db_stmt_close(db_stmt_p stmt)
 {
-  return stmt->close(stmt);
+  if (stmt && stmt->close)
+    return stmt->close(stmt);
+
+  csync_debug(0, "No stmt in db_stmt_close / no function.\n");
+  return DB_ERROR;
 }
 
 int db_schema_version(db_conn_p db)
@@ -144,7 +172,7 @@ int db_schema_version(db_conn_p db)
 
 int db_upgrade_to_schema(db_conn_p db, int version)
 {
-	if (db->upgrade_to_schema)
+	if (db && db->upgrade_to_schema)
 		return db->upgrade_to_schema(db, version);
 
 	return DB_ERROR;

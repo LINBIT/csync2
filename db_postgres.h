@@ -1,19 +1,21 @@
 
-#ifndef DB_MYSQL_H
-#define DB_MYSQL_H
+#ifndef DB_POSTGRES_H
+#define DB_POSTGRES_H
 
 /* public */
-int   db_mysql_open(const char *file, db_conn_p *conn_p);
+int   db_postgres_open(const char *file, db_conn_p *conn_p);
 /* Private */
-void  db_mysql_close(db_conn_p db_conn);
-int   db_mysql_exec(db_conn_p conn, const char *sql);
-int   db_mysql_prepare(db_conn_p conn, const char *sql, db_stmt_p *stmt_p, char **pptail);
-int   db_mysql_stmt_next(db_stmt_p stmt);
-const void* db_mysql_stmt_get_column_blob(db_stmt_p stmt, int column);
-const char *db_mysql_stmt_get_column_text(db_stmt_p stmt, int column);
-int   db_mysql_stmt_get_column_int(db_stmt_p stmt, int column);
-int   db_mysql_stmt_close(db_stmt_p stmt);
-const char *db_mysql_errmsg(db_conn_p db_conn);
-int   db_mysql_upgrade_to_schema(db_conn_p db, int version);
+void  db_postgres_close(db_conn_p db_conn);
+int   db_postgres_exec(db_conn_p conn, const char *sql);
+int   db_postgres_prepare(db_conn_p conn, const char *sql, db_stmt_p *stmt_p, char **pptail);
+const char *db_postgres_errmsg(db_conn_p db_conn);
+#if 0
+int   db_postgres_stmt_next(db_stmt_p stmt);
+const void* db_postgres_stmt_get_column_blob(db_stmt_p stmt, int column);
+const char *db_postgres_stmt_get_column_text(db_stmt_p stmt, int column);
+int   db_postgres_stmt_get_column_int(db_stmt_p stmt, int column);
+int   db_postgres_stmt_close(db_stmt_p stmt);
+int   db_postgres_upgrade_to_schema(db_conn_p db, int version);
+#endif
 
 #endif

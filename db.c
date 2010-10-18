@@ -198,7 +198,7 @@ void csync_db_sql(const char *err, const char *fmt, ...)
 
 void* csync_db_begin(const char *err, const char *fmt, ...)
 {
-	db_stmt_p stmt;
+	db_stmt_p stmt = NULL;
 	char *sql;
 	va_list ap;
 	int rc, busyc = 0;

@@ -142,8 +142,9 @@ fatal:
   conn->private = pg_conn;
   conn->close = db_postgres_close;
   conn->exec = db_postgres_exec;
-  conn->prepare = db_postgres_prepare;
-//  conn->errmsg = db_mysql_errmsg;
+  conn->errmsg = db_postgres_errmsg;
+
+//  conn->prepare = db_postgres_prepare;
 //  conn->upgrade_to_schema = db_mysql_upgrade_to_schema;
 
   return DB_OK;
@@ -154,9 +155,9 @@ void db_postgres_close(db_conn_p conn)
 {
   if (!conn)
     return;
-  if (!conn->private) 
+  if (!conn->private)
     return;
-  PGfinish(conn->private);
+  PQfinish(conn->private);
   conn->private = 0;
 }
 
@@ -172,7 +173,8 @@ const char *db_postgres_errmsg(db_conn_p conn)
 
 int db_postgres_exec(db_conn_p conn, const char *sql) 
 {
-  int rc = DB_ERROR;
+  PGresult *res;
+
   if (!conn)
     return DB_NO_CONNECTION;
 
@@ -180,22 +182,23 @@ int db_postgres_exec(db_conn_p conn, const char *sql)
     /* added error element */
     return DB_NO_CONNECTION_REAL;
   }
-  rc = mysql_query(conn->private, sql);
+  res = PQexec(conn->private, sql);
+  switch (PQresultStatus(res)) {
+  case PGRES_COMMAND_OK:
+  case PGRES_TUPLES_OK:
+    return DB_OK;
 
-/* Treat warnings as errors. For example when a column is too short this should
-   be an error. */
-
-  if (mysql_warning_count(conn->private) > 0) {
-    print_warnings(1, conn->private);
+  default:
     return DB_ERROR;
   }
-
-  /* On error parse, create DB ERROR element */
-  return rc;
 }
 
-int db_mysql_prepare(db_conn_p conn, const char *sql, db_stmt_p *stmt_p, 
-		     char **pptail) {
+
+#if 0
+
+int db_postgres_prepare(db_conn_p conn, const char *sql, db_stmt_p *stmt_p,
+		     char **pptail) 
+{
   int rc = DB_ERROR;
 
   *stmt_p = NULL;
