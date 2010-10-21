@@ -143,8 +143,7 @@ fatal:
   conn->close = db_postgres_close;
   conn->exec = db_postgres_exec;
   conn->errmsg = db_postgres_errmsg;
-
-//  conn->prepare = db_postgres_prepare;
+  conn->prepare = db_postgres_prepare;
 //  conn->upgrade_to_schema = db_mysql_upgrade_to_schema;
 
   return DB_OK;
@@ -194,12 +193,11 @@ int db_postgres_exec(db_conn_p conn, const char *sql)
 }
 
 
-#if 0
-
 int db_postgres_prepare(db_conn_p conn, const char *sql, db_stmt_p *stmt_p,
-		     char **pptail) 
+		     char **pptail)
 {
-  int rc = DB_ERROR;
+  PGresult *result;
+  int *row_p;
 
   *stmt_p = NULL;
 
@@ -210,87 +208,133 @@ int db_postgres_prepare(db_conn_p conn, const char *sql, db_stmt_p *stmt_p,
     /* added error element */
     return DB_NO_CONNECTION_REAL;
   }
+  result = PQexec(conn->private, sql);
+
+  if (result == NULL)
+    csync_fatal("No memory for result\n");
+
+  switch (PQresultStatus(result)) {
+  case PGRES_COMMAND_OK:
+  case PGRES_TUPLES_OK:
+    break;
+
+  default:
+    csync_debug(1, "Error in PQexec: %s", PQresultErrorMessage(result));
+    PQclear(result);
+    return DB_ERROR;
+  }
+
+  row_p = malloc(sizeof(*row_p));
+  if (row_p == NULL)
+    csync_fatal("No memory for row\n");
+  *row_p = -1;
+
   db_stmt_p stmt = malloc(sizeof(*stmt));
-  /* TODO avoid strlen, use configurable limit? */
-  rc = mysql_query(conn->private, sql);
+  if (stmt == NULL)
+    csync_fatal("No memory for stmt\n");
 
-/* Treat warnings as errors. For example when a column is too short this should
-   be an error. */
+  stmt->private = result;
+  stmt->private2 = row_p;
 
-  if (mysql_warning_count(conn->private) > 0) {
-    print_warnings(1, conn->private);
-    return DB_ERROR;
-  }
-
-  MYSQL_RES *mysql_stmt = mysql_store_result(conn->private);
-  if (mysql_stmt == NULL) {
-    csync_debug(2, "Error in mysql_store_result: %s", mysql_error(conn->private));
-    return DB_ERROR;
-  }
-
-/* Treat warnings as errors. For example when a column is too short this should
-   be an error. */
-
-  if (mysql_warning_count(conn->private) > 0) {
-    print_warnings(1, conn->private);
-    return DB_ERROR;
-  }
-
-  stmt->private = mysql_stmt;
-  /* TODO error mapping / handling */
   *stmt_p = stmt;
-  stmt->get_column_text = db_mysql_stmt_get_column_text;
-  stmt->get_column_blob = db_mysql_stmt_get_column_blob;
-  stmt->get_column_int = db_mysql_stmt_get_column_int;
-  stmt->next = db_mysql_stmt_next;
-  stmt->close = db_mysql_stmt_close;
+  stmt->get_column_text = db_postgres_stmt_get_column_text;
+  stmt->get_column_blob = db_postgres_stmt_get_column_blob;
+  stmt->get_column_int = db_postgres_stmt_get_column_int;
+  stmt->next = db_postgres_stmt_next;
+  stmt->close = db_postgres_stmt_close;
   stmt->db = conn;
   return DB_OK;
 }
 
-const void* db_mysql_stmt_get_column_blob(db_stmt_p stmt, int column) {
-  if (!stmt || !stmt->private2) {
+
+const void* db_postgres_stmt_get_column_blob(db_stmt_p stmt, int column)
+{
+  PGresult *result;
+  int *row_p;
+
+  if (!stmt || !stmt->private || !stmt->private2) {
     return 0;
   }
-  MYSQL_ROW row = stmt->private2;
-  return row[column];
+  result = (PGresult*)stmt->private;
+  row_p = (int*)stmt->private2;
+
+  if (*row_p >= PQntuples(result) || *row_p < 0) {
+    csync_debug(1, "row index out of range (should be between 0 and %d, is %d)\n", 
+                *row_p, PQntuples(result));
+    return NULL;
+  }
+  return PQgetvalue(result, *row_p, column);
 }
 
-const char *db_mysql_stmt_get_column_text(db_stmt_p stmt, int column) {
-  if (!stmt || !stmt->private2) {
+const char *db_postgres_stmt_get_column_text(db_stmt_p stmt, int column)
+{
+  PGresult *result;
+  int *row_p;
+
+  if (!stmt || !stmt->private || !stmt->private2) {
     return 0;
   }
-  MYSQL_ROW row = stmt->private2;
-  return row[column];
+  result = (PGresult*)stmt->private;
+  row_p = (int*)stmt->private2;
+
+  if (*row_p >= PQntuples(result) || *row_p < 0) {
+    csync_debug(1, "row index out of range (should be between 0 and %d, is %d)\n", 
+                *row_p, PQntuples(result));
+    return NULL;
+  }
+  return PQgetvalue(result, *row_p, column);
 }
 
-int db_mysql_stmt_get_column_int(db_stmt_p stmt, int column) {
-  const char *value = db_mysql_stmt_get_column_text(stmt, column);
-  if (value)
-    return atoi(value);
-  /* error mapping */
-  return 0;
-}
-
-
-int db_mysql_stmt_next(db_stmt_p stmt)
+int db_postgres_stmt_get_column_int(db_stmt_p stmt, int column)
 {
-  MYSQL_RES *mysql_stmt = stmt->private;
-  stmt->private2 = mysql_fetch_row(mysql_stmt);
-  /* error mapping */ 
-  if (stmt->private2)
-    return DB_ROW;
-  return DB_DONE;
+  PGresult *result;
+  int *row_p;
+
+  if (!stmt || !stmt->private || !stmt->private2) {
+    return 0;
+  }
+  result = (PGresult*)stmt->private;
+  row_p = (int*)stmt->private2;
+
+  if (*row_p >= PQntuples(result) || *row_p < 0) {
+    csync_debug(1, "row index out of range (should be between 0 and %d, is %d)\n", 
+                *row_p, PQntuples(result));
+    return 0;
+  }
+  return atoi(PQgetvalue(result, *row_p, column));
 }
 
-int db_mysql_stmt_close(db_stmt_p stmt)
+
+int db_postgres_stmt_next(db_stmt_p stmt)
 {
-  MYSQL_RES *mysql_stmt = stmt->private;
-  mysql_free_result(mysql_stmt);
+  PGresult *result;
+  int *row_p;
+
+  if (!stmt || !stmt->private || !stmt->private2) {
+    return 0;
+  }
+  result = (PGresult*)stmt->private;
+  row_p = (int*)stmt->private2;
+
+  (*row_p)++;
+  if (*row_p >= PQntuples(result))
+    return DB_DONE;
+
+  return DB_ROW;
+}
+
+int db_postgres_stmt_close(db_stmt_p stmt)
+{
+  PGresult *res = stmt->private;
+
+  PQclear(res);
+  free(stmt->private2);
   free(stmt);
-  return DB_OK; 
+  return DB_OK;
 }
 
+
+#if 0
 
 int db_mysql_upgrade_to_schema(db_conn_p db, int version)
 {
