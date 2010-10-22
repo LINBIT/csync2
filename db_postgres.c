@@ -35,7 +35,7 @@
 #endif
 
 #if (!defined HAVE_POSTGRES)
-int db_pgsql_open(const char *file, db_conn_p *conn_p)
+int db_postgres_open(const char *file, db_conn_p *conn_p)
 {
 	return DB_ERROR;
 }
@@ -108,6 +108,7 @@ int db_postgres_open(const char *file, db_conn_p *conn_p)
   if (PQstatus(pg_conn) != CONNECTION_OK) {
     csync_debug(0, "Connection failed: %s", PQerrorMessage(pg_conn));
     PQfinish(pg_conn);
+    free(pg_conn_info);
     return DB_ERROR;
   }
 
@@ -145,6 +146,8 @@ fatal:
   conn->errmsg = db_postgres_errmsg;
   conn->prepare = db_postgres_prepare;
   conn->upgrade_to_schema = db_postgres_upgrade_to_schema;
+
+  free(pg_conn_info);
 
   return DB_OK;
 }
