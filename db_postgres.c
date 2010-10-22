@@ -144,7 +144,7 @@ fatal:
   conn->exec = db_postgres_exec;
   conn->errmsg = db_postgres_errmsg;
   conn->prepare = db_postgres_prepare;
-//  conn->upgrade_to_schema = db_mysql_upgrade_to_schema;
+  conn->upgrade_to_schema = db_postgres_upgrade_to_schema;
 
   return DB_OK;
 }
@@ -334,9 +334,7 @@ int db_postgres_stmt_close(db_stmt_p stmt)
 }
 
 
-#if 0
-
-int db_mysql_upgrade_to_schema(db_conn_p db, int version)
+int db_postgres_upgrade_to_schema(db_conn_p db, int version)
 {
 	if (version < 0)
 		return DB_OK;
@@ -346,51 +344,51 @@ int db_mysql_upgrade_to_schema(db_conn_p db, int version)
 
 	csync_debug(2, "Upgrading database schema to version %d.\n", version);
 
+
 	if (db_exec(db,
-		"CREATE TABLE `action` ("
-		"  `filename` varchar(4096) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,"
-		"  `command` text,"
-		"  `logfile` text,"
-		"  UNIQUE KEY `filename` (`filename`(326),`command`(20))"
-		")"
+"CREATE TABLE action ("
+"  filename varchar(255) DEFAULT NULL,"
+"  command text,"
+"  logfile text,"
+"  UNIQUE (filename,command)"
+");"
 		) != DB_OK)
 		return DB_ERROR;
 
 	if (db_exec(db,
-		"CREATE TABLE `dirty` ("
-		"  `filename` varchar(4096) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,"
-		"  `forced`   int(11)      DEFAULT NULL,"
-		"  `myname`   varchar(50)  DEFAULT NULL,"
-		"  `peername` varchar(50)  DEFAULT NULL,"
-		"  UNIQUE KEY `filename` (`filename`(316),`peername`),"
-		"  KEY `dirty_host` (`peername`(10))"
-		")"
+"CREATE TABLE dirty ("
+"  filename varchar(200) DEFAULT NULL,"
+"  forced int DEFAULT NULL,"
+"  myname varchar(100) DEFAULT NULL,"
+"  peername varchar(100) DEFAULT NULL,"
+"  UNIQUE (filename,peername)"
+");"
 		) != DB_OK)
 		return DB_ERROR;
 
 	if (db_exec(db,
-		"CREATE TABLE `file` ("
-		"  `filename` varchar(4096) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,"
-		"  `checktxt` varchar(200) DEFAULT NULL,"
-		"  UNIQUE KEY `filename` (`filename`(333))"
-		")"
+"CREATE TABLE file ("
+"  filename varchar(200) DEFAULT NULL,"
+"  checktxt varchar(200) DEFAULT NULL,"
+"  UNIQUE (filename)"
+");"
 		) != DB_OK)
 		return DB_ERROR;
 
 	if (db_exec(db,
-		"CREATE TABLE `hint` ("
-		"  `filename` varchar(4096) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,"
-		"  `recursive` int(11)     DEFAULT NULL"
-		")"
+"CREATE TABLE hint ("
+"  filename varchar(255) DEFAULT NULL,"
+"  recursive int DEFAULT NULL"
+");"
 		) != DB_OK)
 		return DB_ERROR;
 
 	if (db_exec(db,
-		"CREATE TABLE `x509_cert` ("
-		"  `peername` varchar(50)  DEFAULT NULL,"
-		"  `certdata` varchar(255) DEFAULT NULL,"
-		"  UNIQUE KEY `peername` (`peername`)"
-		")"
+"CREATE TABLE x509_cert ("
+"  peername varchar(255) DEFAULT NULL,"
+"  certdata varchar(255) DEFAULT NULL,"
+"  UNIQUE (peername)"
+");"
 		) != DB_OK)
 		return DB_ERROR;
 
@@ -398,5 +396,4 @@ int db_mysql_upgrade_to_schema(db_conn_p db, int version)
 }
 
 
-#endif /*0*/
 #endif

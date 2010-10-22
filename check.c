@@ -100,11 +100,10 @@ void csync_mark(const char *file, const char *thispeer, const char *peerfilter)
 	csync_debug(1, "Marking file as dirty: %s\n", file);
 	for (pl_idx=0; pl[pl_idx].peername; pl_idx++)
 		if (!peerfilter || !strcmp(peerfilter, pl[pl_idx].peername)) {
-                        if (csync_new_force)
-				SQL("Deleting old dirty file entries",
-					"DELETE FROM dirty WHERE filename = '%s' AND peername = '%s')",
-					url_encode(file),
-					url_encode(pl[pl_idx].peername));
+			SQL("Deleting old dirty file entries",
+				"DELETE FROM dirty WHERE filename = '%s' AND peername = '%s'",
+				url_encode(file),
+				url_encode(pl[pl_idx].peername));
 
 			SQL("Marking File Dirty",
 				"INSERT INTO dirty (filename, forced, myname, peername) "

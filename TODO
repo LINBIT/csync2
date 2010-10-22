@@ -69,3 +69,6 @@ From Martin: Provide up-to-date packages.
 	Resuse build.sh script from drbd-proxy.
 
 Build packages for all supported distros.
+
+If include <dir> is missing error message is Permission denied, which is 
+    irritating.
