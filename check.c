@@ -210,7 +210,7 @@ void csync_check_del(const char *file, int recursive, int init_run)
 
 	if ( recursive ) {
 		if ( !strcmp(file, "/") )
-		  ASPRINTF(&where_rec, "or 1")
+		  ASPRINTF(&where_rec, "")
 		else
 		  ASPRINTF(&where_rec, "UNION ALL SELECT filename from file where filename > '%s/' "
 				"and filename < '%s0'",
