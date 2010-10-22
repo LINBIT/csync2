@@ -99,15 +99,23 @@ void csync_mark(const char *file, const char *thispeer, const char *peerfilter)
 
 	csync_debug(1, "Marking file as dirty: %s\n", file);
 	for (pl_idx=0; pl[pl_idx].peername; pl_idx++)
-		if (!peerfilter || !strcmp(peerfilter, pl[pl_idx].peername))
+		if (!peerfilter || !strcmp(peerfilter, pl[pl_idx].peername)) {
+                        if (csync_new_force)
+				SQL("Deleting old dirty file entries",
+					"DELETE FROM dirty WHERE filename = '%s' AND forced = %s AND myname = '%s' AND peername = '%s')",
+					url_encode(file),
+					csync_new_force ? "1" : "0",
+					url_encode(pl[pl_idx].myname),
+					url_encode(pl[pl_idx].peername));
+
 			SQL("Marking File Dirty",
-				"%s INTO dirty (filename, forced, myname, peername) "
+				"INSERT INTO dirty (filename, forced, myname, peername) "
 				"VALUES ('%s', %s, '%s', '%s')",
-			        csync_new_force ? "REPLACE" : "REPLACE", // DS A
 				url_encode(file),
 				csync_new_force ? "1" : "0",
 				url_encode(pl[pl_idx].myname),
 				url_encode(pl[pl_idx].peername));
+		}
 
 	free(pl);
 }
@@ -309,8 +317,12 @@ int csync_check_mod(const char *file, int recursive, int ignnoent, int init_run)
 		} SQL_END;
 
 		if ( this_is_dirty && !csync_compare_mode ) {
+			SQL("Deleting old file entry",
+			    "DELETE FROM file WHERE filename = '%s' AND checktxt = '%s'",
+			    url_encode(file), url_encode(checktxt));
+
 			SQL("Adding or updating file entry",
-			    "REPLACE INTO file (filename, checktxt) "
+			    "INSERT INTO file (filename, checktxt) "
 			    "VALUES ('%s', '%s')",
 			    url_encode(file), url_encode(checktxt));
 			if (!init_run) csync_mark(file, 0, 0);

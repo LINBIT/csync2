@@ -84,8 +84,14 @@ void csync_file_update(const char *filename, const char *peername)
 			url_encode(filename));
 	} else {
 		const char *checktxt = csync_genchecktxt(&st, filename, 0);
+
+		SQL("Deleting old record from file db",
+			"DELETE FROM file WHERE filename = '%s' AND checktxt = '%s'",
+			url_encode(filename),
+			url_encode(checktxt));
+
 		SQL("Insert record to file db",
-			"REPLACE INTO file (filename, checktxt) values "
+			"INSERT INTO file (filename, checktxt) values "
 			"('%s', '%s')", url_encode(filename),
 			url_encode(checktxt));
 	}
