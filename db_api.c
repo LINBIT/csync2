@@ -66,7 +66,7 @@ int db_open(const char *file, int type, db_conn_p *db)
 #endif
 #ifdef HAVE_LIBPQ
   case DB_PGSQL:
-    rc = db_pgsql_open(db_str, db);
+    rc = db_postgres_open(db_str, db);
     break;
 #else
   case DB_PGSQL:

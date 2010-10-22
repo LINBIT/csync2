@@ -76,7 +76,7 @@ static int db_pgsql_parse_url(char *url, char **host, char **user, char **pass, 
   return DB_OK;
 }
 
-int db_pgsql_open(const char *file, db_conn_p *conn_p)
+int db_postgres_open(const char *file, db_conn_p *conn_p)
 {
   PGconn *pg_conn;
   char *host, *user, *pass, *database;
