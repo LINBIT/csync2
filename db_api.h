@@ -25,7 +25,7 @@ struct db_conn_t {
   void      (*close)  (db_conn_p conn);
   void      (*logger) (int lv, const char *fmt, ...);
   const char* (*errmsg) (db_conn_p conn);
-  int       (*upgrade_to_schema) (db_conn_p conn, int version);
+  int       (*upgrade_to_schema) (int version);
 };
 
 struct db_stmt_t {

@@ -14,6 +14,6 @@ const char *db_mysql_stmt_get_column_text(db_stmt_p stmt, int column);
 int   db_mysql_stmt_get_column_int(db_stmt_p stmt, int column);
 int   db_mysql_stmt_close(db_stmt_p stmt);
 const char *db_mysql_errmsg(db_conn_p db_conn);
-int   db_mysql_upgrade_to_schema(db_conn_p db, int version);
+int   db_mysql_upgrade_to_schema(int version);
 
 #endif

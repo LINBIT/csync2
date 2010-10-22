@@ -305,7 +305,7 @@ int db_mysql_stmt_close(db_stmt_p stmt)
 }
 
 
-int db_mysql_upgrade_to_schema(db_conn_p db, int version)
+int db_mysql_upgrade_to_schema(int version)
 {
 	if (version < 0)
 		return DB_OK;
@@ -315,17 +315,18 @@ int db_mysql_upgrade_to_schema(db_conn_p db, int version)
 
 	csync_debug(2, "Upgrading database schema to version %d.\n", version);
 
-	if (db_exec(db,
+/* We want proper logging, so use the csync sql function instead
+ * of that from the database layer.
+ */
+	csync_db_sql("Creating action table",
 		"CREATE TABLE `action` ("
 		"  `filename` varchar(4096) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,"
 		"  `command` text,"
 		"  `logfile` text,"
 		"  UNIQUE KEY `filename` (`filename`(326),`command`(20))"
-		")"
-		) != DB_OK)
-		return DB_ERROR;
+		")");
 
-	if (db_exec(db,
+	csync_db_sql("Creating dirty table",
 		"CREATE TABLE `dirty` ("
 		"  `filename` varchar(4096) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,"
 		"  `forced`   int(11)      DEFAULT NULL,"
@@ -333,35 +334,29 @@ int db_mysql_upgrade_to_schema(db_conn_p db, int version)
 		"  `peername` varchar(50)  DEFAULT NULL,"
 		"  UNIQUE KEY `filename` (`filename`(316),`peername`),"
 		"  KEY `dirty_host` (`peername`(10))"
-		")"
-		) != DB_OK)
-		return DB_ERROR;
+		")");
 
-	if (db_exec(db,
+	csync_db_sql("Creating file table",
 		"CREATE TABLE `file` ("
 		"  `filename` varchar(4096) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,"
 		"  `checktxt` varchar(200) DEFAULT NULL,"
 		"  UNIQUE KEY `filename` (`filename`(333))"
-		")"
-		) != DB_OK)
-		return DB_ERROR;
+		")");
 
-	if (db_exec(db,
+	csync_db_sql("Creating hint table",
 		"CREATE TABLE `hint` ("
 		"  `filename` varchar(4096) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,"
 		"  `recursive` int(11)     DEFAULT NULL"
-		")"
-		) != DB_OK)
-		return DB_ERROR;
+		")");
 
-	if (db_exec(db,
+	csync_db_sql("Creating x509_cert table",
 		"CREATE TABLE `x509_cert` ("
 		"  `peername` varchar(50)  DEFAULT NULL,"
 		"  `certdata` varchar(255) DEFAULT NULL,"
 		"  UNIQUE KEY `peername` (`peername`)"
-		")"
-		) != DB_OK)
-		return DB_ERROR;
+		")");
+
+/* csync_db_sql does a csync_fatal on error, so we always return DB_OK here. */
 
 	return DB_OK;
 }

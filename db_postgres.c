@@ -334,7 +334,7 @@ int db_postgres_stmt_close(db_stmt_p stmt)
 }
 
 
-int db_postgres_upgrade_to_schema(db_conn_p db, int version)
+int db_postgres_upgrade_to_schema(int version)
 {
 	if (version < 0)
 		return DB_OK;
@@ -344,53 +344,42 @@ int db_postgres_upgrade_to_schema(db_conn_p db, int version)
 
 	csync_debug(2, "Upgrading database schema to version %d.\n", version);
 
-
-	if (db_exec(db,
+	csync_db_sql("Creating action table",
 "CREATE TABLE action ("
 "  filename varchar(255) DEFAULT NULL,"
 "  command text,"
 "  logfile text,"
 "  UNIQUE (filename,command)"
-");"
-		) != DB_OK)
-		return DB_ERROR;
+");");
 
-	if (db_exec(db,
+	csync_db_sql("Creating dirty table",
 "CREATE TABLE dirty ("
 "  filename varchar(200) DEFAULT NULL,"
 "  forced int DEFAULT NULL,"
 "  myname varchar(100) DEFAULT NULL,"
 "  peername varchar(100) DEFAULT NULL,"
 "  UNIQUE (filename,peername)"
-");"
-		) != DB_OK)
-		return DB_ERROR;
+");");
 
-	if (db_exec(db,
+	csync_db_sql("Creating file table",
 "CREATE TABLE file ("
 "  filename varchar(200) DEFAULT NULL,"
 "  checktxt varchar(200) DEFAULT NULL,"
 "  UNIQUE (filename)"
-");"
-		) != DB_OK)
-		return DB_ERROR;
+");");
 
-	if (db_exec(db,
+	csync_db_sql("Creating hint table",
 "CREATE TABLE hint ("
 "  filename varchar(255) DEFAULT NULL,"
 "  recursive int DEFAULT NULL"
-");"
-		) != DB_OK)
-		return DB_ERROR;
+");");
 
-	if (db_exec(db,
+	csync_db_sql("Creating x509_cert table",
 "CREATE TABLE x509_cert ("
 "  peername varchar(255) DEFAULT NULL,"
 "  certdata varchar(255) DEFAULT NULL,"
 "  UNIQUE (peername)"
-");"
-		) != DB_OK)
-		return DB_ERROR;
+");");
 
 	return DB_OK;
 }

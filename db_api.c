@@ -173,7 +173,7 @@ int db_schema_version(db_conn_p db)
 int db_upgrade_to_schema(db_conn_p db, int version)
 {
 	if (db && db->upgrade_to_schema)
-		return db->upgrade_to_schema(db, version);
+		return db->upgrade_to_schema(version);
 
 	return DB_ERROR;
 }
