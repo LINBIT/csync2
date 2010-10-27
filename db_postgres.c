@@ -99,40 +99,65 @@ int db_postgres_open(const char *file, db_conn_p *conn_p)
     return rc;
 
   ASPRINTF(&pg_conn_info, "host='%s' user='%s' password='%s' dbname='%s' port=%d",
-	host, user, pass, database, port);
+	host, user, pass, database, port)
 
   pg_conn = PQconnectdb(pg_conn_info);
   if (pg_conn == NULL)
     csync_fatal("No memory for postgress connection handle\n");
 
   if (PQstatus(pg_conn) != CONNECTION_OK) {
-    csync_debug(0, "Connection failed: %s", PQerrorMessage(pg_conn));
     PQfinish(pg_conn);
     free(pg_conn_info);
-    return DB_ERROR;
-  }
 
-#if 0
-    if (mysql_errno(db) == ER_BAD_DB_ERROR) {
-      if (mysql_real_connect(db, host, user, pass, NULL, port, unix_socket, 0) != NULL) {
-	ASPRINTF(&create_database_statement, "create database %s", database)
+    ASPRINTF(&pg_conn_info, "host='%s' user='%s' password='%s' dbname='postgres' port=%d",
+	  host, user, pass, port)
 
-	csync_debug(2, "creating database %s\n", database);
-        if (mysql_query(db, create_database_statement) != 0)
-          csync_fatal("Cannot create database %s: Error: %s\n", database, mysql_error(db));
-	free(create_database_statement);
+    pg_conn = PQconnectdb(pg_conn_info);
+    if (pg_conn == NULL)
+      csync_fatal("No memory for postgress connection handle\n");
 
-	mysql_close(db);
-	db = mysql_init(0);
+    if (PQstatus(pg_conn) != CONNECTION_OK) {
+      csync_debug(0, "Connection failed: %s", PQerrorMessage(pg_conn));
+      PQfinish(pg_conn);
+      free(pg_conn_info);
+      return DB_ERROR;
+    } else {
+      char *create_database_statement;
+      PGresult *res;
 
-        if (mysql_real_connect(db, host, user, pass, database, port, unix_socket, 0) == NULL)
-          goto fatal;
+      ASPRINTF(&create_database_statement, "create database %s", database);
+      res = PQexec(pg_conn, create_database_statement);
+
+      free(create_database_statement);
+
+      switch (PQresultStatus(res)) {
+        case PGRES_COMMAND_OK:
+        case PGRES_TUPLES_OK:
+          break;
+
+        default:
+          csync_debug(0, "Could not create database %s: %s", database, PQerrorMessage(pg_conn)); 
+          return DB_ERROR;
       }
-    } else
-fatal:
-      csync_fatal("Failed to connect to database: Error: %s\n", mysql_error(db));
+
+      PQfinish(pg_conn);
+      free(pg_conn_info);
+
+      ASPRINTF(&pg_conn_info, "host='%s' user='%s' password='%s' dbname='%s' port=%d",
+	    host, user, pass, database, port)
+
+      pg_conn = PQconnectdb(pg_conn_info);
+      if (pg_conn == NULL)
+        csync_fatal("No memory for postgress connection handle\n");
+
+      if (PQstatus(pg_conn) != CONNECTION_OK) {
+        csync_debug(0, "Connection failed: %s", PQerrorMessage(pg_conn));
+        PQfinish(pg_conn);
+        free(pg_conn_info);
+        return DB_ERROR;
+      }
+    }
   }
-#endif
 
   db_conn_p conn = calloc(1, sizeof(*conn));
 
