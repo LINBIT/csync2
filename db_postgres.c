@@ -125,6 +125,7 @@ int db_postgres_open(const char *file, db_conn_p *conn_p)
       char *create_database_statement;
       PGresult *res;
 
+      csync_debug(1, "Database %s not found, trying to create it ...", database);
       ASPRINTF(&create_database_statement, "create database %s", database);
       res = PQexec(pg_conn, create_database_statement);
 
@@ -136,7 +137,7 @@ int db_postgres_open(const char *file, db_conn_p *conn_p)
           break;
 
         default:
-          csync_debug(0, "Could not create database %s: %s", database, PQerrorMessage(pg_conn)); 
+          csync_debug(0, "Could not create database %s: %s", database, PQerrorMessage(pg_conn));
           return DB_ERROR;
       }
 
