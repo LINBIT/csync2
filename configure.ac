@@ -111,6 +111,7 @@ then
 	# Check MySQL development header
 	AC_CHECK_HEADERS([mysql/mysql.h], , [AC_MSG_ERROR([[mysql header not found; install mysql-devel and dependencies for MySQL Support]])])
 
+	AC_DEFINE([HAVE_MYSQL], 1, [Define if mysql support is wanted])
 fi
 
 if test "$enable_postgres" == yes

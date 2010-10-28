@@ -54,7 +54,7 @@ int db_open(const char *file, int type, db_conn_p *db)
     if (rc != DB_OK && db_str[0] != '/')
       fprintf(csync_debug_out, "Cannot open database file: %s, maybe you need three slashes (like sqlite:///var/lib/csync2/csync2.db)\n", db_str);
     break;
-#ifdef HAVE_LIBMYSQLCLIENT
+#ifdef HAVE_MYSQL
   case DB_MYSQL:
     rc = db_mysql_open(db_str, db);
     break;
@@ -64,7 +64,7 @@ int db_open(const char *file, int type, db_conn_p *db)
     rc = DB_ERROR;
     break;
 #endif
-#ifdef HAVE_LIBPQ
+#ifdef HAVE_POSTGRES
   case DB_PGSQL:
     rc = db_postgres_open(db_str, db);
     break;

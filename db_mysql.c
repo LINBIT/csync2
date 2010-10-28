@@ -30,7 +30,7 @@
 #include "db_mysql.h"
 #include "dl.h"
 
-#ifdef HAVE_LIBMYSQLCLIENT
+#ifdef HAVE_MYSQL
 #include <mysql/mysql.h>
 #include <mysql/mysqld_error.h>
 
@@ -55,7 +55,7 @@ static void db_mysql_dlopen(void)
 {
         dl_handle = dlopen("libmysqlclient.so", RTLD_LAZY);
         if (dl_handle == NULL) {
-                csync_fatal("Could not open libmysqlclient.so: %s\nPlease install postgres client library (libmysqlclient) or use other database (sqlite, postgres)\n", dlerror());
+                csync_fatal("Could not open libmysqlclient.so: %s\nPlease install Mysql client library (libmysqlclient) or use other database (sqlite, postgres)\n", dlerror());
         }
 
         LOOKUP_SYMBOL(dl_handle, mysql_init);
@@ -117,7 +117,7 @@ int db_mysql_parse_url(char *url, char **host, char **user, char **pass, char **
 
 int db_mysql_open(const char *file, db_conn_p *conn_p)
 {
-#ifdef HAVE_LIBMYSQLCLIENT
+#ifdef HAVE_MYSQL
   db_mysql_dlopen();
 
   MYSQL *db = f.mysql_init_fn(0);
@@ -174,7 +174,7 @@ fatal:
 #endif
 }
 
-#ifdef HAVE_LIBMYSQLCLIENT
+#ifdef HAVE_MYSQL
 
 void db_mysql_close(db_conn_p conn)
 {

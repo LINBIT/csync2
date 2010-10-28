@@ -29,7 +29,7 @@
 #include "db_postgres.h"
 #include "dl.h"
 
-#ifdef HAVE_POSTGRESQL_LIBPQ_FE_H
+#ifdef HAVE_POSTGRES
 #include <postgresql/libpq-fe.h>
 #endif
 
@@ -452,4 +452,4 @@ int db_postgres_upgrade_to_schema(int version)
 }
 
 
-#endif
+#endif   /* HAVE_POSTGRES */
