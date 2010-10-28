@@ -175,7 +175,7 @@ int db_postgres_open(const char *file, db_conn_p *conn_p)
           break;
 
         default:
-          csync_debug(0, "Could not create database %s: %s", database, PQerrorMessage(pg_conn));
+          csync_debug(0, "Could not create database %s: %s", database, f.PQerrorMessage_fn(pg_conn));
           return DB_ERROR;
       }
 

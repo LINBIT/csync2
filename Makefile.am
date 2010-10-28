@@ -31,7 +31,10 @@ BUILT_SOURCES = cfgfile_parser.h
 CLEANFILES = cfgfile_parser.c cfgfile_parser.h cfgfile_scanner.c	\
              private_librsync private_libsqlite config.log		
 
-DISTCLEANFILES = config.status config.h .deps/*.Po stamp-h1 Makefile configure
+DISTCLEANFILES = config.status config.h .deps/*.Po stamp-h1 Makefile Makefile.in configure
+
+dist-clean-local:
+	rm -rf autom4te.cache
 
 AM_CFLAGS=
 AM_LDFLAGS=

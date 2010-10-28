@@ -107,10 +107,6 @@ then
 	# Check for mysql.
 	# This is a bloody hack for fedora core
 	CFLAGS="$CFLAGS `mysql_config --cflags`"	
-#	LIBS="$LIBS `mysql_config --libs`"
-
-	# Check MySQL compatibility lib.
-	AC_CHECK_LIB([mysqlclient], [mysql_get_client_info], , [AC_MSG_ERROR([[mysql not found; install mysql-devel and dependencies for MySQL Support]])])
 
 	# Check MySQL development header
 	AC_CHECK_HEADERS([mysql/mysql.h], , [AC_MSG_ERROR([[mysql header not found; install mysql-devel and dependencies for MySQL Support]])])
@@ -119,11 +115,9 @@ fi
 
 if test "$enable_postgres" == yes
 then
-	AC_CHECK_LIB([pq], [PQconnectdb], , [AC_MSG_ERROR([[postgres client libary not found; install libpq and dependencies for Postgres support]])])
         AC_CHECK_HEADERS([postgresql/libpq-fe.h], , [AC_MSG_ERROR([[postgres header not found; install libpq-dev and dependencies for Postgres support]])])
 
 	AC_DEFINE([HAVE_POSTGRES], 1, [Define if postgres support is wanted])
-#	LIBS="$LIBS -lpq"
 fi
 
 

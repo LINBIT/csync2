@@ -33,7 +33,6 @@
 #ifdef HAVE_LIBMYSQLCLIENT
 #include <mysql/mysql.h>
 #include <mysql/mysqld_error.h>
-#endif
 
 static struct db_mysql_fns {
 	MYSQL *(*mysql_init_fn)(MYSQL*);
@@ -113,6 +112,8 @@ int db_mysql_parse_url(char *url, char **host, char **user, char **pass, char **
   *unix_socket = 0;
   return DB_OK;
 }
+
+#endif
 
 int db_mysql_open(const char *file, db_conn_p *conn_p)
 {
