@@ -107,7 +107,7 @@ then
 	# Check for mysql.
 	# This is a bloody hack for fedora core
 	CFLAGS="$CFLAGS `mysql_config --cflags`"	
-	LIBS="$LIBS `mysql_config --libs`"
+#	LIBS="$LIBS `mysql_config --libs`"
 
 	# Check MySQL compatibility lib.
 	AC_CHECK_LIB([mysqlclient], [mysql_get_client_info], , [AC_MSG_ERROR([[mysql not found; install mysql-devel and dependencies for MySQL Support]])])
