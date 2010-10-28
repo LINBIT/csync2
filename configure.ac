@@ -123,7 +123,7 @@ then
         AC_CHECK_HEADERS([postgresql/libpq-fe.h], , [AC_MSG_ERROR([[postgres header not found; install libpq-dev and dependencies for Postgres support]])])
 
 	AC_DEFINE([HAVE_POSTGRES], 1, [Define if postgres support is wanted])
-	LIBS="$LIBS -lpq"
+#	LIBS="$LIBS -lpq"
 fi
 
 

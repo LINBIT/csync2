@@ -1,6 +1,4 @@
 /*
- *  
- *  
  *  Copyright (C) 2010  Dennis Schafroth <dennis@schafroth.com>
  *  Copyright (C) 2010  Johannes Thoma <johannes.thoma@gmx.at>
  *
@@ -29,6 +27,7 @@
 #include <string.h>
 #include "db_api.h"
 #include "db_postgres.h"
+#include "dl.h"
 
 #ifdef HAVE_POSTGRESQL_LIBPQ_FE_H
 #include <postgresql/libpq-fe.h>
@@ -41,7 +40,44 @@ int db_postgres_open(const char *file, db_conn_p *conn_p)
 }
 #else
 
-/* This function parses a URL string like pgsql://[user[:passwd]@]hostname[:port]/database.
+static struct db_postgres_fns {
+        PGconn *(*PQconnectdb_fn)(char *);
+        ConnStatusType (*PQstatus_fn)(const PGconn *);
+        char *(*PQerrorMessage_fn)(const PGconn *);
+	void (*PQfinish_fn)(PGconn *);
+	PGresult *(*PQexec_fn)(PGconn *, const char *);
+	ExecStatusType (*PQresultStatus_fn)(const PGresult *);
+	char *(*PQresultErrorMessage_fn)(const PGresult *);
+	void (*PQclear_fn)(PGresult *);
+	int (*PQntuples_fn)(const PGresult *);
+	char *(*PQgetvalue_fn)(const PGresult *, int, int);
+} f;
+
+static void *dl_handle;
+
+
+static void db_postgres_dlopen(void)
+{
+        dl_handle = dlopen("libpq.so", RTLD_LAZY);
+        if (dl_handle == NULL) {
+                csync_fatal("Could not open libpq.so: %s\nPlease install postgres client library (libpg) or use other database (sqlite, mysql)\n", dlerror());
+        }
+
+        LOOKUP_SYMBOL(dl_handle, PQconnectdb);
+        LOOKUP_SYMBOL(dl_handle, PQstatus);
+        LOOKUP_SYMBOL(dl_handle, PQerrorMessage);
+        LOOKUP_SYMBOL(dl_handle, PQfinish);
+        LOOKUP_SYMBOL(dl_handle, PQexec);
+        LOOKUP_SYMBOL(dl_handle, PQresultStatus);
+        LOOKUP_SYMBOL(dl_handle, PQresultErrorMessage);
+        LOOKUP_SYMBOL(dl_handle, PQclear);
+        LOOKUP_SYMBOL(dl_handle, PQntuples);
+        LOOKUP_SYMBOL(dl_handle, PQgetvalue);
+}
+
+
+
+/* Thi function parses a URL string like pgsql://[user[:passwd]@]hostname[:port]/database.
    and returns the result in the given parameters.
 
    If an optional keyword is not given, the value of the parameter is not changed.
@@ -85,6 +121,8 @@ int db_postgres_open(const char *file, db_conn_p *conn_p)
   char *create_database_statement;
   char *pg_conn_info;
 
+  db_postgres_dlopen();
+
   if (db_url == NULL)
     csync_fatal("No memory for db_url\n");
 
@@ -101,24 +139,24 @@ int db_postgres_open(const char *file, db_conn_p *conn_p)
   ASPRINTF(&pg_conn_info, "host='%s' user='%s' password='%s' dbname='%s' port=%d",
 	host, user, pass, database, port)
 
-  pg_conn = PQconnectdb(pg_conn_info);
+  pg_conn = f.PQconnectdb_fn(pg_conn_info);
   if (pg_conn == NULL)
     csync_fatal("No memory for postgress connection handle\n");
 
-  if (PQstatus(pg_conn) != CONNECTION_OK) {
-    PQfinish(pg_conn);
+  if (f.PQstatus_fn(pg_conn) != CONNECTION_OK) {
+    f.PQfinish_fn(pg_conn);
     free(pg_conn_info);
 
     ASPRINTF(&pg_conn_info, "host='%s' user='%s' password='%s' dbname='postgres' port=%d",
 	  host, user, pass, port)
 
-    pg_conn = PQconnectdb(pg_conn_info);
+    pg_conn = f.PQconnectdb_fn(pg_conn_info);
     if (pg_conn == NULL)
       csync_fatal("No memory for postgress connection handle\n");
 
-    if (PQstatus(pg_conn) != CONNECTION_OK) {
-      csync_debug(0, "Connection failed: %s", PQerrorMessage(pg_conn));
-      PQfinish(pg_conn);
+    if (f.PQstatus_fn(pg_conn) != CONNECTION_OK) {
+      csync_debug(0, "Connection failed: %s", f.PQerrorMessage_fn(pg_conn));
+      f.PQfinish_fn(pg_conn);
       free(pg_conn_info);
       return DB_ERROR;
     } else {
@@ -127,11 +165,11 @@ int db_postgres_open(const char *file, db_conn_p *conn_p)
 
       csync_debug(1, "Database %s not found, trying to create it ...", database);
       ASPRINTF(&create_database_statement, "create database %s", database);
-      res = PQexec(pg_conn, create_database_statement);
+      res = f.PQexec_fn(pg_conn, create_database_statement);
 
       free(create_database_statement);
 
-      switch (PQresultStatus(res)) {
+      switch (f.PQresultStatus_fn(res)) {
         case PGRES_COMMAND_OK:
         case PGRES_TUPLES_OK:
           break;
@@ -141,19 +179,19 @@ int db_postgres_open(const char *file, db_conn_p *conn_p)
           return DB_ERROR;
       }
 
-      PQfinish(pg_conn);
+      f.PQfinish_fn(pg_conn);
       free(pg_conn_info);
 
       ASPRINTF(&pg_conn_info, "host='%s' user='%s' password='%s' dbname='%s' port=%d",
 	    host, user, pass, database, port)
 
-      pg_conn = PQconnectdb(pg_conn_info);
+      pg_conn = f.PQconnectdb_fn(pg_conn_info);
       if (pg_conn == NULL)
         csync_fatal("No memory for postgress connection handle\n");
 
-      if (PQstatus(pg_conn) != CONNECTION_OK) {
-        csync_debug(0, "Connection failed: %s", PQerrorMessage(pg_conn));
-        PQfinish(pg_conn);
+      if (f.PQstatus_fn(pg_conn) != CONNECTION_OK) {
+        csync_debug(0, "Connection failed: %s", f.PQerrorMessage_fn(pg_conn));
+        f.PQfinish_fn(pg_conn);
         free(pg_conn_info);
         return DB_ERROR;
       }
@@ -185,7 +223,7 @@ void db_postgres_close(db_conn_p conn)
     return;
   if (!conn->private)
     return;
-  PQfinish(conn->private);
+  f.PQfinish_fn(conn->private);
   conn->private = 0;
 }
 
@@ -195,7 +233,7 @@ const char *db_postgres_errmsg(db_conn_p conn)
     return "(no connection)";
   if (!conn->private)
     return "(no private data in conn)";
-  return PQerrorMessage(conn->private);
+  return f.PQerrorMessage_fn(conn->private);
 }
 
 
@@ -210,8 +248,8 @@ int db_postgres_exec(db_conn_p conn, const char *sql)
     /* added error element */
     return DB_NO_CONNECTION_REAL;
   }
-  res = PQexec(conn->private, sql);
-  switch (PQresultStatus(res)) {
+  res = f.PQexec_fn(conn->private, sql);
+  switch (f.PQresultStatus_fn(res)) {
   case PGRES_COMMAND_OK:
   case PGRES_TUPLES_OK:
     return DB_OK;
@@ -237,19 +275,19 @@ int db_postgres_prepare(db_conn_p conn, const char *sql, db_stmt_p *stmt_p,
     /* added error element */
     return DB_NO_CONNECTION_REAL;
   }
-  result = PQexec(conn->private, sql);
+  result = f.PQexec_fn(conn->private, sql);
 
   if (result == NULL)
     csync_fatal("No memory for result\n");
 
-  switch (PQresultStatus(result)) {
+  switch (f.PQresultStatus_fn(result)) {
   case PGRES_COMMAND_OK:
   case PGRES_TUPLES_OK:
     break;
 
   default:
-    csync_debug(1, "Error in PQexec: %s", PQresultErrorMessage(result));
-    PQclear(result);
+    csync_debug(1, "Error in PQexec: %s", f.PQresultErrorMessage_fn(result));
+    f.PQclear_fn(result);
     return DB_ERROR;
   }
 
@@ -287,12 +325,12 @@ const void* db_postgres_stmt_get_column_blob(db_stmt_p stmt, int column)
   result = (PGresult*)stmt->private;
   row_p = (int*)stmt->private2;
 
-  if (*row_p >= PQntuples(result) || *row_p < 0) {
+  if (*row_p >= f.PQntuples_fn(result) || *row_p < 0) {
     csync_debug(1, "row index out of range (should be between 0 and %d, is %d)\n", 
-                *row_p, PQntuples(result));
+                *row_p, f.PQntuples_fn(result));
     return NULL;
   }
-  return PQgetvalue(result, *row_p, column);
+  return f.PQgetvalue_fn(result, *row_p, column);
 }
 
 const char *db_postgres_stmt_get_column_text(db_stmt_p stmt, int column)
@@ -306,12 +344,12 @@ const char *db_postgres_stmt_get_column_text(db_stmt_p stmt, int column)
   result = (PGresult*)stmt->private;
   row_p = (int*)stmt->private2;
 
-  if (*row_p >= PQntuples(result) || *row_p < 0) {
+  if (*row_p >= f.PQntuples_fn(result) || *row_p < 0) {
     csync_debug(1, "row index out of range (should be between 0 and %d, is %d)\n", 
-                *row_p, PQntuples(result));
+                *row_p, f.PQntuples_fn(result));
     return NULL;
   }
-  return PQgetvalue(result, *row_p, column);
+  return f.PQgetvalue_fn(result, *row_p, column);
 }
 
 int db_postgres_stmt_get_column_int(db_stmt_p stmt, int column)
@@ -325,12 +363,12 @@ int db_postgres_stmt_get_column_int(db_stmt_p stmt, int column)
   result = (PGresult*)stmt->private;
   row_p = (int*)stmt->private2;
 
-  if (*row_p >= PQntuples(result) || *row_p < 0) {
+  if (*row_p >= f.PQntuples_fn(result) || *row_p < 0) {
     csync_debug(1, "row index out of range (should be between 0 and %d, is %d)\n", 
-                *row_p, PQntuples(result));
+                *row_p, f.PQntuples_fn(result));
     return 0;
   }
-  return atoi(PQgetvalue(result, *row_p, column));
+  return atoi(f.PQgetvalue_fn(result, *row_p, column));
 }
 
 
@@ -346,7 +384,7 @@ int db_postgres_stmt_next(db_stmt_p stmt)
   row_p = (int*)stmt->private2;
 
   (*row_p)++;
-  if (*row_p >= PQntuples(result))
+  if (*row_p >= f.PQntuples_fn(result))
     return DB_DONE;
 
   return DB_ROW;
@@ -356,7 +394,7 @@ int db_postgres_stmt_close(db_stmt_p stmt)
 {
   PGresult *res = stmt->private;
 
-  PQclear(res);
+  f.PQclear_fn(res);
   free(stmt->private2);
   free(stmt);
   return DB_OK;
