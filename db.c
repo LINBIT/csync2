@@ -322,6 +322,12 @@ char *db_default_database(char *dbdir, char *myhostname, char *cfg_name)
 	else
 		ASPRINTF(&db, "mysql://root@localhost/csync2_%s" DBEXTENSION, myhostname)
 
+#elif defined(HAVE_POSTGRES)
+	if (cfg_name[0] != '\0')
+		ASPRINTF(&db, "pgsql://root@localhost/csync2_%s_%s" DBEXTENSION, myhostname, cfgname)
+	else
+		ASPRINTF(&db, "pgsql://root@localhost/csync2_%s" DBEXTENSION, myhostname)
+
 #else
 #error "No database backend available. Please install either libmysqlclient or libsqlite, reconfigure and recompile"
 #endif
