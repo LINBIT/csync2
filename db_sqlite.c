@@ -30,12 +30,50 @@
 #include <time.h>
 #include "db_api.h"
 #include "db_sqlite.h"
+#include "dl.h"
 
 #ifndef HAVE_LIBSQLITE3
 int db_sqlite_open(const char *file, db_conn_p *conn_p) {
   return DB_FAIL;
 }
 #else
+
+static struct db_sqlite3_fns {
+	int (*sqlite3_open_fn) (const char*, sqlite3 **);
+	int (*sqlite3_close_fn) (sqlite3 *);
+	const char *(*sqlite3_errmsg_fn) (sqlite3 *);
+	int (*sqlite3_exec_fn) (sqlite3*, const char *,
+		int (*) (void*,int,char**,char**), void*, char **);
+	int (*sqlite3_prepare_v2_fn)(sqlite3 *, const char *, int,
+		sqlite3_stmt **, const char **pzTail);
+	const unsigned char *(*sqlite3_column_text_fn)(sqlite3_stmt*, int);
+	const void *(*sqlite3_column_blob_fn)(sqlite3_stmt*, int);
+	int (*sqlite3_column_int_fn)(sqlite3_stmt*, int);
+	int (*sqlite3_step_fn)(sqlite3_stmt*);
+	int (*sqlite3_finalize_fn)(sqlite3_stmt *);
+} f;
+
+static void *dl_handle;
+
+
+static void db_sqlite3_dlopen(void)
+{
+        dl_handle = dlopen("libsqlite3.so", RTLD_LAZY);
+        if (dl_handle == NULL) {
+                csync_fatal("Could not open libsqlite3.so: %s\nPlease install sqlite3 client library (libsqlite3) or use other database (postgres, mysql)\n", dlerror());
+        }
+
+        LOOKUP_SYMBOL(dl_handle, sqlite3_open);
+        LOOKUP_SYMBOL(dl_handle, sqlite3_close);
+        LOOKUP_SYMBOL(dl_handle, sqlite3_errmsg);
+        LOOKUP_SYMBOL(dl_handle, sqlite3_exec);
+        LOOKUP_SYMBOL(dl_handle, sqlite3_prepare_v2);
+        LOOKUP_SYMBOL(dl_handle, sqlite3_column_text);
+        LOOKUP_SYMBOL(dl_handle, sqlite3_column_blob);
+        LOOKUP_SYMBOL(dl_handle, sqlite3_column_int);
+        LOOKUP_SYMBOL(dl_handle, sqlite3_step);
+        LOOKUP_SYMBOL(dl_handle, sqlite3_finalize);
+}
 
 static int sqlite_errors[] = { SQLITE_OK, SQLITE_ERROR, SQLITE_BUSY, SQLITE_ROW, SQLITE_DONE, -1 };
 static int db_errors[]     = { DB_OK,     DB_ERROR,     DB_BUSY,     DB_ROW,     DB_DONE,     -1 };
@@ -52,8 +90,11 @@ int db_sqlite_error_map(int sqlite_err) {
 
 int db_sqlite_open(const char *file, db_conn_p *conn_p)
 {
-  sqlite3 *db; 
-  int rc = sqlite3_open(file, &db);
+  sqlite3 *db;
+
+  db_sqlite3_dlopen();
+
+  int rc = f.sqlite3_open_fn(file, &db);
   if ( rc != SQLITE_OK ) {
     return db_sqlite_error_map(rc);
   };
@@ -77,7 +118,7 @@ void db_sqlite_close(db_conn_p conn)
     return;
   if (!conn->private) 
     return;
-  sqlite3_close(conn->private);
+  f.sqlite3_close_fn(conn->private);
   conn->private = 0;
 }
 
@@ -87,7 +128,7 @@ const char *db_sqlite_errmsg(db_conn_p conn)
     return "(no connection)";
   if (!conn->private)
     return "(no private data in conn)";
-  return sqlite3_errmsg(conn->private);
+  return f.sqlite3_errmsg_fn(conn->private);
 }
 
 int db_sqlite_exec(db_conn_p conn, const char *sql) {
@@ -99,7 +140,7 @@ int db_sqlite_exec(db_conn_p conn, const char *sql) {
     /* added error element */
     return DB_NO_CONNECTION_REAL;
   }
-  rc = sqlite3_exec(conn->private, sql, 0, 0, 0);
+  rc = f.sqlite3_exec_fn(conn->private, sql, 0, 0, 0);
   return db_sqlite_error_map(rc);
 }
 
@@ -118,7 +159,7 @@ int db_sqlite_prepare(db_conn_p conn, const char *sql, db_stmt_p *stmt_p, char *
   db_stmt_p stmt = malloc(sizeof(*stmt));
   sqlite3_stmt *sqlite_stmt = 0;
   /* TODO avoid strlen, use configurable limit? */
-  rc = sqlite3_prepare_v2(conn->private, sql, strlen(sql), &sqlite_stmt, (const char **) pptail);
+  rc = f.sqlite3_prepare_v2_fn(conn->private, sql, strlen(sql), &sqlite_stmt, (const char **) pptail);
   if (rc != SQLITE_OK)
     return db_sqlite_error_map(rc);
   stmt->private = sqlite_stmt;
@@ -137,7 +178,7 @@ const char *db_sqlite_stmt_get_column_text(db_stmt_p stmt, int column) {
     return 0;
   }
   sqlite3_stmt *sqlite_stmt = stmt->private;
-  const char *result  = sqlite3_column_text(sqlite_stmt, column);
+  const char *result  = f.sqlite3_column_text_fn(sqlite_stmt, column);
   /* error handling */
   return result; 
 }
@@ -145,7 +186,7 @@ const char *db_sqlite_stmt_get_column_text(db_stmt_p stmt, int column) {
 #if defined(HAVE_LIBSQLITE3)
 const void* db_sqlite_stmt_get_column_blob(db_stmt_p stmtx, int col) {
        sqlite3_stmt *stmt = stmtx->private;
-       return sqlite3_column_blob(stmt,col);
+       return f.sqlite3_column_blob_fn(stmt,col);
 }
 #endif
 
@@ -153,7 +194,7 @@ const void* db_sqlite_stmt_get_column_blob(db_stmt_p stmtx, int col) {
 
 int db_sqlite_stmt_get_column_int(db_stmt_p stmt, int column) {
   sqlite3_stmt *sqlite_stmt = stmt->private;
-  int rc = sqlite3_column_int(sqlite_stmt, column);
+  int rc = f.sqlite3_column_int_fn(sqlite_stmt, column);
   return db_sqlite_error_map(rc);
 }
 
@@ -161,14 +202,14 @@ int db_sqlite_stmt_get_column_int(db_stmt_p stmt, int column) {
 int db_sqlite_stmt_next(db_stmt_p stmt)
 {
   sqlite3_stmt *sqlite_stmt = stmt->private;
-  int rc = sqlite3_step(sqlite_stmt);
+  int rc = f.sqlite3_step_fn(sqlite_stmt);
   return db_sqlite_error_map(rc);
 }
 
 int db_sqlite_stmt_close(db_stmt_p stmt)
 {
   sqlite3_stmt *sqlite_stmt = stmt->private;
-  int rc = sqlite3_finalize(sqlite_stmt);
+  int rc = f.sqlite3_finalize_fn(sqlite_stmt);
   free(stmt);
   return db_sqlite_error_map(rc);
 }
