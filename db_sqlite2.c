@@ -19,7 +19,7 @@
  */
 
 #include "db_api.h"
-#ifndef HAVE_LIBSQLITE
+#ifndef HAVE_SQLITE
 /* dummy function to implement a open that fails */
 int db_sqlite2_open(const char *file, db_conn_p *conn_p) {
   return DB_ERROR;

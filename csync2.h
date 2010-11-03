@@ -120,6 +120,7 @@ extern const void * csync_db_colblob(void *stmtx,int col);
 
 #define SQL(e, s, ...) csync_db_sql(e, s, ##__VA_ARGS__)
 
+#if 0
 #if defined(HAVE_LIBSQLITE)
 #define SQL_BEGIN(e, s, ...) \
 { \
@@ -136,8 +137,9 @@ extern const void * csync_db_colblob(void *stmtx,int col);
 #define SQL_V(col) \
 	(dataSQL_V[(col)])
 #endif
+#endif
 
-#if defined(HAVE_LIBSQLITE3)
+// #if defined(HAVE_LIBSQLITE3)
 
 #define SQL_BEGIN(e, s, ...) \
 { \
@@ -155,7 +157,7 @@ extern const void * csync_db_colblob(void *stmtx,int col);
 
 #define SQL_V(col) \
 	(csync_db_colblob(SQL_VM,(col)))
-#endif
+// #endif
 #define SQL_FIN }{
 
 #define SQL_END \

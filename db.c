@@ -261,7 +261,7 @@ int csync_db_next(void *vmx, const char *err,
 	return rc == DB_ROW;
 }
 
-#if defined(HAVE_LIBSQLITE3)
+#if defined(HAVE_SQLITE3)
 const void * csync_db_colblob(void *stmtx, int col) {
        db_stmt_p stmt = stmtx;
        const void *ptr = stmt->get_column_blob(stmt, col);
@@ -298,10 +298,10 @@ void csync_db_fin(void *vmx, const char *err)
 	in_sql_query--;
 }
 
-#if defined(HAVE_LIBSQLITE)
+#if defined(HAVE_SQLITE)
 #define DBEXTENSION ".db"
 #endif
-#if defined(HAVE_LIBSQLITE3)
+#if defined(HAVE_SQLITE3)
 #define DBEXTENSION ".db3"
 #endif
 
@@ -309,9 +309,7 @@ char *db_default_database(char *dbdir, char *myhostname, char *cfg_name)
 {
 	char *db;
 
-#if defined(HAVE_LIBSQLITE) || defined(HAVE_LIBSQLITE3)
-/* TODO: check if library is installed */
-
+#if defined(HAVE_SQLITE) || defined(HAVE_SQLITE3)
 	if (cfg_name[0] != '\0')
 		ASPRINTF(&db, "%s/%s_%s" DBEXTENSION, dbdir, myhostname, cfgname)
 	else
@@ -329,7 +327,7 @@ char *db_default_database(char *dbdir, char *myhostname, char *cfg_name)
 		ASPRINTF(&db, "pgsql://root@localhost/csync2_%s" DBEXTENSION, myhostname)
 
 #else
-#error "No database backend available. Please install either libmysqlclient or libsqlite, reconfigure and recompile"
+#error "No database backend available. Please install either libpg, libmysqlclient or libsqlite, reconfigure and recompile"
 #endif
 
 	return db;

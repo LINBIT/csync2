@@ -19,7 +19,7 @@
  */
 
 #include "csync2.h"
-#if defined(HAVE_LIBSQLITE3)
+#if defined(HAVE_SQLITE3)
 #include <sqlite3.h>
 #endif
 #include <stdio.h>
@@ -32,7 +32,7 @@
 #include "db_sqlite.h"
 #include "dl.h"
 
-#ifndef HAVE_LIBSQLITE3
+#ifndef HAVE_SQLITE3
 int db_sqlite_open(const char *file, db_conn_p *conn_p) {
   return DB_FAIL;
 }
@@ -183,7 +183,7 @@ const char *db_sqlite_stmt_get_column_text(db_stmt_p stmt, int column) {
   return result; 
 }
 
-#if defined(HAVE_LIBSQLITE3)
+#if defined(HAVE_SQLITE3)
 const void* db_sqlite_stmt_get_column_blob(db_stmt_p stmtx, int col) {
        sqlite3_stmt *stmt = stmtx->private;
        return f.sqlite3_column_blob_fn(stmt,col);

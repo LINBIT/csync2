@@ -46,13 +46,6 @@ if PRIVATE_LIBRSYNC
   LIBS += -lprivatersync
 endif
 
-if PRIVATE_LIBSQLITE
-  BUILT_SOURCES += private_libsqlite
-  AM_CFLAGS += -I$(shell test -f libsqlite.dir && cat libsqlite.dir || echo ==libsqlite==)
-  AM_LDFLAGS += -L$(shell test -f libsqlite.dir && cat libsqlite.dir || echo ==libsqlite==)
-  LIBS += -lprivatesqlite
-endif
-
 AM_CPPFLAGS  = -D'DBDIR="$(localstatedir)/lib/csync2"'
 AM_CPPFLAGS += -D'ETCDIR="$(sysconfdir)"'
 
