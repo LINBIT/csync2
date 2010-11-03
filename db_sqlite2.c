@@ -1,6 +1,6 @@
 /*
- *  
- *  
+ *
+ *
  *  Copyright (C) 2010  Dennis Schafroth <dennis@schafroth.com>>
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -36,13 +36,45 @@ int db_sqlite2_open(const char *file, db_conn_p *conn_p) {
 #include <signal.h>
 #include <time.h>
 #include "db_sqlite2.h"
+#include <dl.h>
 
+
+static struct db_sqlite_fns {
+	sqlite *(*sqlite_open_fn)(const char *, int, char**);
+	void (*sqlite_close_fn)(sqlite *);
+	int (*sqlite_exec_fn)(sqlite *, char *, int (*)(void*,int,char**,char**), void *, char **);
+	int (*sqlite_compile_fn)(sqlite *, const char *, const char **, sqlite_vm **, char **);
+	int (*sqlite_step_fn)(sqlite_vm *, int *, const char ***, const char ***);
+	int (*sqlite_finalize_fn)(sqlite_vm *, char **);
+} f;
 
 static char *errmsg;
 
+static void *dl_handle;
+
+
+static void db_sqlite_dlopen(void)
+{
+        dl_handle = dlopen("libsqlite3.so", RTLD_LAZY);
+        if (dl_handle == NULL) {
+                csync_fatal("Could not open libsqlite3.so: %s\nPlease install sqlite3 client library (libsqlite3) or use other database (postgres, mysql)\n", dlerror());
+        }
+
+        LOOKUP_SYMBOL(dl_handle, sqlite_open);
+        LOOKUP_SYMBOL(dl_handle, sqlite_close);
+        LOOKUP_SYMBOL(dl_handle, sqlite_exec);
+        LOOKUP_SYMBOL(dl_handle, sqlite_compile);
+        LOOKUP_SYMBOL(dl_handle, sqlite_step);
+        LOOKUP_SYMBOL(dl_handle, sqlite_finalize);
+
+}
+
+
 int db_sqlite2_open(const char *file, db_conn_p *conn_p)
 {
-  sqlite *db = sqlite_open(file, 0, &errmsg);
+  db_sqlite_dlopen();
+
+  sqlite *db = f.sqlite_open_fn(file, 0, &errmsg);
   if ( db == 0 ) {
     return DB_ERROR;
   };
@@ -66,7 +98,7 @@ void db_sqlite2_close(db_conn_p conn)
     return;
   if (!conn->private) 
     return;
-  sqlite_close(conn->private);
+  f.sqlite_close_fn(conn->private);
   conn->private = 0;
 }
 
@@ -88,7 +120,7 @@ int db_sqlite2_exec(db_conn_p conn, const char *sql) {
     /* added error element */
     return DB_NO_CONNECTION_REAL;
   }
-  rc = sqlite2_exec(conn->private, sql, 0, 0, &errmsg);
+  rc = f.sqlite_exec_fn(conn->private, (char*) sql, 0, 0, &errmsg);
   /* On error parse, create DB ERROR element */
   return rc;
 }
@@ -110,7 +142,7 @@ int db_sqlite2_prepare(db_conn_p conn, const char *sql, db_stmt_p *stmt_p, char 
 
   db_stmt_p stmt = malloc(sizeof(*stmt));
   sqlite_vm *sqlite_stmt = 0;
-  rc = sqlite_compile(db, sql, 0, &sqlite_stmt, 0);
+  rc = f.sqlite_compile_fn(db, sql, 0, &sqlite_stmt, &errmsg);
   if (rc != SQLITE_OK)
     return 0;
   stmt->private = sqlite_stmt;
@@ -137,7 +169,7 @@ const void* db_sqlite2_stmt_get_column_blob(db_stmt_p stmt, int col) {
        return db_sqlite2_stmt_get_column_text(stmt, col);
 }
 
-int db_sqlite2_stmt2_get_column_int(db_stmt_p stmt, int column) {
+int db_sqlite2_stmt_get_column_int(db_stmt_p stmt, int column) {
   sqlite_vm *sqlite_stmt = stmt->private;
   const char **values = stmt->private2;
   const char *str_value = values[column];
@@ -157,7 +189,7 @@ int db_sqlite2_stmt_next(db_stmt_p stmt)
   const char **names; 
   int columns;
 
-  int rc = sqlite_step(sqlite_stmt, &columns, &values, &names);
+  int rc = f.sqlite_step_fn(sqlite_stmt, &columns, &values, &names);
   stmt->private = values;
   /* TODO error mapping */ 
   return rc; //  == SQLITE_ROW;
@@ -166,7 +198,7 @@ int db_sqlite2_stmt_next(db_stmt_p stmt)
 int db_sqlite2_stmt_close(db_stmt_p stmt)
 {
   sqlite_vm *sqlite_stmt = stmt->private;
-  int rc = sqlite_finalize(sqlite_stmt, 0);
+  int rc = f.sqlite_finalize_fn(sqlite_stmt, &errmsg);
   free(stmt);
   return rc; 
 }
