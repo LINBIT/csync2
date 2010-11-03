@@ -35,11 +35,42 @@ int db_sqlite2_open(const char *file, db_conn_p *conn_p) {
 #include <unistd.h>
 #include <signal.h>
 #include <time.h>
-#include "db_sqlite.h"
+#include "db_sqlite2.h"
+
+static const char *errmsgs[] = {
+"Successful result"
+"SQL error or missing database",
+"An internal logic error in SQLite",
+"Access permission denied",
+"Callback routine requested an abort",
+"The database file is locked",
+"A table in the database is locked",
+"A malloc() failed",
+"Attempt to write a readonly database",
+"Operation terminated by sqlite_interrupt()",
+"Some kind of disk I/O error occurred",
+"The database disk image is malformed",
+"(Internal Only) Table or record not found",
+"Insertion failed because database is full",
+"Unable to open the database file",
+"Database lock protocol error",
+"(Internal Only) Database table is empty",
+"The database schema changed",
+"Too much data for one row of a table",
+"Abort due to constraint violation",
+"Data type mismatch",
+"Library used incorrectly",
+"Uses OS features not supported on host",
+"Authorization denied",
+"sqlite_step() has another row ready",
+"sqlite_step() has finished executing"
+}
+
+static const char *errmsg;
 
 int db_sqlite2_open(const char *file, db_conn_p *conn_p)
 {
-  sqlite *db = sqlite_open(file, 0, 0);
+  sqlite *db = sqlite_open(file, 0, &errmsg);
   if ( db == 0 ) {
     return DB_ERROR;
   };
@@ -54,7 +85,7 @@ int db_sqlite2_open(const char *file, db_conn_p *conn_p)
   conn->prepare = db_sqlite2_prepare;
   conn->errmsg  = NULL;
   conn->upgrade_to_schema = db_sqlite2_upgrade_to_schema;
-  return rc;
+  return DB_OK;
 }
 
 void db_sqlite2_close(db_conn_p conn)
@@ -103,12 +134,11 @@ int db_sqlite2_prepare(db_conn_p conn, const char *sql, db_stmt_p *stmt_p, char 
     return DB_NO_CONNECTION_REAL;
   }
   db_stmt_p stmt = malloc(sizeof(*stmt));
-  sqlite_stmt *sqlite_stmt = 0;
+  sqlite_vm *sqlite_stmt = 0;
   rc = sqlite_compile(db, sql, 0, &sqlite_stmt, 0);
   if (rc != SQLITE_OK)
     return 0;
   stmt->private = sqlite_stmt;
-  /* TODO error mapping / handling */
   *stmt_p = stmt;
   stmt->get_column_text = db_sqlite2_stmt_get_column_text;
   stmt->get_column_blob = db_sqlite2_stmt_get_column_blob;
@@ -146,7 +176,7 @@ int db_sqlite2_stmt2_get_column_int(db_stmt_p stmt, int column) {
 
 int db_sqlite2_stmt_next(db_stmt_p stmt)
 {
-  sqlite_stmt *sqlite_stmt = stmt->private;
+  sqlite_vm *sqlite_stmt = stmt->private;
   const char **dataSQL_V, **dataSQL_N; 
   const char **values; 
   const char **names; 
@@ -158,7 +188,7 @@ int db_sqlite2_stmt_next(db_stmt_p stmt)
 
 int db_sqlite2_stmt_close(db_stmt_p stmt)
 {
-  sqlite_stmt *sqlite_stmt = stmt->private;
+  sqlite_vm *sqlite_stmt = stmt->private;
   int rc = sqlite_finalize(sqlite_stmt, 0);
   free(stmt);
   return rc; 
