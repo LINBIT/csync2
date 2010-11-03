@@ -45,6 +45,18 @@ AC_ARG_WITH([librsync-source],
 )
 AM_CONDITIONAL([PRIVATE_LIBRSYNC], [test -n "$librsync_source_file"])
 
+AC_ARG_ENABLE([sqlite],
+	[AC_HELP_STRING([--enable-sqlite],
+		[enable/disable sqlite 2 support (default is disabled)])],
+	[], [ enable_sqlite=no ])
+
+if test "$enable_sqlite" == yes
+then
+        AC_CHECK_HEADERS([sqlite.h], , [AC_MSG_ERROR([[SQLite header not found; install libsqlite-dev and dependencies for SQLite 2 support]])])
+
+	AC_DEFINE([HAVE_SQLITE], 1, [Define if sqlite 2 support is wanted])
+fi
+
 AC_ARG_ENABLE([sqlite3],
 	[AC_HELP_STRING([--disable-sqlite3],
 		[enable/disable sqlite3 support (default is enabled)])],
@@ -100,6 +112,8 @@ then
 	AC_DEFINE([HAVE_MYSQL], 1, [Define if mysql support is wanted])
 fi
 
+AM_CONDITIONAL([HAVE_LIBMYSQL], [test "$enable_mysql" != no ])
+
 if test "$enable_postgres" == yes
 then
         AC_CHECK_HEADERS([postgresql/libpq-fe.h], , [AC_MSG_ERROR([[postgres header not found; install libpq-dev and dependencies for Postgres support]])])
@@ -107,7 +121,13 @@ then
 	AC_DEFINE([HAVE_POSTGRES], 1, [Define if postgres support is wanted])
 fi
 
-AM_CONDITIONAL([HAVE_LIBMYSQL], [test "$enable_mysql" != no ])
+# at least one db backend must be configured.
+
+if test "$enable_postgres" != yes && test "$enable_mysql" != yes &&
+   test "$enable_sqlite3" != yes && test "$enable_sqlite" != yes
+then
+	AC_MSG_ERROR([No database backend configured. Please enable either sqlite, sqlite3, mysql or postgres.])
+fi
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
