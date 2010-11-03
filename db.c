@@ -307,11 +307,16 @@ char *db_default_database(char *dbdir, char *myhostname, char *cfg_name)
 {
 	char *db;
 
-#if defined(HAVE_SQLITE) || defined(HAVE_SQLITE3)
+#if defined(HAVE_SQLITE3)
 	if (cfg_name[0] != '\0')
-		ASPRINTF(&db, "%s/%s_%s" DBEXTENSION, dbdir, myhostname, cfgname)
+		ASPRINTF(&db, "sqlite3://%s/%s_%s" DBEXTENSION, dbdir, myhostname, cfgname)
 	else
-		ASPRINTF(&db, "%s/%s" DBEXTENSION, dbdir, myhostname)
+		ASPRINTF(&db, "sqlite3://%s/%s" DBEXTENSION, dbdir, myhostname)
+#elif defined(HAVE_SQLITE)
+	if (cfg_name[0] != '\0')
+		ASPRINTF(&db, "sqlite2://%s/%s_%s" DBEXTENSION, dbdir, myhostname, cfgname)
+	else
+		ASPRINTF(&db, "sqlite2://%s/%s" DBEXTENSION, dbdir, myhostname)
 #elif defined(HAVE_MYSQL)
 	if (cfg_name[0] != '\0')
 		ASPRINTF(&db, "mysql://root@localhost/csync2_%s_%s" DBEXTENSION, myhostname, cfgname)
