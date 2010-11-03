@@ -261,7 +261,6 @@ int csync_db_next(void *vmx, const char *err,
 	return rc == DB_ROW;
 }
 
-#if defined(HAVE_SQLITE3)
 const void * csync_db_colblob(void *stmtx, int col) {
        db_stmt_p stmt = stmtx;
        const void *ptr = stmt->get_column_blob(stmt, col);
@@ -270,7 +269,6 @@ const void * csync_db_colblob(void *stmtx, int col) {
        }
        return ptr;
 }
-#endif
 
 void csync_db_fin(void *vmx, const char *err)
 {

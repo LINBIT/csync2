@@ -34,7 +34,7 @@
 
 #ifndef HAVE_SQLITE3
 int db_sqlite_open(const char *file, db_conn_p *conn_p) {
-  return DB_FAIL;
+  return DB_ERROR;
 }
 #else
 
