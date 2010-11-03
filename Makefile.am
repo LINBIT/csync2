@@ -28,6 +28,7 @@ csync2_SOURCES = action.c cfgfile_parser.y cfgfile_scanner.l check.c	\
 
 AM_YFLAGS = -d
 BUILT_SOURCES = cfgfile_parser.h
+LIBS += -ldl
 CLEANFILES = cfgfile_parser.c cfgfile_parser.h cfgfile_scanner.c	\
              private_librsync private_libsqlite config.log		
 
