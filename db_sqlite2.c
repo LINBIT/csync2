@@ -19,6 +19,8 @@
  */
 
 #include "db_api.h"
+#include "config.h"
+
 #ifndef HAVE_SQLITE
 /* dummy function to implement a open that fails */
 int db_sqlite2_open(const char *file, db_conn_p *conn_p) {
