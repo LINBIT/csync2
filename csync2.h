@@ -162,8 +162,8 @@ extern const void * csync_db_colblob(void *stmtx,int col);
 
 #define SQL_END \
 		} \
+		csync_db_fin(SQL_VM, SQL_ERR); \
 	} \
-	csync_db_fin(SQL_VM, SQL_ERR); \
 }
 
 extern int db_blocking_mode;

@@ -55,10 +55,13 @@ static void *dl_handle;
 
 static void db_sqlite_dlopen(void)
 {
-        dl_handle = dlopen("libsqlite3.so", RTLD_LAZY);
+	csync_debug(1, "Opening shared library libsqlite.so\n");
+
+        dl_handle = dlopen("libsqlite.so", RTLD_LAZY);
         if (dl_handle == NULL) {
-                csync_fatal("Could not open libsqlite3.so: %s\nPlease install sqlite3 client library (libsqlite3) or use other database (postgres, mysql)\n", dlerror());
+                csync_fatal("Could not open libsqlite.so: %s\nPlease install sqlite client library (libsqlite) or use other database (postgres, mysql)\n", dlerror());
         }
+	csync_debug(1, "Opening shared library libsqlite.so\n");
 
         LOOKUP_SYMBOL(dl_handle, sqlite_open);
         LOOKUP_SYMBOL(dl_handle, sqlite_close);
@@ -190,7 +193,7 @@ int db_sqlite2_stmt_next(db_stmt_p stmt)
   int columns;
 
   int rc = f.sqlite_step_fn(sqlite_stmt, &columns, &values, &names);
-  stmt->private = values;
+  stmt->private2 = values;
   /* TODO error mapping */ 
   return rc; //  == SQLITE_ROW;
 }
