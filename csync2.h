@@ -21,6 +21,8 @@
 #ifndef CSYNC2_H
 #define CSYNC2_H 1
 
+#define CSYNC2_VERSION "2.0-rc1"
+
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
