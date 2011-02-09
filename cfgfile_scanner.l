@@ -25,9 +25,13 @@
 #define MAX_INCLUDE_DEPTH 10
 YY_BUFFER_STATE include_stack[MAX_INCLUDE_DEPTH];
 int include_stack_ptr = 0;
+
+#define YY_NO_INPUT 1
+#define YY_NO_UNPUT 1
 %}
 
 %option noyywrap yylineno
+%option nounput
 %x STRING INCL
 
 %%
