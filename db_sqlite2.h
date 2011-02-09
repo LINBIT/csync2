@@ -1,6 +1,6 @@
 
-#ifndef DB_SQLITE_H
-#define DB_SQLITE_H
+#ifndef DB_SQLITE2_H
+#define DB_SQLITE2_H
 
 /* public */
 int   db_sqlite2_open(const char *file, db_conn_p *conn_p);

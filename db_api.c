@@ -12,6 +12,11 @@
 #include <time.h>
 #include "db_api.h"
 
+#include "db_mysql.h"
+#include "db_postgres.h"
+#include "db_sqlite.h"
+#include "db_sqlite2.h"
+
 #define DEADLOCK_MESSAGE \
 	"Database backend is exceedingly busy => Terminating (requesting retry).\n"
 

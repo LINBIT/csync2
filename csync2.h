@@ -113,9 +113,8 @@ extern void* csync_db_begin(const char *err, const char *fmt, ...);
 extern int csync_db_next(void *vmx, const char *err,
 		int *pN, const char ***pazValue, const char ***pazColName);
 extern void csync_db_fin(void *vmx, const char *err);
-#if defined(HAVE_LIBSQLITE3)
 extern const void * csync_db_colblob(void *stmtx,int col);
-#endif
+extern char *db_default_database(char *dbdir, char *myhostname, char *cfg_name);
 
 
 #define SQL(e, s, ...) csync_db_sql(e, s, ##__VA_ARGS__)
@@ -203,6 +202,7 @@ extern void csync_remove_old();
 /* daemon.c */
 
 extern void csync_daemon_session();
+extern int csync_copy_file(int fd_in, int fd_out);
 
 
 /* getrealfn.c */
