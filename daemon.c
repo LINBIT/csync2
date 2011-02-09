@@ -119,11 +119,11 @@ int csync_file_backup(const char *filename)
 	    int fd_in, fd_out, i;
 	    int lastSlash;
 	    mode_t mode;
-	    csync_debug(0, "backup\n");
+	    csync_debug(1, "backup\n");
 	    // Skip generation of directories
 	    rc =  stat(filename, &buf);
 	    if (S_ISDIR(buf.st_mode)) {
-	      csync_debug(0, "directory. Skip generation \n");
+	      csync_debug(1, "directory. Skip generation \n");
 	      return 0;
 	    }
 
@@ -149,7 +149,7 @@ int csync_file_backup(const char *filename)
 
 		backup_filename[bak_dir_len+i] = 0;
 
-		csync_debug(0, "mkdir %s \n", backup_filename);
+		csync_debug(1, "mkdir %s \n", backup_filename);
 
 		mkdir(backup_filename, mode);
 		// Dont check the empty string.
@@ -175,7 +175,7 @@ int csync_file_backup(const char *filename)
 	      snprintf(backup_otherfilename+bak_dir_len+filename_len, 10, ".%d", i);
 
 	      rc = rename(backup_filename, backup_otherfilename);
-	      csync_debug(0, "renaming backup files '%s' to '%s'. rc = %d\n", backup_filename, backup_otherfilename, rc);
+	      csync_debug(1, "renaming backup files '%s' to '%s'. rc = %d\n", backup_filename, backup_otherfilename, rc);
 	      
 	    }
 
@@ -192,11 +192,11 @@ int csync_file_backup(const char *filename)
 	      return 1;
 	    }
 
-	    csync_debug(0,"Copying data from %s to backup file %s \n", filename, backup_filename);
+	    csync_debug(1,"Copying data from %s to backup file %s \n", filename, backup_filename);
 
-	    int rc  = csync_copy_file(fd_in, fd_out);
+	    rc  = csync_copy_file(fd_in, fd_out);
 	    if (rc != 0) {
-		csync_debug(0, "csync_backup error 2\n");
+		csync_debug(1, "csync_backup error 2\n");
 
 		snprintf(error_buffer, 1024,
 			 "Write error while backing up '%s': %s\n",
@@ -208,10 +208,10 @@ int csync_file_backup(const char *filename)
 		// return 1;
 	    }
 	    csync_setBackupFileStatus(backup_filename, bak_dir_len);
-	    csync_debug(0, "csync_backup loop end\n");
+	    csync_debug(1, "csync_backup loop end\n");
 	  }
 	}
-	csync_debug(0, "csync_backup end\n");
+	csync_debug(1, "csync_backup end\n");
 	return 0;
 }
 
