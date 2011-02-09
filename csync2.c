@@ -310,7 +310,7 @@ static int csync_server_loop(int single_connect)
 	printf("Csync2 daemon running. Waiting for connections.\n");
 
 	while (1) {
-		int addrlen = sizeof(addr);
+		unsigned addrlen = sizeof(addr);
 		int conn = accept(listenfd, &addr.sa, &addrlen);
 		if (conn < 0) goto error;
 
@@ -782,7 +782,7 @@ found_a_group:;
 			SQL_BEGIN("DB Dump - Hint",
 				"SELECT recursive, filename FROM hint ORDER BY filename")
 			{
-				printf("%s\t%s\n", SQL_V(0), url_decode(SQL_V(1)));
+				printf("%s\t%s\n", (char*)SQL_V(0), url_decode(SQL_V(1)));
 				retval = -1;
 			} SQL_END;
 			break;

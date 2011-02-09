@@ -395,7 +395,7 @@ int conn_raw_read(void *buf, size_t count)
 	return 0;
 }
 
-void conn_debug(const char *name, const unsigned char*buf, size_t count)
+void conn_debug(const char *name, const char*buf, size_t count)
 {
 	int i;
 
@@ -458,9 +458,9 @@ void conn_printf(const char *fmt, ...)
 	conn_write(buffer, size);
 }
 
-int conn_gets(char *s, int size)
+size_t conn_gets(char *s, size_t size)
 {
-	int i=0;
+	size_t i=0;
 
 	while (i<size-1) {
 		int rc = conn_raw_read(s+i, 1);

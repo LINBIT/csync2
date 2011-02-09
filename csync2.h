@@ -100,7 +100,7 @@ extern int conn_write(const void *buf, size_t count);
 
 extern void conn_printf(const char *fmt, ...);
 extern int conn_fgets(char *s, int size);
-extern int conn_gets(char *s, int size);
+extern size_t conn_gets(char *s, size_t size);
 
 
 /* db.c */

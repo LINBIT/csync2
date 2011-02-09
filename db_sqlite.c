@@ -180,9 +180,9 @@ const char *db_sqlite_stmt_get_column_text(db_stmt_p stmt, int column) {
     return 0;
   }
   sqlite3_stmt *sqlite_stmt = stmt->private;
-  const char *result  = f.sqlite3_column_text_fn(sqlite_stmt, column);
+  const unsigned char *result  = f.sqlite3_column_text_fn(sqlite_stmt, column);
   /* error handling */
-  return result; 
+  return (const char*)result; 
 }
 
 #if defined(HAVE_SQLITE3)
