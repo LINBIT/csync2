@@ -52,7 +52,7 @@ int conn_connect(const char *peername)
 {
 	struct addrinfo hints;
 	struct addrinfo *result, *rp;
-	int sfd, s, on = 1;
+	int sfd, s;
 
 	/* Obtain address(es) matching host/port */
 	memset(&hints, 0, sizeof(struct addrinfo));

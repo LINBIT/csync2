@@ -544,7 +544,6 @@ void csync_update_host(const char *peername,
 	struct textlist *tl_mod = 0, **last_tn=&tl;
 	char *current_name = 0;
 	struct stat st;
-	char *myname ; 
 	SQL_BEGIN("Get files for host from dirty table",
 		"SELECT filename, myname, forced FROM dirty WHERE peername = '%s' "
 		"ORDER by filename ASC", url_encode(peername))

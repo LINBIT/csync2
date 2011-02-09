@@ -506,9 +506,7 @@ int csync_rs_patch(const char *filename)
 	int backup_errno;
 	rs_stats_t stats;
 	rs_result result;
-	char buffer[512];
 	char *errstr = "?";
-	int rc;
 	char tmpfname[MAXPATHLEN], newfname[MAXPATHLEN];
 
 	csync_debug(3, "Csync2 / Librsync: csync_rs_patch('%s')\n", filename);

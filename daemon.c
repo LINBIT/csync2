@@ -117,7 +117,7 @@ int csync_file_backup(const char *filename)
 	    char backup_filename[bak_dir_len + filename_len + 10];
 	    char backup_otherfilename[bak_dir_len + filename_len + 10];
 	    int fd_in, fd_out, i;
-	    int lastSlash;
+	    int lastSlash = 0;
 	    mode_t mode;
 	    csync_debug(1, "backup\n");
 	    // Skip generation of directories
@@ -343,7 +343,6 @@ int verify_peername(const char *name, address_t *peeraddr)
 	sa_family_t af = peeraddr->sa.sa_family;
 	struct addrinfo hints;
 	struct addrinfo *result, *rp;
-	size_t len;
 	int try_mapped_ipv4;
 	int s;
 
