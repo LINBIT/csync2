@@ -321,13 +321,11 @@ typedef union address {
 const char *csync_inet_ntop(address_t *addr)
 {
 	char buf[INET6_ADDRSTRLEN];
-	char *pretty_print = NULL;
 	sa_family_t af = addr->sa.sa_family;
-	pretty_print = inet_ntop(af,
+	return inet_ntop(af,
 		af == AF_INET  ? (void*)&addr->sa_in.sin_addr :
 		af == AF_INET6 ? (void*)&addr->sa_in6.sin6_addr : NULL,
-		&buf, sizeof(buf));
-	return pretty_print;
+		buf, sizeof(buf));
 }
 
 /*
