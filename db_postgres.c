@@ -140,7 +140,7 @@ int db_postgres_open(const char *file, db_conn_p *conn_p)
     return rc;
 
   ASPRINTF(&pg_conn_info, "host='%s' user='%s' password='%s' dbname='%s' port=%d",
-	host, user, pass, database, port)
+	host, user, pass, database, port);
 
   pg_conn = f.PQconnectdb_fn(pg_conn_info);
   if (pg_conn == NULL)
@@ -151,7 +151,7 @@ int db_postgres_open(const char *file, db_conn_p *conn_p)
     free(pg_conn_info);
 
     ASPRINTF(&pg_conn_info, "host='%s' user='%s' password='%s' dbname='postgres' port=%d",
-	  host, user, pass, port)
+	  host, user, pass, port);
 
     pg_conn = f.PQconnectdb_fn(pg_conn_info);
     if (pg_conn == NULL)
@@ -186,7 +186,7 @@ int db_postgres_open(const char *file, db_conn_p *conn_p)
       free(pg_conn_info);
 
       ASPRINTF(&pg_conn_info, "host='%s' user='%s' password='%s' dbname='%s' port=%d",
-	    host, user, pass, database, port)
+	    host, user, pass, database, port);
 
       pg_conn = f.PQconnectdb_fn(pg_conn_info);
       if (pg_conn == NULL)

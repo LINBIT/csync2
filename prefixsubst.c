@@ -46,7 +46,7 @@ const char *prefixsubst(const char *in)
 			ringbuff_counter = (ringbuff_counter+1) % RINGBUFF_LEN;
 			if (ringbuff[ringbuff_counter])
 				free(ringbuff[ringbuff_counter]);
-			ASPRINTF(&ringbuff[ringbuff_counter], "%s%s", p->path, path)
+			ASPRINTF(&ringbuff[ringbuff_counter], "%s%s", p->path, path);
 			return ringbuff[ringbuff_counter];
 		}
 	}
@@ -79,7 +79,7 @@ const char *prefixencode(const char *filename) {
 					ringbuff_counter = (ringbuff_counter+1) % RINGBUFF_LEN;
 					if (ringbuff[ringbuff_counter])
 						free(ringbuff[ringbuff_counter]);
-					ASPRINTF(&ringbuff[ringbuff_counter], "%%%s%%%s", p->name, filename+p_len)
+					ASPRINTF(&ringbuff[ringbuff_counter], "%%%s%%%s", p->name, filename+p_len);
 					return ringbuff[ringbuff_counter];
 				}
 			}

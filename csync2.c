@@ -588,7 +588,7 @@ int main(int argc, char ** argv)
 			cfgname = strdup(url_decode(para));
 	}
 	if ( !*cfgname ) {
-	     ASPRINTF(&file_config, ETCDIR "/csync2.cfg")
+	     ASPRINTF(&file_config, ETCDIR "/csync2.cfg");
 	} else {
 		int i;
 
@@ -600,7 +600,7 @@ int main(int argc, char ** argv)
 				return mode != MODE_INETD;
 			}
 
-		ASPRINTF(&file_config, ETCDIR "/csync2_%s.cfg", cfgname)
+		ASPRINTF(&file_config, ETCDIR "/csync2_%s.cfg", cfgname);
 	}
 
 	csync_debug(2, "Config-File:   %s\n", file_config);
@@ -735,11 +735,11 @@ found_a_group:;
 					char *where_rec = "";
 
 					if ( !strcmp(realname, "/") )
-						ASPRINTF(&where_rec, "or 1")
+						ASPRINTF(&where_rec, "or 1");
 					else
 						ASPRINTF(&where_rec, "UNION ALL SELECT filename from file where filename > '%s/' "
 							"and filename < '%s0'",
-							url_encode(pfname), url_encode(pfname))
+							url_encode(pfname), url_encode(pfname));
 
 					SQL_BEGIN("Adding dirty entries recursively",
 						"SELECT filename FROM file WHERE filename = '%s' %s",
@@ -761,11 +761,11 @@ found_a_group:;
 
 				if ( recursive ) {
 					if ( !strcmp(realname, "/") )
-						ASPRINTF(&where_rec, "or 1")
+						ASPRINTF(&where_rec, "or 1");
 					else
 						ASPRINTF(&where_rec, "or (filename > '%s/' "
 							"and filename < '%s0')",
-							url_encode(realname), url_encode(realname))
+							url_encode(realname), url_encode(realname));
 				}
 
 				SQL("Mark file as to be forced",

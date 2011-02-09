@@ -54,7 +54,7 @@ char *getrealfn(const char *filename)
 	if ( *tempfn != '/' ) {
 		char *t2, *t1 = my_get_current_dir_name();
 
-		ASPRINTF(&t2, "%s/%s", t1, tempfn)
+		ASPRINTF(&t2, "%s/%s", t1, tempfn);
 		free(t1);
 		free(tempfn);
 		tempfn = t2;
@@ -111,7 +111,7 @@ char *getrealfn(const char *filename)
 		if ( !chdir(tempfn) ) {
 			char *t2, *t1 = my_get_current_dir_name();
 			if ( st_mark ) {
-				ASPRINTF(&t2, "%s/%s", t1, st_mark+1)
+				ASPRINTF(&t2, "%s/%s", t1, st_mark+1);
 				free(tempfn); free(t1); tempfn = t2;
 			} else {
 				free(tempfn); tempfn = t1;

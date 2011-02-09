@@ -215,11 +215,11 @@ void csync_check_del(const char *file, int recursive, int init_run)
 
 	if ( recursive ) {
 		if ( !strcmp(file, "/") )
-		  ASPRINTF(&where_rec, "OR TRUE")
+		  ASPRINTF(&where_rec, "OR TRUE");
 		else
 		  ASPRINTF(&where_rec, "UNION ALL SELECT filename from file where filename > '%s/' "
 				"and filename < '%s0'",
-				url_encode(file), url_encode(file))
+				url_encode(file), url_encode(file));
 	}
 
 	SQL_BEGIN("Checking for removed files",

@@ -140,7 +140,7 @@ int db_mysql_open(const char *file, db_conn_p *conn_p)
   if (f.mysql_real_connect_fn(db, host, user, pass, database, port, unix_socket, 0) == NULL) {
     if (f.mysql_errno_fn(db) == ER_BAD_DB_ERROR) {
       if (f.mysql_real_connect_fn(db, host, user, pass, NULL, port, unix_socket, 0) != NULL) {
-	ASPRINTF(&create_database_statement, "create database %s", database)
+	ASPRINTF(&create_database_statement, "create database %s", database);
 
 	csync_debug(2, "creating database %s\n", database);
         if (f.mysql_query_fn(db, create_database_statement) != 0)

@@ -172,7 +172,7 @@ void csync_db_sql(const char *err, const char *fmt, ...)
 	int rc, busyc = 0;
 
 	va_start(ap, fmt);
-	VASPRINTF(&sql, fmt, ap)
+	VASPRINTF(&sql, fmt, ap);
 	va_end(ap);
 
 	in_sql_query++;
@@ -204,7 +204,7 @@ void* csync_db_begin(const char *err, const char *fmt, ...)
 	int rc, busyc = 0;
 	char *ppTail; 
 	va_start(ap, fmt);
-	VASPRINTF(&sql, fmt, ap)
+	VASPRINTF(&sql, fmt, ap);
 	va_end(ap);
 
 	in_sql_query++;
@@ -309,25 +309,25 @@ char *db_default_database(char *dbdir, char *myhostname, char *cfg_name)
 
 #if defined(HAVE_SQLITE3)
 	if (cfg_name[0] != '\0')
-		ASPRINTF(&db, "sqlite3://%s/%s_%s" DBEXTENSION, dbdir, myhostname, cfgname)
+		ASPRINTF(&db, "sqlite3://%s/%s_%s" DBEXTENSION, dbdir, myhostname, cfgname);
 	else
-		ASPRINTF(&db, "sqlite3://%s/%s" DBEXTENSION, dbdir, myhostname)
+		ASPRINTF(&db, "sqlite3://%s/%s" DBEXTENSION, dbdir, myhostname);
 #elif defined(HAVE_SQLITE)
 	if (cfg_name[0] != '\0')
-		ASPRINTF(&db, "sqlite2://%s/%s_%s" DBEXTENSION, dbdir, myhostname, cfgname)
+		ASPRINTF(&db, "sqlite2://%s/%s_%s" DBEXTENSION, dbdir, myhostname, cfgname);
 	else
-		ASPRINTF(&db, "sqlite2://%s/%s" DBEXTENSION, dbdir, myhostname)
+		ASPRINTF(&db, "sqlite2://%s/%s" DBEXTENSION, dbdir, myhostname);
 #elif defined(HAVE_MYSQL)
 	if (cfg_name[0] != '\0')
-		ASPRINTF(&db, "mysql://root@localhost/csync2_%s_%s" DBEXTENSION, myhostname, cfgname)
+		ASPRINTF(&db, "mysql://root@localhost/csync2_%s_%s" DBEXTENSION, myhostname, cfgname);
 	else
-		ASPRINTF(&db, "mysql://root@localhost/csync2_%s" DBEXTENSION, myhostname)
+		ASPRINTF(&db, "mysql://root@localhost/csync2_%s" DBEXTENSION, myhostname);
 
 #elif defined(HAVE_POSTGRES)
 	if (cfg_name[0] != '\0')
-		ASPRINTF(&db, "pgsql://root@localhost/csync2_%s_%s" DBEXTENSION, myhostname, cfgname)
+		ASPRINTF(&db, "pgsql://root@localhost/csync2_%s_%s" DBEXTENSION, myhostname, cfgname);
 	else
-		ASPRINTF(&db, "pgsql://root@localhost/csync2_%s" DBEXTENSION, myhostname)
+		ASPRINTF(&db, "pgsql://root@localhost/csync2_%s" DBEXTENSION, myhostname);
 
 #else
 #error "No database backend available. Please install either libpg, libmysqlclient or libsqlite, reconfigure and recompile"
