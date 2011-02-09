@@ -170,8 +170,7 @@ int csync_file_backup(const char *filename)
 
 	      if (i != 1)
 		snprintf(backup_filename+bak_dir_len+filename_len, 10, ".%d", i-1);
-	      else
-		snprintf(backup_filename+bak_dir_len+filename_len, 10, "");
+	      backup_filename[bak_dir_len+filename_len] = '\0';
 	      snprintf(backup_otherfilename+bak_dir_len+filename_len, 10, ".%d", i);
 
 	      rc = rename(backup_filename, backup_otherfilename);
