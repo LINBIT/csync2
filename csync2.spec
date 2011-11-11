@@ -83,6 +83,7 @@ fi
 %defattr(-,root,root)
 %doc ChangeLog README NEWS INSTALL TODO AUTHORS
 %{_sbindir}/csync2
+%{_sbindir}/csync2-compare
 %{_var}/lib/csync2
 %{_mandir}/man1/csync2.1.gz
 %config(noreplace) %{_sysconfdir}/xinetd.d/csync2
