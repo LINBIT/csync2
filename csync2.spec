@@ -1,6 +1,6 @@
 # csync2 - cluster synchronization tool, 2nd generation
-# LINBIT Information Technologies GmbH <http://www.linbit.com>
-# Copyright (C) 2004, 2005  Clifford Wolf <clifford@clifford.at>
+# Copyright (C) 2004 - 2013 LINBIT Information Technologies GmbH
+# http://www.linbit.com; see also AUTHORS
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,7 +14,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 #
 # spec file for package csync2 (Version 2.0)
@@ -42,12 +42,6 @@ Csync2 is a cluster synchronization tool. It can be used to keep files on
 multiple hosts in a cluster in sync. Csync2 can handle complex setups with 
 much more than just 2 hosts, handle file deletions and can detect conflicts.
 It is expedient for HA-clusters, HPC-clusters, COWs and server farms. 
-
-
-
-Authors:
---------
-    Clifford Wolf <clifford.wolf@linbit.com>
 
 %prep
 %setup

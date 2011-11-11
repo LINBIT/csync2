@@ -2,10 +2,10 @@
 Csync2 for Win32 (cygwin)
 =========================
 
-The Csync2 homepage can be reached at <http://oss.linbit.com/>.
+The Csync2 homepage can be reached at http://oss.linbit.com/.
 
-  LINBIT Information Technologies GmbH <http://www.linbit.com>
-  Copyright (C) 2004, 2005  Clifford Wolf <clifford@clifford.at>
+  Copyright (C) 2004 - 2013 LINBIT Information Technologies GmbH
+  http://www.linbit.com; see also AUTHORS
 
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by

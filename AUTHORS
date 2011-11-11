@@ -1,8 +1,17 @@
-LINBIT Information Technologies GmbH <http://www.linbit.com>
-Clifford Wolf <clifford@clifford.at>
+Copyright (C) 2004 - 2013  LINBIT Information Technologies GmbH
+    http://www.linbit.com
 
-With contributions from:
+Original csync2 author, no longer involved with the project:
+    2004, 2005  Clifford Wolf <clifford@clifford.at>
 
-Lars Ellenberg <lars.ellenberg@linbit.at>
-Johannes Thoma <johannes.thoma@gmx.at>
-Dennis Schafroth <dennis@schafroth.dk>
+Most development 1.34 to 2.0
+    2010  Johannes Thoma <johannes@linbit.com>
+
+Coordination, fixes and maintenance:
+    Lars Ellenberg <lars@linbit.com>
+
+Major contributions:
+    2010  Dennis Schafroth <dennis@schafroth.dk>
+    2008  Art -kwaak- van Breemen <ard+csync2@telegraafnet.nl>
+
+    And others; for details see the git log.

@@ -1,7 +1,7 @@
 /*
  *  csync2 - cluster synchronization tool, 2nd generation
- *  LINBIT Information Technologies GmbH <http://www.linbit.com>
- *  Copyright (C) 2004, 2005, 2006  Clifford Wolf <clifford@clifford.at>
+ *  Copyright (C) 2004 - 2013 LINBIT Information Technologies GmbH
+ *  http://www.linbit.com; see also AUTHORS
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -15,7 +15,7 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
 #include "csync2.h"
@@ -98,10 +98,9 @@ void help(char *cmd)
 	printf(
 "\n"
 PACKAGE_STRING " - cluster synchronization tool, 2nd generation\n"
-"LINBIT Information Technologies GmbH <http://www.linbit.com>\n"
-"Copyright (C) 2004, 2005  Clifford Wolf <clifford@clifford.at>\n"
-"Copyright (C) 2010  Dennis Schafroth <dennis@schafroth.com>\n"
-"Copyright (C) 2010  Johannes Thoma <johannes.thoma@gmx.at>\n"
+"Copyright (C) 2004 - 2013 LINBIT Information Technologies GmbH\n"
+"        http://www.linbit.com\n"
+"See also: http://git.linbit.com/csync2.git/?a=blob;f=AUTHORS\n"
 "\n"
 "Version: " CSYNC2_VERSION "\n"
 "\n"
