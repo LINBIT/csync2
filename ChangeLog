@@ -1,2 +1,5 @@
-Please fetch the ChangeLog directly from the subversion repository:
-svn log -v http://svn.linbit.com/csync2/
+Please see git for a complete changelog:
+http://git.linbit.com/csync2.git/
+
+git clone git://git.linbit.com/csync2.git
+cd csync2 && git log
