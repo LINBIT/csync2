@@ -735,7 +735,7 @@ found_a_group:;
 					char *where_rec = "";
 
 					if ( !strcmp(realname, "/") )
-						ASPRINTF(&where_rec, "or 1");
+						ASPRINTF(&where_rec, "or 1=1");
 					else
 						ASPRINTF(&where_rec, "UNION ALL SELECT filename from file where filename > '%s/' "
 							"and filename < '%s0'",
@@ -761,7 +761,7 @@ found_a_group:;
 
 				if ( recursive ) {
 					if ( !strcmp(realname, "/") )
-						ASPRINTF(&where_rec, "or 1");
+						ASPRINTF(&where_rec, "or 1=1");
 					else
 						ASPRINTF(&where_rec, "or (filename > '%s/' "
 							"and filename < '%s0')",
