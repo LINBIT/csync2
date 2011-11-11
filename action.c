@@ -44,10 +44,12 @@ void csync_schedule_commands(const char *filename, int islocal)
 				continue;
 			if (!a->pattern)
 				goto found_matching_pattern;
-			for (p=a->pattern; p; p=p->next)
+			for (p=a->pattern; p; p=p->next) {
+				int fnm_pathname = p->star_matches_slashes ? 0 : FNM_PATHNAME;
 				if ( !fnmatch(p->pattern, filename,
-						FNM_LEADING_DIR|FNM_PATHNAME) )
+						FNM_LEADING_DIR|fnm_pathname) )
 					goto found_matching_pattern;
+			}
 			continue;
 found_matching_pattern:
 			for (c=a->command; c; c=c->next)

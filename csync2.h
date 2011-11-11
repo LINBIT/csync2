@@ -287,12 +287,13 @@ struct csync_group_host {
 
 struct csync_group_pattern {
 	struct csync_group_pattern *next;
-	int isinclude, iscompare;
+	int isinclude, iscompare, star_matches_slashes;
 	const char *pattern;
 };
 
 struct csync_group_action_pattern {
 	struct csync_group_action_pattern *next;
+	int star_matches_slashes;
 	const char *pattern;
 };
 

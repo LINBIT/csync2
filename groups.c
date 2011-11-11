@@ -41,8 +41,9 @@ int match_pattern_list(
 				matched = 1;
 			}
 		} else {
+			int fnm_pathname = p->star_matches_slashes ? 0 : FNM_PATHNAME;
 			if ( !fnmatch(p->pattern, filename,
-					FNM_LEADING_DIR|FNM_PATHNAME) ) {
+					FNM_LEADING_DIR|fnm_pathname) ) {
 				match_path = p->isinclude;
 				matched = 1;
 			}
@@ -91,10 +92,11 @@ int csync_step_into(const char *file)
 				continue;
 			if ( (p->pattern[0] == '/' || p->pattern[0] == '%') && p->isinclude ) {
 				char t[strlen(p->pattern)+1], *l;
+				int fnm_pathname = p->star_matches_slashes ? 0 : FNM_PATHNAME;
 				strcpy(t, p->pattern);
 				while ( (l=strrchr(t, '/')) != 0 ) {
 					*l = 0;
-					if ( !fnmatch(t, file, FNM_PATHNAME) )
+					if ( !fnmatch(t, file, fnm_pathname) )
 								return 1;
 				}
 			}

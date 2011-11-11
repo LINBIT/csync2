@@ -109,12 +109,17 @@ static void add_patt(int patterntype, char *pattern)
 	}
 #endif
 
+	/* strip trailing slashes from pattern */
 	for (i=strlen(pattern)-1; i>0; i--)
 		if (pattern[i] == '/')
 			pattern[i] = 0;
 		else
 			break;
 
+	/* if you use ** at least once anywhere in the pattern,
+	 * _all_ stars in the pattern, even single ones,
+	 * will match slashes. */
+	t->star_matches_slashes = !!strstr(pattern, "**");
 	t->isinclude = patterntype >= 1;
 	t->iscompare = patterntype >= 2;
 	t->pattern = pattern;
@@ -283,6 +288,7 @@ static void add_action_pattern(const char *pattern)
 {
 	struct csync_group_action_pattern *t =
 		calloc(sizeof(struct csync_group_action_pattern), 1);
+	t->star_matches_slashes = !!strstr(pattern, "**");
 	t->pattern = pattern;
 	t->next = csync_group->action->pattern;
 	csync_group->action->pattern = t;
