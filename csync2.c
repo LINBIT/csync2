@@ -757,6 +757,7 @@ found_a_group:;
 		case MODE_FORCE:
 			for (i=optind; i < argc; i++) {
 				char *realname = getrealfn(argv[i]);
+				char *pfname = strdup(prefixencode(realname));
 				char *where_rec = "";
 
 				if ( recursive ) {
@@ -774,6 +775,7 @@ found_a_group:;
 
 				if ( recursive )
 					free(where_rec);
+				free(pfname);
 			}
 			break;
 
