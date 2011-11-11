@@ -1,30 +1,37 @@
 #!/bin/bash
 
 errors=0
-ignrev="r364"
+
+current_year=$(date +%Y)
 
 check() {
-	if ! svn st $1 | grep -q '^?'; then
-		years="2003 2004 2005 2006 2007 2008"
-		for y in `svn log $1 | grep '^r[0-9]' | egrep -v "^($ignrev)" | sed 's,.* \(200.\)-.*,\1,' | sort -u`
-		do
-			years=`echo $years | sed "s,$y,,"`
-			if ! grep -q "\*.*Copyright.*$y" $1; then
-				echo "Missing $y in $1."
-				(( errors++ ))
-			fi
-		done
-		for y in $years
-		do
-			if grep -q "\*.*Copyright.*$y" $1; then
-				echo "Bogus $y in $1."
-				(( errors++ ))
-			fi
-		done
-	fi
+	years=`seq 2003 $current_year`
+	for y in $(git log --date=short --pretty="format:%ad" -- $1 | cut -d- -f1 | sort -u)
+	do
+		years=`echo $years | sed "s,$y,,"`
+		copyright=`perl -ne '/([*#]|^).*Copyright.*/ or next;
+			s{\b(\d\d\d\d)\s*-\s*(\d\d\d\d)\b}
+			 {join ", ", $1 .. $2}ge; print;' $1`
+		case $copyright in
+		*Copyright*$y*) :;;
+		*)
+			echo "Missing $y in $1."
+			(( errors++ ))
+			;;
+		esac
+	done
+	for y in $years
+	do
+		case $copyright in
+		*Copyright*$y*)
+			echo "Bogus $y in $1."
+			(( errors++ ))
+			;;
+		esac
+	done
 }
 
-for f in `grep -rl '\*.*Copyright' . | grep -v '/\.svn/'` ; do
+for f in ${1:- $(git ls-files | xargs grep -l Copyright)} ; do
 	check $f
 done
 
