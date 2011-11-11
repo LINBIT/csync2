@@ -76,25 +76,3 @@ There is a csync2 mailing list:
 It is recommended to subscribe to this list if you are using csync2 in
 production environments.
 
-Building csync2
-===============
-
-You'll need the GNU autotools and a compiler toolchain (gcc) for 
-building csync2.
-
-First, run the autogen.sh script:
-
-karin$ ./autogen.sh
-
-Then run configure, use ./configure --help for more options:
-
-karin$ ./configure
-
-Then run make:
-
-karin$ make
-
-csync2 should be built now. Direct any questions to the csync2 mailing list
-(see above).
-
-- Johannes
