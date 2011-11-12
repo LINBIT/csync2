@@ -535,6 +535,13 @@ int main(int argc, char ** argv)
 	if ( mode == MODE_NONE )
 		help(argv[0]);
 
+	/* Some inetd connect stderr to stdout.  The debug level messages on
+	 * stderr would confuse the csync2 protocol. Log to syslog instead. */
+	if ( mode == MODE_INETD && csync_debug_level && !csync_syslog ) {
+		csync_syslog = 1;
+		openlog("csync2", LOG_ODELAY, LOG_LOCAL0);
+	}
+
 	if ( *myhostname == 0 ) {
 		gethostname(myhostname, 256);
 		myhostname[255] = 0;
