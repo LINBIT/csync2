@@ -24,8 +24,8 @@ AC_CONFIG_SRCDIR(csync2.c)
 AM_CONFIG_HEADER(config.h)
 
 # Use /etc and /var instead of $prefix/...
-test "$localstatedir" = '${prefix}/var' && localstatedir=/var
-test "$sysconfdir" = '${prefix}/etc' && sysconfdir=/etc
+# test "$localstatedir" = '${prefix}/var' && localstatedir=/var
+# test "$sysconfdir" = '${prefix}/etc' && sysconfdir=/etc
 
 # Checks for programs.
 AC_PROG_CC
