@@ -75,20 +75,11 @@ AC_ARG_ENABLE([gnutls],
 
 if test "$enable_gnutls" != no
 then
-	# Check for gnuTLS.
-	##AM_PATH_LIBGNUTLS(1.0.0, , [ AC_MSG_ERROR([[gnutls not found; install gnutls, gnutls-openssl and libtasn1 packages for your system or run configure with --disable-gnutls]]) ])
    PKG_PROG_PKG_CONFIG
-   PKG_CHECK_MODULES([LIBGNUTLS], [gnutls >= 1.0.0], [
-      AC_DEFINE([USE_GNUTLS], 1, [Define to 1 when using GNU TLS library])
-      gnutls_version_code=`$PKG_CONFIG --modversion gnutls | $AWK -F. '{ printf "0x%02X%02X%02X\n",$1,$2,$3 }'`
-      AC_DEFINE_UNQUOTED([LFTP_LIBGNUTLS_VERSION_CODE], $gnutls_version_code, [Define to libgnutls version, e.g. 0x010203 for 1.2.3])
+   PKG_CHECK_MODULES([LIBGNUTLS], [gnutls >= 2.6.0], [
+      AC_DEFINE([HAVE_LIBGNUTLS], 1, [Define to 1 when using GNU TLS library])
    ])
-
-	## This is a bloody hack for fedora core
-	#CFLAGS="$CFLAGS $LIBGNUTLS_CFLAGS"
-	#LIBS="$LIBS $LIBGNUTLS_LIBS -ltasn1"
 fi
-AM_CONDITIONAL([HAVE_LIBGNUTLS], [test "$enable_gnutls" != no ])
 
 AC_ARG_ENABLE([mysql],
 	[AC_HELP_STRING([--enable-mysql],
@@ -111,8 +102,6 @@ then
 
 	AC_DEFINE([HAVE_MYSQL], 1, [Define if mysql support is wanted])
 fi
-
-AM_CONDITIONAL([HAVE_LIBMYSQL], [test "$enable_mysql" != no ])
 
 if test "$enable_postgres" == yes
 then

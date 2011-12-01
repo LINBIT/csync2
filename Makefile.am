@@ -42,8 +42,8 @@ DISTCLEANFILES = config.status config.h .deps/*.Po stamp-h1 Makefile Makefile.in
 dist-clean-local:
 	rm -rf autom4te.cache
 
-AM_CFLAGS=
-AM_LDFLAGS=
+AM_CFLAGS=$(LIBGNUTLS_CFLAGS)
+AM_LDFLAGS=$(LIBGNUTLS_LIBS)
 
 if PRIVATE_LIBRSYNC
   BUILT_SOURCES += private_librsync
