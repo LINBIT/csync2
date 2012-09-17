@@ -42,7 +42,7 @@ DISTCLEANFILES = config.status config.h .deps/*.Po stamp-h1 Makefile Makefile.in
 dist-clean-local:
 	rm -rf autom4te.cache
 
-AM_CFLAGS=$(LIBGNUTLS_CFLAGS)
+AM_CFLAGS=$(LIBGNUTLS_CFLAGS) -Wall
 AM_LDFLAGS=$(LIBGNUTLS_LIBS)
 LIBS += $(LIBGNUTLS_LIBS)
 
