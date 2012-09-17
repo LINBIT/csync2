@@ -424,6 +424,37 @@ void set_peername_from_env(address_t *p, const char *env)
 	freeaddrinfo(result);
 }
 
+static int setup_tag(char *tag[32], char *line)
+{
+	int i = 0;
+	char *context;
+
+	tag[0] = strtok_r(line, "\t \r\n", &context);
+
+	while (tag[i] && i < 31) {
+		tag[++i] = strtok_r(NULL, "\t \r\n", &context);
+	}
+	while (i < 32) {
+		tag[i++] = "";
+	}
+
+	if (!tag[0][0]) {
+		return 0;
+	}
+
+	for (i = 0; i < 32; i++) {
+		tag[i] = strdup(url_decode(tag[i]));
+	}
+
+	return 1;
+}
+
+static void destroy_tag(char *tag[32])
+{
+	int i = 0;
+	for (i = 0; i < 32; i++)
+		free(tag[i]);
+}
 void csync_daemon_session()
 {
 	struct stat sb;
@@ -453,16 +484,8 @@ void csync_daemon_session()
 	while ( conn_gets(line, 4096) ) {
 		int cmdnr;
 
-		tag[i=0] = strtok(line, "\t \r\n");
-		while ( tag[i] && i < 31 )
-			tag[++i] = strtok(0, "\t \r\n");
-		while ( i < 32 )
-			tag[i++] = "";
-
-		if ( !tag[0][0] ) continue;
-
-		for (i=0; i<32; i++)
-			tag[i] = strdup(url_decode(tag[i]));
+		if (!setup_tag(tag, line))
+			continue;
 
 		for (cmdnr=0; cmdtab[cmdnr].text; cmdnr++)
 			if ( !strcasecmp(cmdtab[cmdnr].text, tag[0]) ) break;
@@ -752,7 +775,6 @@ abort_cmd:
 			conn_printf("OK (cmd_finished).\n");
 
 next_cmd:
-		for (i=0; i<32; i++)
-			free(tag[i]);
+		destroy_tag(tag);
 	}
 }
