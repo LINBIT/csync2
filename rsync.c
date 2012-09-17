@@ -301,25 +301,28 @@ int csync_rs_check(const char *filename, int isreg)
 	char tmpfname[MAXPATHLEN];
 
 	csync_debug(3, "Csync2 / Librsync: csync_rs_check('%s', %d [%s])\n",
-		filename, isreg, isreg ? "regular file" : "non-regular file");
+		    filename, isreg, isreg ? "regular file" : "non-regular file");
 
 	csync_debug(3, "Opening basis_file and sig_file..\n");
 
 	sig_file = open_temp_file(tmpfname, prefixsubst(filename));
-	if ( !sig_file ) goto io_error;
-	if (unlink(tmpfname) < 0) goto io_error;
+	if (!sig_file)
+		goto io_error;
+	if (unlink(tmpfname) < 0)
+		goto io_error;
 
 	basis_file = fopen(prefixsubst(filename), "rb");
-	if ( !basis_file ) {  /* ?? why a tmp file? */
+	if (!basis_file) {	/* ?? why a tmp file? */
 		basis_file = open_temp_file(tmpfname, prefixsubst(filename));
-		if ( !basis_file ) goto io_error;
-		if (unlink(tmpfname) < 0) goto io_error;
+		if (!basis_file)
+			goto io_error;
+		if (unlink(tmpfname) < 0)
+			goto io_error;
 	}
 
-	if ( isreg ) {
+	if (isreg) {
 		csync_debug(3, "Running rs_sig_file() from librsync....\n");
-		result = rs_sig_file(basis_file, sig_file,
-				RS_DEFAULT_BLOCK_LEN, RS_DEFAULT_STRONG_LEN, &stats);
+		result = rs_sig_file(basis_file, sig_file, RS_DEFAULT_BLOCK_LEN, RS_DEFAULT_STRONG_LEN, &stats);
 		if (result != RS_DONE) {
 			csync_debug(0, "Internal error from rsync library!\n");
 			goto error;
@@ -332,56 +335,53 @@ int csync_rs_check(const char *filename, int isreg)
 	{
 		char line[100];
 		csync_debug(3, "Reading signature size from peer....\n");
-		if ( !conn_gets(line, 100) || sscanf(line, "octet-stream %ld\n", &size) != 1 )
+		if (!conn_gets(line, 100) || sscanf(line, "octet-stream %ld\n", &size) != 1)
 			csync_fatal("Format-error while receiving data.\n");
 	}
 
 	fflush(sig_file);
-	if ( size != ftell(sig_file) ) {
-		csync_debug(2, "Signature size differs: local=%d, peer=%d\n",
-				ftell(sig_file), size);
+	if (size != ftell(sig_file)) {
+		csync_debug(2, "Signature size differs: local=%d, peer=%d\n", ftell(sig_file), size);
 		found_diff = 1;
 	}
 	rewind(sig_file);
 
 	csync_debug(3, "Receiving %ld bytes ..\n", size);
 
-	while ( size > 0 ) {
+	while (size > 0) {
 		chunk = size > 512 ? 512 : size;
 		rc = conn_read(buffer1, chunk);
 
-		if ( rc <= 0 )
+		if (rc <= 0)
 			csync_fatal("Read-error while receiving data.\n");
 		chunk = rc;
 
-		if ( fread(buffer2, chunk, 1, sig_file) != 1 ) {
+		if (fread(buffer2, chunk, 1, sig_file) != 1) {
 			csync_debug(2, "Found EOF in local sig file.\n");
 			found_diff = 1;
 		}
-		if ( memcmp(buffer1, buffer2, chunk) ) {
-			csync_debug(2, "Found diff in sig at -%d:-%d\n",
-					size, size-chunk);
+		if (memcmp(buffer1, buffer2, chunk)) {
+			csync_debug(2, "Found diff in sig at -%d:-%d\n", size, size - chunk);
 			found_diff = 1;
 		}
 
 		size -= chunk;
-		csync_debug(3, "Got %d bytes, %ld bytes left ..\n",
-				chunk, size);
+		csync_debug(3, "Got %d bytes, %ld bytes left ..\n", chunk, size);
 	}
 
-	csync_debug(3, "File has been checked successfully (%s).\n",
-		found_diff ? "difference found" : "files are equal");
+	csync_debug(3, "File has been checked successfully (%s).\n", found_diff ? "difference found" : "files are equal");
 	fclose(sig_file);
 	return found_diff;
 
 io_error:
-	csync_debug(0, "I/O Error '%s' in rsync-check: %s\n",
-			strerror(errno), prefixsubst(filename));
+	csync_debug(0, "I/O Error '%s' in rsync-check: %s\n", strerror(errno), prefixsubst(filename));
 
-error:;
+error:
 	backup_errno = errno;
-	if ( basis_file ) fclose(basis_file);
-	if ( sig_file )   fclose(sig_file);
+	if (basis_file)
+		fclose(basis_file);
+	if (sig_file)
+		fclose(sig_file);
 	errno = backup_errno;
 	return -1;
 }
