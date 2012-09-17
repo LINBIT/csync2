@@ -197,8 +197,8 @@ int conn_activate_ssl(int server_role)
 
 	gnutls_transport_set_ptr2(
 		conn_tls_session,
-		(gnutls_transport_ptr_t)conn_fd_in,
-		(gnutls_transport_ptr_t)conn_fd_out
+		(gnutls_transport_ptr_t)(long)conn_fd_in,
+		(gnutls_transport_ptr_t)(long)conn_fd_out
 	);
 
 	err = gnutls_handshake(conn_tls_session);
