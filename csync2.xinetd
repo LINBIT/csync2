@@ -8,7 +8,7 @@ service csync2
 	user		= root
 	group		= root
 	server		= /usr/sbin/csync2
-	server_args	= -i
+	server_args	= -i -l
 	#log_on_failure	+= USERID
 	disable		= no
 	# only_from	= 192.168.199.3 192.168.199.4
