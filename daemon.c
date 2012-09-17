@@ -103,24 +103,45 @@ void csync_file_flush(const char *filename)
 		url_encode(filename));
 }
 
-int csync_file_backup(const char *filename)
+int csync_file_backup(const char *filepath)
 {
 	static char error_buffer[1024];
 	const struct csync_group *g = NULL;
 	struct stat buf;
 	int rc;
-	while ((g = csync_find_next(g, filename))) {
-		if (g->backup_directory && g->backup_generations > 1) {
+	/* ==============================================================================================
+	 * As of now, filepath may only contain prefixes but we may need to resolve other
+	 * dynamic references like environment variables, symbolic links, etc in future
+	 * if we plan to support those in later releases
+	 *==============================================================================================*/
+	const char *filename = prefixsubst(filepath);
+	int filename_len = strlen(filename);	//can filename be null?
 
+	while ((g = csync_find_next(g, filepath))) {
+		if (g->backup_directory && g->backup_generations > 1) {
 			int bak_dir_len = strlen(g->backup_directory);
-			int filename_len = strlen(filename);
 			char backup_filename[bak_dir_len + filename_len + 10];
 			char backup_otherfilename[bak_dir_len + filename_len + 10];
 			int fd_in, fd_out, i;
 			int lastSlash = 0;
 			mode_t mode;
 
-			csync_debug(1, "backup\n");
+			csync_debug(1, "backup %s for group %s\n", filename, g->gname);
+
+			if (stat(g->backup_directory, &buf) != 0) {
+				csync_debug(3, "backup directory configured is not present, so creating it");
+				if (mkpath(g->backup_directory, 0700)) {
+					csync_debug(1,
+						    "ERROR : unable to create backup directory %s ; backup failed \n",
+						    g->backup_directory);
+					return 1;
+				}
+			} else if (!S_ISDIR(buf.st_mode)) {
+				csync_debug(1,
+					    "ERROR : location configured for backup %s is not a directory; backup failed \n",
+					    g->backup_directory);
+				return 1;
+			}
 			// Skip generation of directories
 			rc = stat(filename, &buf);
 			if (S_ISDIR(buf.st_mode)) {
@@ -134,8 +155,9 @@ int csync_file_backup(const char *filename)
 
 			memcpy(backup_filename, g->backup_directory, bak_dir_len);
 			backup_filename[bak_dir_len] = 0;
-			mode = 0777;
+			mode = 0700;
 
+			/* open coded strrchr?? why? */
 			for (i = filename_len; i > 0; i--)
 				if (filename[i] == '/') {
 					lastSlash = i;
@@ -164,7 +186,6 @@ int csync_file_backup(const char *filename)
 			backup_filename[bak_dir_len] = '/';
 			memcpy(backup_otherfilename, backup_filename, bak_dir_len + filename_len);
 
-			//rc = unlink(
 			for (i = g->backup_generations - 1; i; i--) {
 
 				if (i != 1)
@@ -176,7 +197,6 @@ int csync_file_backup(const char *filename)
 				csync_debug(1,
 					    "renaming backup files '%s' to '%s'. rc = %d\n",
 					    backup_filename, backup_otherfilename, rc);
-
 			}
 
 			/* strcpy(backup_filename+bak_dir_len+filename_len, ""); */
@@ -204,10 +224,8 @@ int csync_file_backup(const char *filename)
 				// return 1;
 			}
 			csync_setBackupFileStatus(backup_filename, bak_dir_len);
-			csync_debug(1, "csync_backup loop end\n");
 		}
 	}
-	csync_debug(1, "csync_backup end\n");
 	return 0;
 }
 
