@@ -155,20 +155,18 @@ extract it and run the usual {\tt ./configure} - {\tt make} - {\tt make install}
 \csync2 has a few prerequisites in addition to a C compiler, the standard
 system libraries and headers and the usual gnu toolchain ({\tt make}, etc):
 
-{\bf 1.} You need librsync, libsqlite (version 2) and libssl installed
+{\bf 1.} You need librsync, libsqlite (version 2) and gnutls installed
 (including development headers).
 
 {\bf 2.} Bison and flex are needed to build the configuration file parser.
 
 \subsection{\csync2 in Linux distributions}
 
-As of this writing there are no official Debian, RedHat or SuSE packages for
-\csync2. Gentoo has a \csync2 package, but is has not been updated for a year
-now. As far as I know, ROCK Linux [6] is the only system with an up-to-date
-\csync2 package. So I recommend that all users of non-ROCK distributions built
-the package from source.
+As of November 2011, all major linux distributions have some \csync2 1.34 package
+available, but to upgrade to an up-to-date \csync2 version, you probably need
+to wait a bit or build the package from source.
 
-The \csync2 source package contains an RPM {\tt .specs} file as well as a {\tt
+The \csync2 source package contains an RPM {\tt .spec} file as well as a {\tt
 debian/} directory. So it is possible to use {\tt rpmbuild} or {\tt debuild} to
 build \csync2.
 
@@ -378,7 +376,7 @@ Usually the action is only triggered on the targed hosts, not on the host on
 which the file modification has been detected in the first place. The {\tt
 do-local} statement can be used to change this behavior and let \csync2 also
 execute the command on the host from which the modification originated. You can 
-use {\ttdo-local-only} to execute the action only on this machine. 
+use {\tt do-local-only} to execute the action only on this machine.
 
 \subsubsection{Conflict Auto-resolving}
 
@@ -559,11 +557,13 @@ other hosts in the csync2 cluster (like the SSH {\tt known\_hosts} file).
       \hline
 \begin{tiny}
 \begin{verbatim}
+csync2 2.0 - cluster synchronization tool, 2nd generation
+Copyright (C) 2004 - 2013 LINBIT Information Technologies GmbH
+        http://www.linbit.com
+See also: http://git.linbit.com/csync2.git/?a=blob;f=AUTHORS
 
+Version: 2.0
 
-csync2 1.26 - cluster synchronization tool, 2nd generation
-LINBIT Information Technologies GmbH <http://www.linbit.com
-Copyright (C) 2004, 2005  Clifford Wolf <clifford@clifford.at>
 This program is free software under the terms of the GNU GPL.
 
 Usage: csync2 [-v..] [-C config-name] \
@@ -573,7 +573,8 @@ With file parameters:
         -h [-r] file..          Add (recursive) hints for check to db
         -c [-r] file..          Check files and maybe add to dirty db
         -u [-d] [-r] file..     Updates files if listed in dirty db
-        -f file..               Force this file in sync (resolve conflict)
+        -o [-r] file..          Create list of files in compare-mode
+        -f [-r] file..          Force this file in sync (resolve conflict)
         -m file..               Mark files in database as dirty
 
 Simple mode:
@@ -641,10 +642,26 @@ Modifiers:
 
         -P peer1,peer1,...
                 Only update this peers (still mark all as dirty).
+                Only show files for this peers in -o (compare) mode.
 
         -F      Add new entries to dirty database with force flag set.
 
         -t      Print timestamps to debug output (e.g. for profiling).
+
+        -s filename
+                Print timestamps also to this file.
+
+        -W fd   Write a list of directories in which relevant files can be
+                found to the specified file descriptor (when doing a -c run).
+                The directory names in this output are zero-terminated.
+
+Database switches:
+
+        -D database-dir
+                Use sqlite database in database dir (defaults to /var/lib/csync2)
+
+        -a mysql-url
+                Use mysql database in URL: mysql://[<user>:<password>@]<hostname>/<database>
 
 Creating key file:
         csync2 -k filename
@@ -854,14 +871,14 @@ free software file synchronization tools are:
 
 \subsection{Rsync}
 
-Rsync [7] is a tool for fast incremental file transfers, but is not a
+Rsync [6] is a tool for fast incremental file transfers, but is not a
 synchronization tool in the context of this paper. Actually \csync2 is
 using the rsync algorithm for file transfers. A variety of synchronization
 tools have been written on top of rsync. Most of them are tiny shell scripts.
 
 \subsection{Unison}
 
-Unison [8] is using an algorithm similar to the one used by \csync2, but is
+Unison [7] is using an algorithm similar to the one used by \csync2, but is
 limited to two-host setups. Its focus is on interactive syncs (there even are
 graphical user interfaces) and it is targeting on syncing home directories
 between a laptop and a workstation. Unison is pretty intuitive to use, among
@@ -869,7 +886,7 @@ other things because of its limitations.
 
 \subsection{Version Control Systems}
 
-Version control systems such as Subversion [9] can also be used to synchronize
+Version control systems such as Subversion [8] can also be used to synchronize
 configuration files or application images. The advantage of version control
 systems is that they can do three way merges and preserve the entire history
 of a repository. The disadvantage is that they are much slower and require more
@@ -878,7 +895,9 @@ disk space than plain synchronization tools.
 \section{References}
 
 {[1]} \csync2 \\
-http://oss.linbit.com/csync2/
+http://oss.linbit.com/csync2/ \\
+http://git.linbit.com/csync2.git/ \\
+git://git.linbit.com/csync2/
 \medskip \\
 {[2]} LINBIT Information Technologies \\
 http://www.linbit.com/
@@ -892,16 +911,13 @@ http://librsync.sourceforge.net/
 {[5]} SQLite \\
 http://www.sqlite.org/
 \medskip \\
-{[6]} ROCK Linux \\
-http://www.rocklinux.org/
-\medskip \\
-{[7]} Rsync \\
+{[6]} Rsync \\
 http://samba.anu.edu.au/rsync/
 \medskip \\
-{[8]} Unison \\
+{[7]} Unison \\
 http://www.cis.upenn.edu/\textasciitilde{}bcpierce/unison/
 \medskip \\
-{[9]} Subversion \\
+{[8]} Subversion \\
 http://subversion.tigris.org/
 
 \end{document}

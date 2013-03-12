@@ -1,11 +1,15 @@
 .\"                                      Hey, EMACS: -*- nroff -*-
-.TH CSYNC2 1 "September 23, 2005"
+.TH CSYNC2 "1" "March 2013" "csync2 " "User Commands"
 .SH NAME
 csync2 \- cluster synchronization tool, 2nd generation
 .SH SYNOPSIS
 .B csync2
 .RI [ -v.. ] " [-C config-name]" " [-D database-dir]" " [-N hostname]" " [-p port]" ...
-.br
+.SH COPYRIGHT
+csync2 is copyright \(co 2004 \- 2013 by LINBIT Information Technologies GmbH
+.PP
+csync2 is distributed under the GNU public license.
+See the file COPYING for details.
 .SH DESCRIPTION
 This manual page documents briefly the
 .B csync2
@@ -17,139 +21,155 @@ homepage:
 .IP
 .B http://oss.linbit.com/csync2/paper.pdf
 .PP
-\fBcsync2\fP is a program for cluster synchronization.
+\fBcsync2\fP is a program for cluster wide file synchronization.
 .SH OPTIONS
+.SS "With file parameters:"
 .TP
-With file parameters:
-.TP
-.B  -h [-r] file..
+\fB\-h\fR [\-r] file..
 Add (recursive) hints for check to db
 .TP
-.B -c [-r] file..
+\fB\-c\fR [\-r] file..
 Check files and maybe add to dirty db
 .TP
-.B -u [-d] [-r] file..
+\fB\-u\fR [\-d] [\-r] file..
 Updates files if listed in dirty db
 .TP
-.B -f file..
-Force this file in sync (resolve conflict)
+\fB\-o\fR [\-r] file..
+Create list of files in compare\-mode
 .TP
-.B -m file..
+\fB\-f\fR [\-r] file..
+Force files to win next conflict resolution
+.TP
+\fB\-m\fR file..
 Mark files in database as dirty
+.SS "Simple mode:"
 .TP
-Simple mode:
+\fB\-x\fR [\-d] [[\-r] file..]
+Run checks for all given files and update
+remote hosts.
+.SS "Without file parameters:"
 .TP
-.B -x [-d] [[-r] file..]
-Run checks for all given files and update remote hosts.
-.TP
-Without file parameters:
-.TP
-.B -c
+\fB\-c\fR
 Check all hints in db and eventually mark files as dirty
+.HP
+\fB\-u\fR [\-d] Update (transfer dirty files to peers and mark as clear)
 .TP
-.B -u [-d]
-Update (transfer dirty files to peers and mark as clear)
-.TP
-.B -H
+\fB\-H\fR
 List all pending hints from status db
 .TP
-.B -L
-List all file-entries from status db
+\fB\-L\fR
+List all file\-entries from status db
 .TP
-.B -M
+\fB\-M\fR
 List all dirty files from status db
 .TP
-.B -S myname peername
-List file-entries from status db for this synchronization pair.
+\fB\-S\fR myname peername
+List file\-entries from status db for this
+synchronization pair.
 .TP
-.B -T
+\fB\-T\fR
 Test if everything is in sync with all peers.
 .TP
-.B -T filename
+\fB\-T\fR filename
 Test if this file is in sync with all peers.
 .TP
-.B -T myname peername
+\fB\-T\fR myname peername
 Test if this synchronization pair is in sync.
 .TP
-.B -T myname peer file
+\fB\-T\fR myname peer file
 Test only this file in this sync pair.
 .TP
-.B -TT
-As -T, but print the unified diffs.
+\fB\-TT\fR
+As \fB\-T\fR, but print the unified diffs.
+.IP
+The modes \fB\-H\fR, \fB\-L\fR, \fB\-M\fR and \fB\-S\fR return 2 if the requested db is empty.
+The mode \fB\-T\fR returns 2 if both hosts are in sync.
 .TP
-Notice:  The modes -H, -L, -M and -S return 2 if the requested db is empty. The mode -T returns 2 if both hosts are in sync.
-.TP
-.B -i
+\fB\-i\fR
 Run in inetd server mode.
 .TP
-.B -ii
-Run in stand-alone server mode.
+\fB\-ii\fR
+Run in stand\-alone server mode.
 .TP
-.B -iii
-Run in stand-alone server mode (one connect only).
+\fB\-iii\fR
+Run in stand\-alone server mode (one connect only).
 .TP
-.B -R
+\fB\-R\fR
 Remove files from database which do not match config entries.
+.SS "Modifiers:"
 .TP
-Modifiers:
-.TP
-.B -r
+\fB\-r\fR
 Recursive operation over subdirectories
 .TP
-.B -d
-Dry-run on all remote update operations
+\fB\-d\fR
+Dry\-run on all remote update operations
 .TP
-.B -B
+\fB\-B\fR
 Do not block everything into big SQL transactions. This
 slows down csync2 but allows multiple csync2 processes to
 access the database at the same time. Use e.g. when slow
 lines are used or huge files are transferred.
 .TP
-.B -A
+\fB\-A\fR
 Open database in asynchronous mode. This will cause data
 corruption if the operating system crashes or the computer
 loses power.
 .TP
-.B -I
-Init-run. Use with care and read the documentation first!
+\fB\-I\fR
+Init\-run. Use with care and read the documentation first!
 You usually do not need this option unless you are
 initializing groups with really large file lists.
 .TP
-.B -X
-Also add removals to dirty db when doing a -TI run.
+\fB\-X\fR
+Also add removals to dirty db when doing a \fB\-TI\fR run.
 .TP
-.B -U
-Don't mark all other peers as dirty when doing a -TI run.
+\fB\-U\fR
+Don't mark all other peers as dirty when doing a \fB\-TI\fR run.
+.HP
+\fB\-G\fR Group1,Group2,Group3,...
+.IP
+Only use this groups from config\-file.
+.HP
+\fB\-P\fR peer1,peer1,...
+.IP
+Only update these peers (still mark all as dirty).
+Only show files for these peers in \fB\-o\fR (compare) mode.
 .TP
-.B -G Group1,Group2,Group3,...
-Only use this groups from config-file.
-.TP
-.B -P peer1,peer1,...
-Only update this peers (still mark all as dirty).
-.TP
-.B -F
+\fB\-F\fR
 Add new entries to dirty database with force flag set.
 .TP
-.B -t
+\fB\-t\fR
 Print timestamps to debug output (e.g. for profiling).
-.TP
-.B -s filename
+.HP
+\fB\-s\fR filename
+.IP
 Print timestamps also to this file.
 .TP
-.B -W fd
-Write a list of directories in which relevant file can be
-found to the specified file descriptor (when doing a -c run).
-The directory names in this output are zero-terminated.
-.TP
-Creating key file:
+\fB\-W\fR fd
+Write a list of directories in which relevant files can be
+found to the specified file descriptor (when doing a \fB\-c\fR run).
+The directory names in this output are zero\-terminated.
+.SS "Database switches:"
+.HP
+\fB\-D\fR database\-dir
+.IP
+Use sqlite database in database dir (default: /var/lib/csync2)
+.HP
+\fB\-a\fR mysql\-url
+.IP
+Use mysql database in URL:
+mysql://[<user>:<password>@]<hostname>/<database>
+.SS "Creating key file:"
+.IP
 .B csync2 -k filename
+.SS "Note:"
+Csync2 will refuse to do anything when a /etc/csync2.lock file is found.
+.SH "SEE ALSO"
+.PD 0
 .TP
-Warning: Csync2 will refuse to do anything when a /etc/csync2.lock file is found.
-.SH SEE ALSO
-.BR sqlite (1).
-.SH AUTHOR
-csync2 was written by Clifford Wolf <clifford@clifford.at>.
+http://oss.linbit.com/csync2/paper.pdf
+.TP
+http://git.linbit.com/csync2.git/?a=blob;f=AUTHORS
+.PD
 .PP
-This manual page was written by Michael Prokop <mika@grml.org>,
-for the Debian project (but may be used by others). It is now
-further maintained by Clifford Wolf.
+This manual page is a hand-edited help2man processed csync2 help.
