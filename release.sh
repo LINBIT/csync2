@@ -1,8 +1,8 @@
 #!/bin/bash
 #
 # csync2 - cluster synchronization tool, 2nd generation
-# LINBIT Information Technologies GmbH <http://www.linbit.com>
-# Copyright (C) 2004, 2005  Clifford Wolf <clifford@clifford.at>
+# Copyright (C) 2004 - 2013 LINBIT Information Technologies GmbH
+# http://www.linbit.com; see also AUTHORS
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,54 +16,53 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 #
 #
-# Internal script for tagging a release in subversion and creating
-# the source tar file.
+# Internal script for tagging a release
+# and creating the source tar file.
 
 PACKAGE=csync2
-URL=http://svn.linbit.com/csync2
+URL=http://git.linbit.com/csync2.git
 
 case "$1" in
   -*)
 	echo "Usage: $0 newversion"
 	;;
   '')
-	svn ls $URL/tags | tr -d / | perl -pe '$x=$_; $x=~s/\n/\t/; print $x;
-			s/(\d+)/sprintf"%04d",$1/eg;' | sort -k2 | cut -f1
+	git ls-remote -t $URL
 	;;
   *)
-	VERSION=$1
+	VERSION=${1%%-*}
+	RELEASE=${1#*-}
+	[[ $RELEASE = $VERSION ]] && RELEASE=1
 	set -ex
 
-	date "+csync2 ($VERSION-1) unstable; urgency=low%n%n`
-		`  * New Upstream Version.%n%n -- Clifford Wolf `
-		`<clifford.wolf@linbit.com>  %a, %d %b %Y `
+	which pdflatex
+
+	LANG=C LC_ALL=C date "+csync2 ($VERSION-$RELEASE) unstable; urgency=low%n%n`
+		`  * New Upstream Version.%n%n -- Lars Ellenberg `
+		`<lars+csync2@linbit.com>  %a, %d %b %Y `
 		`%H:%M:%S %z%n" > debian/changelog.new
 	cat debian/changelog >> debian/changelog.new
 	mv debian/changelog.new debian/changelog
-	svn commit -m "Added version $VERSION to debian changelog." \
-			debian/changelog
 
-	svn cp -m "Tagged version $VERSION" \
-			$URL/trunk $URL/tags/$PACKAGE-$VERSION
-	svn co $URL/tags/$PACKAGE-$VERSION ../$PACKAGE-$VERSION
+	perl -pi -e "s/^AC_INIT.*/AC_INIT(csync2, $VERSION-$RELEASE, csync2\@lists.linbit.com)/" \
+		configure.ac
+	perl -pi -e "s/^Version:.*/Version: $VERSION/;s/^Release:.*/Release: $RELEASE/" csync2.spec
 
-	cd ../$PACKAGE-$VERSION
-	svn rm release.sh copycheck.sh
-	perl -pi -e "s/SNAPSHOT/$VERSION/g" configure.ac
-	perl -pi -e "s/SNAPSHOT/$VERSION/g" csync2.spec
-	svn commit -m "Fixed version info in tag $VERSION"
+	# # generate an uptodate copy of the paper
+	# git commit -m "Preparing version $VERSION" \
+	# 		debian/changelog \
+	# 		configure.ac \
+	# 		csync2.spec
 
-	sleep 2
-	wget -O paper.pdf http://www.clifford.at/papers/2005/csync2/paper.pdf
-	./autogen.sh; rm -rf autom4te.cache debian/ $( find -name .svn )
+	# git tag -a -m "$PACKAGE-$VERSION" $PACKAGE-$VERSION
 
-	cd ..
-	tar cvzf $PACKAGE-$VERSION.tar.gz \
-		--owner=0 --group=0 $PACKAGE-$VERSION
-	rm -rf $PACKAGE-$VERSION
+	# include paper.pdf in tarball
+	# tar cvzf $PACKAGE-$VERSION.tar.gz \
+	# 	--owner=0 --group=0 $PACKAGE-$VERSION
+	# rm -rf $PACKAGE-$VERSION
 	;;
 esac
 
