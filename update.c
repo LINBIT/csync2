@@ -33,22 +33,28 @@
 
 static int connection_closed_error = 1;
 
-int read_conn_status(const char *file, const char *host)
+enum connection_response read_conn_status(const char *file, const char *host)
 {
 	char line[4096];
+	enum connection_response conn_status;
+
 	if ( conn_gets(line, 4096) ) {
-		if ( !strncmp(line, "OK (", 4) ) return 0;
+		conn_status = conn_response_to_enum(line);
+
+		if (!is_ok_response(conn_status))
+			csync_error_count++;
 	} else {
+		csync_error_count++;
 		connection_closed_error = 1;
-		strcpy(line, "Connection closed.\n");
+		sprintf(line, "%s\n", conn_response(CR_ERR_CONN_CLOSED));
+		conn_status = CR_ERR_CONN_CLOSED;
 	}
 	if ( file )
-		csync_debug(0, "While syncing file %s:\n", file);
+		csync_debug(2, "While syncing file %s:\n", file);
 	else
-	        file = "<no file>";
-	csync_debug(0, "ERROR from peer(%s): %s %s", file, host, line);
-	csync_error_count++;
-	return !strcmp(line, "File is also marked dirty here!") ? 1 : 2;
+		file = "<no file>";
+	csync_debug(3, "response from peer(%s): %s %s", file, host, line);
+	return conn_status;
 }
 
 int connect_to_host(const char *peername)
@@ -74,7 +80,7 @@ int connect_to_host(const char *peername)
 	if ( use_ssl ) {
 #if HAVE_LIBGNUTLS
 		conn_printf("SSL\n");
-		if ( read_conn_status(0, peername) ) {
+		if ( read_conn_status(0, peername) != CR_OK_ACTIVATING_SSL ) {
 			csync_debug(1, "SSL command failed.\n");
 			conn_close();
 			return -1;
@@ -89,7 +95,7 @@ int connect_to_host(const char *peername)
 	}
 
 	conn_printf("CONFIG %s\n", url_encode(cfgname));
-	if ( read_conn_status(0, peername) ) {
+	if (!is_ok_response(read_conn_status(NULL, peername))) {
 		csync_debug(1, "Config command failed.\n");
 		conn_close();
 		return -1;
@@ -97,7 +103,7 @@ int connect_to_host(const char *peername)
 
 	if (active_grouplist) {
 		conn_printf("GROUP %s\n", url_encode(active_grouplist));
-		if ( read_conn_status(0, peername) ) {
+		if (!is_ok_response(read_conn_status(NULL, peername))) {
 			csync_debug(1, "Group command failed.\n");
 			conn_close();
 			return -1;
@@ -147,7 +153,8 @@ static int get_master_slave_status(const char *peername, const char *filename)
 void csync_update_file_del(const char *peername,
 		const char *filename, int force, int dry_run)
 {
-	int last_conn_status = 0, auto_resolve_run = 0;
+	enum connection_response last_conn_status;
+	int auto_resolve_run = 0;
 	const char *key = csync_key(peername, filename);
 
 	if ( !key ) {
@@ -164,7 +171,7 @@ auto_resolve_entry_point:
 			return;
 		}
 		conn_printf("FLUSH %s %s\n", url_encode(key), url_encode(filename));
-		if ( read_conn_status(filename, peername) )
+		if (!is_ok_response(read_conn_status(filename, peername)))
 			goto got_error;
 	} else {
 		int i, found_diff = 0;
@@ -174,7 +181,9 @@ auto_resolve_entry_point:
 
 		conn_printf("SIG %s %s\n",
 				url_encode(key), url_encode(filename));
-		if ( read_conn_status(filename, peername) ) goto got_error;
+
+		if (!is_ok_response(read_conn_status(filename, peername)))
+			goto got_error;
 
 		if ( !conn_gets(chk1, 4096) ) goto got_error;
 		for (i=0; chk1[i] && chk1[i] != '\n' && chk2[i]; i++)
@@ -192,7 +201,7 @@ auto_resolve_entry_point:
 			csync_debug(2, "File is different on peer (rsync sig).\n");
 			found_diff=1;
 		}
-		if ( read_conn_status(filename, peername) ) goto got_error;
+		if (!is_ok_response(read_conn_status(filename, peername))) goto got_error;
 
 		if ( !found_diff ) {
 			csync_debug(1, "File is already up to date on peer.\n");
@@ -211,7 +220,10 @@ auto_resolve_entry_point:
 
 	conn_printf("DEL %s %s\n",
 			url_encode(key), url_encode(filename));
-	if ( (last_conn_status=read_conn_status(filename, peername)) )
+	last_conn_status = read_conn_status(filename, peername);
+	/* FIXME be more specific?
+	 * (last_conn_status == CR_ERR_ALSO_DIRTY_HERE) ?? */
+	if (!is_ok_response(last_conn_status))
 		goto maybe_auto_resolve;
 
 skip_action:
@@ -226,8 +238,9 @@ skip_action:
 	return;
 
 maybe_auto_resolve:
-	if (!auto_resolve_run && last_conn_status == 2)
+	if (!auto_resolve_run && (last_conn_status == CR_ERR_ALSO_DIRTY_HERE ) )
 	{
+		csync_debug(0,"auto resolving... response = %d",last_conn_status);
 		if (get_master_slave_status(peername, filename)) {
 			csync_debug(0, "Auto-resolving conflict: Won 'master/slave' test.\n");
 			auto_resolve_run = 1;
@@ -276,7 +289,8 @@ void csync_update_file_mod(const char *peername,
 		const char *filename, int force, int dry_run)
 {
 	struct stat st;
-	int last_conn_status = 0, auto_resolve_run = 0;
+	enum connection_response last_conn_status;
+	int auto_resolve_run = 0;
 	const char *key = csync_key(peername, filename);
 
 	if ( !key ) {
@@ -300,7 +314,7 @@ auto_resolve_entry_point:
 		}
 		conn_printf("FLUSH %s %s\n",
 				url_encode(key), url_encode(filename));
-		if ( read_conn_status(filename, peername) )
+		if (!is_ok_response(read_conn_status(filename, peername)))
 			goto got_error;
 	} else {
 		int i, found_diff = 0;
@@ -310,13 +324,50 @@ auto_resolve_entry_point:
 
 		conn_printf("SIG %s %s\n",
 				url_encode(key), url_encode(filename));
-		if ( read_conn_status(filename, peername) ) goto got_error;
+		last_conn_status = read_conn_status(filename, peername);
+
+		if (last_conn_status == CR_ERR_PARENT_DIR_MISSING) {
+			int filename_length=strlen(filename);
+			char parent_dirname[filename_length];
+			struct stat sb;
+			struct textlist *tl = 0, *t;
+
+			split_dirname_basename(parent_dirname, NULL, filename);
+			csync_debug(2,"missing parent dir : %s\n",parent_dirname);
+
+			/* ASCII '/' (0x2f) and '0' (0x30) happen to be
+			 * adjacent symbols.  That makes everything strictly
+			 * sorting between file/ and file0 the subdir tree. */
+			SQL_BEGIN("Query File Table for missing files on the peer",
+				"SELECT filename FROM file WHERE filename = '%s' UNION ALL "
+				"SELECT filename FROM file WHERE filename > '%s/' and filename < '%s0' "
+				"ORDER BY filename;",
+				url_encode(parent_dirname),
+				url_encode(parent_dirname), url_encode(parent_dirname))
+			{
+				const char *fn = url_decode(SQL_V(0));
+				if ( lstat_strict(prefixsubst(fn), &sb) == 0 && csync_check_pure(fn) ==0 ) {
+					textlist_add(&tl, fn, 0);
+					csync_debug(3,"path %s added to dirty path list",fn);
+				}
+			} SQL_END;
+
+			for (t = tl; t != 0; t = t->next) {
+				csync_mark(t->value, peername, 0);
+				//csync_update_file_mod(peername,t->value,1,0);
+			}
+			textlist_free(tl);
+
+		} else if (!is_ok_response(last_conn_status)) {
+			csync_debug(3,"error from peer");
+			goto got_error;
+		}
 
 		if ( !conn_gets(chk1, 4096) ) goto got_error;
 		chk2 = csync_genchecktxt(&st, filename, 1);
 		for (i=0; chk1[i] && chk1[i] != '\n' && chk2[i]; i++)
 			if ( chk1[i] != chk2[i] ) {
-				csync_debug(2, "File is different on peer (cktxt char #%d).\n", i);
+				csync_debug(2, "File %s is different on peer (cktxt char #%d).\n",filename, i);
 				csync_debug(2, ">>> PEER:  %s>>> LOCAL: %s\n", chk1, chk2);
 				found_diff=1;
 				break;
@@ -329,7 +380,8 @@ auto_resolve_entry_point:
 			csync_debug(2, "File is different on peer (rsync sig).\n");
 			found_diff=1;
 		}
-		if ( read_conn_status(filename, peername) ) goto got_error;
+		if (!is_ok_response(read_conn_status(filename, peername)))
+			goto got_error;
 
 		if ( !found_diff ) {
 			csync_debug(1, "File is already up to date on peer.\n");
@@ -349,37 +401,46 @@ auto_resolve_entry_point:
 	if ( S_ISREG(st.st_mode) ) {
 		conn_printf("PATCH %s %s\n",
 				url_encode(key), url_encode(filename));
-		if ( (last_conn_status = read_conn_status(filename, peername)) )
+		last_conn_status = read_conn_status(filename, peername);
+		/* FIXME be more specific?
+		 * (last_conn_status != CR_OK_SEND_DATA) ??
+		 * (last_conn_status == CR_ERR_ALSO_DIRTY_HERE) ?? */
+		if (!is_ok_response(last_conn_status))
 			goto maybe_auto_resolve;
+
 		if ( csync_rs_delta(filename) ) {
-			read_conn_status(filename, peername);
+			read_conn_status(filename, peername);//why is the response ignored?
 			goto got_error;
 		}
-		if ( read_conn_status(filename, peername) )
+		if (!is_ok_response(read_conn_status(filename, peername)))
 			goto got_error;
 	} else
 	if ( S_ISDIR(st.st_mode) ) {
 		conn_printf("MKDIR %s %s\n",
 				url_encode(key), url_encode(filename));
-		if ( (last_conn_status = read_conn_status(filename, peername)) )
+		last_conn_status = read_conn_status(filename, peername);
+		if (!is_ok_response(last_conn_status))
 			goto maybe_auto_resolve;
 	} else
 	if ( S_ISCHR(st.st_mode) ) {
 		conn_printf("MKCHR %s %s\n",
 				url_encode(key), url_encode(filename));
-		if ( (last_conn_status = read_conn_status(filename, peername)) )
+		last_conn_status = read_conn_status(filename, peername);
+		if (!is_ok_response(last_conn_status))
 			goto maybe_auto_resolve;
 	} else
 	if ( S_ISBLK(st.st_mode) ) {
 		conn_printf("MKBLK %s %s\n",
 				url_encode(key), url_encode(filename));
-		if ( (last_conn_status = read_conn_status(filename, peername)) )
+		last_conn_status = read_conn_status(filename, peername);
+		if (!is_ok_response(last_conn_status))
 			goto maybe_auto_resolve;
 	} else
 	if ( S_ISFIFO(st.st_mode) ) {
 		conn_printf("MKFIFO %s %s\n",
 				url_encode(key), url_encode(filename));
-		if ( (last_conn_status = read_conn_status(filename, peername)) )
+		last_conn_status = read_conn_status(filename, peername);
+		if (!is_ok_response(last_conn_status))
 			goto maybe_auto_resolve;
 	} else
 	if ( S_ISLNK(st.st_mode) ) {
@@ -391,7 +452,8 @@ auto_resolve_entry_point:
 			conn_printf("MKLINK %s %s %s\n",
 					url_encode(key), url_encode(filename),
 					url_encode(target));
-			if ( (last_conn_status = read_conn_status(filename, peername)) )
+			last_conn_status = read_conn_status(filename, peername);
+			if (!is_ok_response(last_conn_status))
 				goto maybe_auto_resolve;
 		} else {
 			csync_debug(1, "File is a symlink but radlink() failed.\n", st.st_mode);
@@ -401,7 +463,8 @@ auto_resolve_entry_point:
 	if ( S_ISSOCK(st.st_mode) ) {
 		conn_printf("MKSOCK %s %s\n",
 				url_encode(key), url_encode(filename));
-		if ( (last_conn_status = read_conn_status(filename, peername)) )
+		last_conn_status = read_conn_status(filename, peername);
+		if (!is_ok_response(last_conn_status))
 			goto maybe_auto_resolve;
 	} else {
 		csync_debug(1, "File type (mode=%o) is not supported.\n", st.st_mode);
@@ -411,13 +474,13 @@ auto_resolve_entry_point:
 	conn_printf("SETOWN %s %s %d %d\n",
 			url_encode(key), url_encode(filename),
 			st.st_uid, st.st_gid);
-	if ( read_conn_status(filename, peername) )
+	if (!is_ok_response(read_conn_status(filename, peername)))
 		goto got_error;
 
 	if ( !S_ISLNK(st.st_mode) ) {
 		conn_printf("SETMOD %s %s %d\n", url_encode(key),
 				url_encode(filename), st.st_mode);
-		if ( read_conn_status(filename, peername) )
+		if (!is_ok_response(read_conn_status(filename, peername)))
 			goto got_error;
 	}
 
@@ -426,7 +489,7 @@ skip_action:
 		conn_printf("SETIME %s %s %Ld\n",
 				url_encode(key), url_encode(filename),
 				(long long)st.st_mtime);
-		if ( read_conn_status(filename, peername) )
+		if (!is_ok_response(read_conn_status(filename, peername)))
 			goto got_error;
 	}
 
@@ -441,7 +504,7 @@ skip_action:
 	return;
 
 maybe_auto_resolve:
-	if (!auto_resolve_run && last_conn_status == 2)
+	if (!auto_resolve_run && (last_conn_status == CR_ERR_ALSO_DIRTY_HERE))
 	{
 		if (get_master_slave_status(peername, filename)) {
 			csync_debug(0, "Auto-resolving conflict: Won 'master/slave' test.\n");
@@ -484,7 +547,8 @@ maybe_auto_resolve:
 					}
 
 					conn_printf("%s %s %s\n", cmd, url_encode(key), url_encode(filename));
-					if ( read_conn_status(filename, peername) ) goto got_error_in_autoresolve;
+					if (!is_ok_response(read_conn_status(filename, peername)))
+						goto got_error_in_autoresolve;
 
 					if ( !conn_gets(buffer, 4096) ) goto got_error_in_autoresolve;
 					remotedata = atol(buffer);
@@ -590,7 +654,7 @@ void csync_update_host(const char *peername,
 		        csync_debug(3, "Dirty item %s %s %d \n", t->value, t->value2, t->intvalue);
 			if ( !current_name || strcmp(current_name, t->value2) ) {
 				conn_printf("HELLO %s\n", url_encode(t->value2));
-				if ( read_conn_status(t->value, peername) )
+				if (!is_ok_response(read_conn_status(t->value, peername)))
 					goto ident_failed_1;
 				current_name = t->value2;
 			}
@@ -606,7 +670,7 @@ ident_failed_1:
 		if ( !current_name || strcmp(current_name, t->value2) ) {
 		        csync_debug(3, "Dirty item %s %s %d ", t->value, t->value2, t->intvalue); 
 			conn_printf("HELLO %s\n", url_encode(t->value2));
-			if ( read_conn_status(t->value, peername) )
+			if (!is_ok_response(read_conn_status(t->value, peername)))
 				goto ident_failed_2;
 			current_name = t->value2;
 		}
@@ -620,7 +684,7 @@ ident_failed_2:;
 	textlist_free(tl);
 
 	conn_printf("BYE\n");
-	read_conn_status(0, peername);
+	read_conn_status(0, peername);//why is response ignored?
 	conn_close();
 }
 
@@ -682,10 +746,12 @@ found_host_check:
 	}
 
 	conn_printf("HELLO %s\n", myname);
-	if ( read_conn_status(0, peername) ) goto finish;
+	if (!is_ok_response(read_conn_status(NULL, peername)))
+		goto finish;
 
 	conn_printf("TYPE %s %s\n", g->key, filename);
-	if ( read_conn_status(0, peername) ) goto finish;
+	if (!is_ok_response(read_conn_status(NULL, peername)))
+		goto finish;
 
 	/* FIXME
 	 * verify type of file first!
@@ -784,7 +850,7 @@ found_host_check:
 	}
 
 	conn_printf("HELLO %s\n", myname);
-	read_conn_status(0, peername);
+	read_conn_status(0, peername); //why is response ignored?
 
 	conn_printf("LIST %s %s", peername, filename ? url_encode(filename) : "-");
 	for (g = csync_group; g; g = g->next) {
@@ -867,7 +933,7 @@ got_remote_eof:
 	if (r_checktxt) free(r_checktxt);
 
 	conn_printf("BYE\n");
-	read_conn_status(0, peername);
+	read_conn_status(0, peername);//why is response ignored?
 	conn_close();
 
 	for (diff_ent=diff_list; diff_ent; diff_ent=diff_ent->next)
