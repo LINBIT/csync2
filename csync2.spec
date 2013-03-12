@@ -75,11 +75,14 @@ fi
 
 %files
 %defattr(-,root,root)
-%doc ChangeLog README NEWS INSTALL TODO AUTHORS
 %{_sbindir}/csync2
 %{_sbindir}/csync2-compare
 %{_var}/lib/csync2
-%{_mandir}/man1/csync2.1.gz
+%doc %{_mandir}/man1/csync2.1.gz
+%doc %{_docdir}/csync2/csync2_paper.pdf
+%doc %{_docdir}/csync2/ChangeLog
+%doc %{_docdir}/csync2/README
+%doc %{_docdir}/csync2/AUTHORS
 %config(noreplace) %{_sysconfdir}/xinetd.d/csync2
 %config(noreplace) %{_sysconfdir}/csync2.cfg
 
