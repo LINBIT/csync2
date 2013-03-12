@@ -52,13 +52,13 @@ static void *dl_handle;
 
 static void db_mysql_dlopen(void)
 {
-	csync_debug(1, "Opening shared library libmysqlclient.so\n");
+	csync_debug(2, "Opening shared library libmysqlclient.so\n");
         dl_handle = dlopen("libmysqlclient.so", RTLD_LAZY);
         if (dl_handle == NULL) {
                 csync_fatal("Could not open libmysqlclient.so: %s\nPlease install Mysql client library (libmysqlclient) or use other database (sqlite, postgres)\n", dlerror());
         }
 
-	csync_debug(1, "Reading symbols from shared library libmysqlclient.so\n");
+	csync_debug(2, "Reading symbols from shared library libmysqlclient.so\n");
 
         LOOKUP_SYMBOL(dl_handle, mysql_init);
         LOOKUP_SYMBOL(dl_handle, mysql_real_connect);

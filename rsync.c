@@ -206,7 +206,7 @@ int mkpath(const char *path, mode_t mode) {
 	}
 
 	strlcpy(temp,path,strlen(path));
-	csync_debug(0,"full path : %s",temp);
+	csync_debug(1,"mkpath full path: %s",temp);
 	for( remaining=strchr(temp+1, '/'); remaining!=NULL; remaining=strchr(remaining+1, '/') ){
 		*remaining='\0';
 		if(mkdir(temp, mode)==-1) { //strchr keeps the parent in temp and child[ren] in remaining
@@ -216,7 +216,7 @@ int mkpath(const char *path, mode_t mode) {
 				return -1;
 			}
 		}
-		csync_debug(0,"parent dir : %s",temp);
+		csync_debug(1,"mkdir parent dir: %s",temp);
 		*remaining='/';
 	}
 	return 0;

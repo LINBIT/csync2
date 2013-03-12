@@ -57,13 +57,13 @@ static void *dl_handle;
 
 static void db_sqlite3_dlopen(void)
 {
-	csync_debug(1, "Opening shared library libsqlite3.so\n");
+	csync_debug(2, "Opening shared library libsqlite3.so\n");
 
         dl_handle = dlopen("libsqlite3.so", RTLD_LAZY);
         if (dl_handle == NULL) {
                 csync_fatal("Could not open libsqlite3.so: %s\nPlease install sqlite3 client library (libsqlite3) or use other database (postgres, mysql)\n", dlerror());
         }
-	csync_debug(1, "Reading symbols from shared library libsqlite3.so\n");
+	csync_debug(2, "Reading symbols from shared library libsqlite3.so\n");
 
         LOOKUP_SYMBOL(dl_handle, sqlite3_open);
         LOOKUP_SYMBOL(dl_handle, sqlite3_close);

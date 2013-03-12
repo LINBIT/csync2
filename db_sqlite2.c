@@ -54,7 +54,7 @@ static void *dl_handle;
 
 static void db_sqlite_dlopen(void)
 {
-	csync_debug(1, "Opening shared library libsqlite.so\n");
+	csync_debug(2, "Opening shared library libsqlite.so\n");
 
         dl_handle = dlopen("libsqlite.so", RTLD_LAZY);
         if (dl_handle == NULL) {
@@ -64,7 +64,7 @@ static void db_sqlite_dlopen(void)
 			csync_fatal("Could not open libsqlite.so: %s\nPlease install sqlite client library (libsqlite) or use other database (postgres, mysql)\n", dlerror());
 		}
         }
-	csync_debug(1, "Opening shared library libsqlite.so\n");
+	csync_debug(2, "Opening shared library libsqlite.so\n");
 
         LOOKUP_SYMBOL(dl_handle, sqlite_open);
         LOOKUP_SYMBOL(dl_handle, sqlite_close);

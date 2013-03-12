@@ -167,7 +167,7 @@ int conn_open(const char *peername)
         }
 
 	if (setsockopt(conn_fd_in, IPPROTO_TCP, TCP_NODELAY, &on, sizeof(on) ) < 0) {
-                csync_debug(1, "Can't set TCP_NODELAY option on TCP socket.\n");
+                csync_debug(2, "Can't set TCP_NODELAY option on TCP socket.\n");
 		close(conn_fd_in); conn_fd_in = -1;
                 return -1;
 	}
@@ -195,7 +195,7 @@ int conn_set(int infd, int outfd)
 	// in csync2.c with more restrictive error handling..
 	// FIXME don't even try in "ssh" mode
 	if ( setsockopt(conn_fd_out, IPPROTO_TCP, TCP_NODELAY, &on, (socklen_t) sizeof(on)) < 0 )
-                csync_debug(1, "Can't set TCP_NODELAY option on TCP socket.\n");
+                csync_debug(2, "Can't set TCP_NODELAY option on TCP socket.\n");
 
 	return 0;
 }
