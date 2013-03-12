@@ -62,6 +62,40 @@ static size_t strlcpy(char *d, const char *s, size_t bufsize)
         return ret;
 }
 
+/* splits filepath at the last '/', if any, like so:
+ *	dirname		basename	filepath
+ *	"/"		""		"/"
+ *	"/"		"foo"		"/foo"
+ * no trailing slash in dirname, unless it is "/".
+ *	"/some/path"	""		"/some/path/"
+ *	"/some/path"	"foo"		"/some/path/foo"
+ *	""		"foo"		"foo"
+ *
+ * caller needs to supply enough room in dirname and basename
+ * to hold the result, or NULL, if not interested.
+ */
+void split_dirname_basename(char *dirname, char* basename, const char *filepath)
+{
+	const char *base = strrchr(filepath, '/');
+	size_t pathlen, dirlen, baselen;
+
+	/* skip over last slash, if any. */
+	base = base ? base + 1 : filepath;
+
+	pathlen = strlen(filepath);
+	baselen = strlen(base);
+	dirlen = pathlen - baselen;
+
+	/* backtrack trailing slash(es) */
+	while (dirlen > 1 && filepath[dirlen-1] == '/')
+		--dirlen;
+
+	if (dirname)
+		strlcpy(dirname, filepath, dirlen + 1);
+	if (basename)
+		strlcpy(basename, base, baselen + 1);
+}
+
 
 /* This has been taken from rsync sources: receiver.c */
 
@@ -159,7 +193,6 @@ static int get_tmpname(char *fnametmp, const char *fname)
  * Stackoverlow.com#http://stackoverflow.com/questions/2336242/recursive-mkdir-system-call-on-unix
  * Returns: 0 on success and -1 on error
  */
-
 int mkpath(const char *path, mode_t mode) {
 	char temp[MAXPATHLEN];
 	char *remaining;
@@ -245,11 +278,6 @@ void csync_send_file(FILE *in)
 
 		size -= chunk;
 	}
-}
-
-void csync_send_error()
-{
-	conn_printf("ERROR\n");
 }
 
 int csync_recv_file(FILE *out)
@@ -455,9 +483,10 @@ int csync_rs_delta(const char *filename)
 	new_file = fopen(prefixsubst(filename), "rb");
 	if ( !new_file ) {
 		int backup_errno = errno;
+		const char *errstr = strerror(errno);
 		csync_debug(0, "I/O Error '%s' while %s in rsync-delta: %s\n",
-				strerror(errno), "opening data file for reading", filename);
-		csync_send_error();
+				errstr, "opening data file for reading", filename);
+		conn_printf("%s\n", errstr);
 		fclose(new_file);
 		errno = backup_errno;
 		return -1;

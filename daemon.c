@@ -37,7 +37,7 @@
 #include <w32api/windows.h>
 #endif
 
-static char *cmd_error;
+static const char *cmd_error;
 
 int csync_setBackupFileStatus(char *filename, int backupDirLength);
 
@@ -65,7 +65,7 @@ int csync_check_dirty(const char *filename, const char *peername, int isflush)
 		url_encode(filename))
 	{
 		rc = 1;
-		cmd_error = "File is also marked dirty here!";
+		cmd_error = conn_response(CR_ERR_ALSO_DIRTY_HERE);
 	} SQL_END;
 	if (rc && peername)
 		csync_mark(filename, peername, 0);
@@ -509,7 +509,7 @@ void csync_daemon_session()
 			if ( !strcasecmp(cmdtab[cmdnr].text, tag[0]) ) break;
 
 		if ( !cmdtab[cmdnr].text ) {
-			cmd_error = "Unkown command!";
+			cmd_error = conn_response(CR_ERR_UNKNOWN_COMMAND);
 			goto abort_cmd;
 		}
 
@@ -533,9 +533,9 @@ void csync_daemon_session()
 			if ( perm ) {
 				if ( perm == 2 ) {
 					csync_mark(tag[2], peer, 0);
-					cmd_error = "Permission denied for slave!";
+					cmd_error = conn_response(CR_ERR_PERM_DENIED_FOR_SLAVE);
 				} else
-					cmd_error = "Permission denied!";
+					cmd_error = conn_response(CR_ERR_PERM_DENIED);
 				goto abort_cmd;
 			}
 		}
@@ -553,17 +553,23 @@ void csync_daemon_session()
 				struct stat st;
 
 				if ( lstat_strict(prefixsubst(tag[2]), &st) != 0 ) {
-					if ( errno == ENOENT )
-						conn_printf("OK (not_found).\n---\noctet-stream 0\n");
-					else
+					if ( errno == ENOENT ) {
+						struct stat sb;
+						char parent_dirname[strlen(tag[2])];
+						split_dirname_basename(parent_dirname, NULL, tag[2]);
+						if ( lstat_strict(prefixsubst(parent_dirname), &sb) != 0 )
+							cmd_error = conn_response(CR_ERR_PARENT_DIR_MISSING);
+						else
+							conn_resp_zero(CR_OK_PATH_NOT_FOUND);
+					} else
 						cmd_error = strerror(errno);
 					break;
 				} else
 					if ( csync_check_pure(tag[2]) ) {
-						conn_printf("OK (not_found).\n---\noctet-stream 0\n");
+						conn_resp_zero(CR_OK_NOT_FOUND);
 						break;
 					}
-				conn_printf("OK (data_follows).\n");
+				conn_resp(CR_OK_DATA_FOLLOWS);
 				conn_printf("%s\n", csync_genchecktxt(&st, tag[2], 1));
 
 				if ( S_ISREG(st.st_mode) )
@@ -586,7 +592,7 @@ void csync_daemon_session()
 					char buffer[512];
 					size_t rc;
 
-					conn_printf("OK (data_follows).\n");
+					conn_resp(CR_OK_DATA_FOLLOWS);
 					while ( (rc=fread(buffer, 1, 512, f)) > 0 )
 						if ( conn_write(buffer, rc) != rc ) {
 							conn_printf("[[ %s ]]", strerror(errno));
@@ -602,7 +608,7 @@ void csync_daemon_session()
 		case A_GETSZ:
 			{
 				struct stat sbuf;
-				conn_printf("OK (data_follows).\n");
+				conn_resp(CR_OK_DATA_FOLLOWS);
 				if (!lstat_strict(prefixsubst(tag[2]), &sbuf))
 					conn_printf("%ld\n", cmdtab[cmdnr].action == A_GETTM ?
 							(long)sbuf.st_mtime : (long)sbuf.st_size);
@@ -622,7 +628,7 @@ void csync_daemon_session()
 			break;
 		case A_PATCH:
 			if (!csync_file_backup(tag[2])) {
-				conn_printf("OK (send_data).\n");
+				conn_resp(CR_OK_SEND_DATA);
 				csync_rs_sig(tag[2]);
 				if (csync_rs_patch(tag[2]))
 					cmd_error = strerror(errno);
@@ -647,7 +653,7 @@ void csync_daemon_session()
 					if ( lstat_strict(prefixsubst(tag[2]), &st) != 0 || !S_ISDIR(st.st_mode)) {
 						csync_debug(1, "Win32 I/O Error %d in mkdir command: %s\n",
 								(int)GetLastError(), winfilename);
-						cmd_error = "Win32 I/O Error on CreateDirectory()";
+						cmd_error = conn_response(CR_ERR_WIN32_EIO_CREATE_DIR);
 					}
 				}
 			}
@@ -727,7 +733,7 @@ void csync_daemon_session()
 				peer = strdup(tag[1]);
 			} else {
 				peer = NULL;
-				cmd_error = "Identification failed!";
+				cmd_error = conn_response(CR_ERR_IDENTIFICATION_FAILED);
 				break;
 			}
 #ifdef HAVE_LIBGNUTLS
@@ -738,14 +744,14 @@ void csync_daemon_session()
 					     !fnmatch(t->pattern_to, peer, 0) )
 						goto conn_without_ssl_ok;
 				}
-				cmd_error = "SSL encrypted connection expected!";
+				cmd_error = conn_response(CR_ERR_SSL_EXPECTED);
 			}
 conn_without_ssl_ok:;
 #endif
 			break;
 		case A_GROUP:
 			if (active_grouplist) {
-				cmd_error = "Group list already set!";
+				cmd_error = conn_response(CR_ERR_GROUP_LIST_ALREADY_SET);
 			} else {
 				const struct csync_group *g;
 				int i, gnamelen;
@@ -773,7 +779,7 @@ found_asactive: ;
 		case A_BYE:
 			for (i=0; i<32; i++)
 				free(tag[i]);
-			conn_printf("OK (cu_later).\n");
+			conn_resp(CR_OK_CU_LATER);
 			return;
 		}
 
@@ -790,7 +796,7 @@ abort_cmd:
 		if ( cmd_error )
 			conn_printf("%s\n", cmd_error);
 		else
-			conn_printf("OK (cmd_finished).\n");
+			conn_resp(CR_OK_CMD_FINISHED);
 
 next_cmd:
 		destroy_tag(tag);

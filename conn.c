@@ -46,6 +46,72 @@ static gnutls_session_t conn_tls_session;
 static gnutls_certificate_credentials_t conn_x509_cred;
 #endif
 
+static const char *__response[] = {
+	[CR_OK_CMD_FINISHED] = "OK (cmd_finished).",
+	[CR_OK_DATA_FOLLOWS] = "OK (data_follows).",
+	[CR_OK_SEND_DATA] = "OK (send_data).",
+	[CR_OK_NOT_FOUND] = "OK (not_found).",
+	[CR_OK_PATH_NOT_FOUND] = "OK (path_not_found).",
+	[CR_OK_CU_LATER] = "OK (cu_later).",
+	[CR_OK_ACTIVATING_SSL] = "OK (activating_ssl).",
+
+	/* CR_ERROR: all sorts of strings; often strerror(errno) */
+
+	/* more specific errors: */
+	[CR_ERR_CONN_CLOSED] = "Connection closed.",
+	[CR_ERR_ALSO_DIRTY_HERE] = "File is also marked dirty here!",
+	[CR_ERR_PARENT_DIR_MISSING] = "Parent dir missing.",
+
+	[CR_ERR_GROUP_LIST_ALREADY_SET] = "Group list already set!",
+	[CR_ERR_IDENTIFICATION_FAILED] = "Identification failed!",
+	[CR_ERR_PERM_DENIED_FOR_SLAVE] = "Permission denied for slave!",
+	[CR_ERR_PERM_DENIED] = "Permission denied!",
+	[CR_ERR_SSL_EXPECTED] = "SSL encrypted connection expected!",
+	[CR_ERR_UNKNOWN_COMMAND] = "Unkown command!",
+	[CR_ERR_WIN32_EIO_CREATE_DIR] = "Win32 I/O Error on CreateDirectory()",
+};
+
+static const int __response_size = sizeof(__response)/sizeof(__response[0]);
+
+const char *conn_response(unsigned i)
+{
+	if (i < __response_size
+	&& __response[i]
+	&& __response[i][0])
+		return __response[i];
+
+	csync_fatal("BUG! No such response: %u\n", i);
+	return NULL;
+}
+
+static const unsigned int response_len(unsigned i)
+{
+	static unsigned int __response_len[sizeof(__response)/sizeof(__response[0])];
+	static int initialized;
+	if (!initialized) {
+		unsigned int j;
+		for (j = 0; j < __response_size; j++)
+			__response_len[j] = strlen(__response[j] ?: "");
+		initialized = 1;
+	}
+	return (i < __response_size) ? __response_len[i] : 0;
+}
+
+enum connection_response conn_response_to_enum(const char *response)
+{
+	unsigned int i, len;
+	for (i = 0; i < __response_size; i++) {
+		len = response_len(i);
+		if (len && !strncmp(__response[i], response, len))
+			return i;
+	}
+	/* may be a new OK code? */
+	if (!strncmp(response, "OK (", 4))
+		return CR_OK;
+	else
+		return CR_ERROR;
+}
+
 
 /* getaddrinfo stuff mostly copied from its manpage */
 int conn_connect(const char *peername)

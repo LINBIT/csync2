@@ -575,7 +575,7 @@ int main(int argc, char ** argv)
 
 		if (cmd && !strcasecmp(cmd, "ssl")) {
 #ifdef HAVE_LIBGNUTLS
-			conn_printf("OK (activating_ssl).\n");
+			conn_resp(CR_OK_ACTIVATING_SSL);
 			conn_activate_ssl(1);
 
 			if ( !conn_gets(line, 4096) ) return 0;
@@ -727,7 +727,7 @@ found_a_group:;
 			break;
 
 		case MODE_INETD:
-			conn_printf("OK (cmd_finished).\n");
+			conn_resp(CR_OK_CMD_FINISHED);
 			csync_daemon_session();
 			break;
 
