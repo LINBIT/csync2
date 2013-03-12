@@ -21,8 +21,7 @@ endif
 configure: configure-stamp
 configure-stamp:
 	dh_testdir
-	#./configure CFLAGS="$(CFLAGS)" --disable-sqlite3
-	./configure CFLAGS="$(CFLAGS)"
+	./configure CFLAGS="$(CFLAGS)" --prefix=/usr --localstatedir=/var --sysconfdir=/etc
 	touch configure-stamp
 
 build: build-stamp
