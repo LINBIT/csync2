@@ -27,7 +27,7 @@ csync2_SOURCES = action.c cfgfile_parser.y cfgfile_scanner.l check.c	\
 		 db_api.c db_sqlite.c db_sqlite2.c db_mysql.c db_postgres.c \
 		 csync2.h db_api.h db_mysql.h db_postgres.h db_sqlite.h db_sqlite2.h dl.h \
 		 csync2-compare \
-		 csync2.1
+		 csync2.1 doc/csync2_paper.tex
 
 EXTRA_DIST = csync2.cfg csync2.xinetd
 
@@ -38,6 +38,26 @@ CLEANFILES = cfgfile_parser.c cfgfile_parser.h cfgfile_scanner.c	\
              private_librsync private_libsqlite config.log		
 
 DISTCLEANFILES = config.status config.h .deps/*.Po stamp-h1 Makefile Makefile.in configure
+
+if HAVE_PDFLATEX
+
+MANNAME = doc/csync2_paper
+MANTEXSRC = $(MANNAME).tex
+MANAUX = $(MANNAME).aux
+MANPDF = $(MANNAME).pdf
+
+docfiles = $(MANPDF)
+doc_DATA = $(docfiles)
+dist_doc_DATA = $(docfiles)
+
+CLEANFILES += $(MANPDF) $(MANAUX) $(MANNAME).log $(MANNAME).idx $(MANNAME).out $(MANNAME).toc
+
+$(MANPDF): $(MANTEXSRC)
+	$(PDFLATEX) -interaction=batchmode -output-directory doc $< >/dev/null
+	$(PDFLATEX) -interaction=batchmode -output-directory doc $< >/dev/null
+
+endif
+
 
 dist-clean-local:
 	rm -rf autom4te.cache

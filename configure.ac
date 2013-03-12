@@ -17,7 +17,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 # Process this file with autoconf to produce a configure script.
-AC_INIT(csync2, 2.0rc1, csync2@lists.linbit.com)
+AC_INIT(csync2, 2.0rc2, csync2@lists.linbit.com)
 AM_INIT_AUTOMAKE
 
 AC_CONFIG_SRCDIR(csync2.c)
@@ -32,6 +32,15 @@ AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_YACC
 AM_PROG_LEX
+
+# Check for presence of pdfLaTeX
+AC_CHECK_PROG(PDFLATEX, pdflatex, pdflatex)
+if test -z "$PDFLATEX"; then
+  AC_MSG_WARN([Unable to create PDF version of the user manual.])
+fi
+
+AM_CONDITIONAL([HAVE_PDFLATEX], test -n "$PDFLATEX")
+
 
 # check for large file support
 AC_SYS_LARGEFILE
