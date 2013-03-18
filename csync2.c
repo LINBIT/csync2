@@ -344,6 +344,12 @@ error:
 	return 1;
 }
 
+void csync_openlog(void)
+{
+	csync_syslog = 1;
+	openlog("csync2", LOG_ODELAY | LOG_PID, LOG_LOCAL0);
+}
+
 int main(int argc, char ** argv)
 {
 	struct textlist *tl = 0, *t;
@@ -430,8 +436,7 @@ int main(int argc, char ** argv)
 				csync_debug_level++;
 				break;
 			case 'l':
-				csync_syslog = 1;
-				openlog("csync2", LOG_ODELAY, LOG_LOCAL0);
+				csync_openlog();
 				break;
 			case 'h':
 				if ( mode != MODE_NONE ) help(argv[0]);
@@ -536,10 +541,8 @@ int main(int argc, char ** argv)
 
 	/* Some inetd connect stderr to stdout.  The debug level messages on
 	 * stderr would confuse the csync2 protocol. Log to syslog instead. */
-	if ( mode == MODE_INETD && csync_debug_level && !csync_syslog ) {
-		csync_syslog = 1;
-		openlog("csync2", LOG_ODELAY, LOG_LOCAL0);
-	}
+	if ( mode == MODE_INETD && csync_debug_level && !csync_syslog )
+		csync_openlog();
 
 	if ( *myhostname == 0 ) {
 		gethostname(myhostname, 256);
