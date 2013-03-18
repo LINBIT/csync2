@@ -326,9 +326,7 @@ static int csync_server_loop(int single_connect)
 					hbuf, sizeof(hbuf), sbuf, sizeof(sbuf),
 					NI_NUMERICHOST | NI_NUMERICSERV) != 0)
 				goto error;
-			fprintf(stderr, "<%d> New connection from %s:%s.\n",
-				csync_server_child_pid, hbuf, sbuf);
-			fflush(stderr);
+			csync_debug(1, "New connection from %s:%s.\n", hbuf, sbuf);
 
 			dup2(conn, 0);
 			dup2(conn, 1);
@@ -340,7 +338,7 @@ static int csync_server_loop(int single_connect)
 	}
 
 error:
-	fprintf(stderr, "Server error: %s\n", strerror(errno));
+	csync_debug(0, "Server error: %s\n", strerror(errno));
 	return 1;
 }
 
@@ -886,11 +884,7 @@ found_a_group:;
 	csync_run_commands();
 	csync_db_close();
 
-	if ( csync_server_child_pid ) {
-		fprintf(stderr, "<%d> Connection closed.\n",
-				csync_server_child_pid);
-		fflush(stderr);
-	}
+	csync_debug(1, "Connection closed.\n");
 
 	if ( csync_error_count != 0 || (csync_messages_printed && csync_debug_level) )
 		csync_debug(0, "Finished with %d errors.\n", csync_error_count);
