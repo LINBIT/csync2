@@ -130,15 +130,19 @@ static void add_patt(int patterntype, char *pattern)
 static void set_key(char *keyfilename)
 {
 	FILE *keyfile;
+	char *fname = keyfilename;
 	char line[1024];
 	int i;
 
 	if ( csync_group->key )
 		csync_fatal("Config error: a group might only have one key.\n");
 
-	if ( (keyfile = fopen(keyfilename, "r")) == 0 ||
+	if (fname && fname[0] && fname[0] != '/')
+		ASPRINTF(&fname, "%s/%s", systemdir, keyfilename);
+
+	if ( (keyfile = fopen(fname, "r")) == 0 ||
 	     fgets(line, 1024, keyfile) == 0 )
-		csync_fatal("Config error: Can't read keyfile %s.\n", keyfilename);
+		csync_fatal("Config error: Can't read keyfile %s.\n", fname);
 
 	for (i=0; line[i]; i++) {
 		if (line[i] == '\n') { line[i]=0; break; }
@@ -147,13 +151,15 @@ static void set_key(char *keyfilename)
 		     !(line[i] >= '0' && line[i] <= '9') &&
 		     line[i] != '.' && line[i] != '_' )
 			csync_fatal("Unallowed character '%c' in key file %s.\n",
-					line[i], keyfilename);
+					line[i], fname);
 	}
 
 	if ( strlen(line) < 32 )
-		csync_fatal("Config error: Key in file %s is too short.\n", keyfilename);
+		csync_fatal("Config error: Key in file %s is too short.\n", fname);
 
 	csync_group->key = strdup(line);
+	if (fname != keyfilename)
+		free(fname);
 	free(keyfilename);
 	fclose(keyfile);
 }
