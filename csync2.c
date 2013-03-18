@@ -54,6 +54,7 @@ static char *dbdir = DBDIR;
 char *cfgname = "";
 
 char myhostname[256] = "";
+int bind_to_myhostname = 0;
 char *csync_port = "30865";
 char *active_grouplist = 0;
 char *active_peerlist = 0;
@@ -240,13 +241,13 @@ static int csync_server_bind(void)
 	struct addrinfo hints;
 	struct addrinfo *result, *rp;
 	int save_errno;
-	int sfd, s, on = 1;
+	int sfd = -1, s, on = 1;
 	memset(&hints, 0, sizeof(struct addrinfo));
 	hints.ai_family = AF_UNSPEC;	/* Allow IPv4 or IPv6 */
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE;
 
-	s = getaddrinfo(NULL, csync_port, &hints, &result);
+	s = getaddrinfo(bind_to_myhostname ? myhostname : NULL, csync_port, &hints, &result);
 	if (s != 0) {
 		csync_debug(1, "Cannot prepare local socket, getaddrinfo: %s\n", gai_strerror(s));
 		return -1;
@@ -273,12 +274,23 @@ static int csync_server_bind(void)
 			break;	/* Success */
 
 		close(sfd);
+		sfd = -1;
+	}
+
+	if (sfd != -1) {
+		char hbuf[NI_MAXHOST], sbuf[NI_MAXSERV];
+		if (getnameinfo(rp->ai_addr, rp->ai_addrlen,
+				hbuf, sizeof(hbuf), sbuf, sizeof(sbuf),
+				NI_NUMERICHOST | NI_NUMERICSERV) == 0)
+			csync_debug(1, "Listening on %s:%s as %s.\n",
+				hbuf, sbuf, myhostname);
+		else
+			/* WTF, is failure even possible here? */
+			csync_debug(1, "Listening on <?>:%s as %s.\n",
+				csync_port, myhostname);
 	}
 
 	freeaddrinfo(result);	/* No longer needed */
-
-	if (rp == NULL)	/* No address succeeded */
-		return -1;
 
 	return sfd;
 
@@ -429,6 +441,7 @@ int main(int argc, char ** argv)
 				break;
 			case 'N':
 				snprintf(myhostname, 256, "%s", optarg);
+				++bind_to_myhostname;
 				break;
 			case 'v':
 				csync_debug_level++;
