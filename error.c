@@ -92,18 +92,42 @@ void csync_printtime_prefix()
 	fprintf(csync_debug_out, "[%s] ", ftbuffer);
 }
 
+static int csync_log_level_to_sys_log_level(int lv)
+{
+	return	(lv  < 0) ? LOG_ERR :
+		(lv == 0) ? LOG_WARNING :
+		(lv == 1) ? LOG_INFO :
+		/* lv >= 2 */ LOG_DEBUG;
+}
+
+void csync_vdebug(int lv, const char *fmt, va_list ap)
+{
+	if (csync_debug_level < lv)
+		return;
+
+	if (!csync_syslog) {
+		csync_printtime();
+
+		if (csync_timestamps)
+			csync_printtime_prefix();
+
+		if (csync_server_child_pid)
+			fprintf(csync_debug_out, "<%d> ",
+				csync_server_child_pid);
+
+		vfprintf(csync_debug_out, fmt, ap);
+	} else {
+		vsyslog(csync_log_level_to_sys_log_level(lv), fmt, ap);
+	}
+	csync_messages_printed++;
+}
+
 void csync_fatal(const char *fmt, ...)
 {
 	va_list ap;
 
-	if (csync_timestamps)
-		csync_printtime_prefix();
-
-	if (csync_server_child_pid)
-		fprintf(csync_debug_out, "<%d> ", csync_server_child_pid);
-
 	va_start(ap, fmt);
-	vfprintf(csync_debug_out, fmt, ap);
+	csync_vdebug(0, fmt, ap);
 	va_end(ap);
 
 	csync_db_close();
@@ -118,29 +142,7 @@ void csync_debug(int lv, const char *fmt, ...)
 {
 	va_list ap;
 
-	if ( csync_debug_level < lv ) return;
-
- 	if (!csync_syslog) {
-	  csync_printtime();
-	
-	  if (csync_timestamps)
-	    csync_printtime_prefix();
-
-	  if ( csync_server_child_pid )
-	    fprintf(csync_debug_out, "<%d> ", csync_server_child_pid);
-
-	  va_start(ap, fmt);
-	  vfprintf(csync_debug_out, fmt, ap);
-	  va_end(ap);
-	  // Good / bad with extra line
-	  fprintf(csync_debug_out,"\n");
-	}
-	else {
-	  va_start(ap,fmt);
-	  vsyslog(LOG_DEBUG, fmt, ap);
-	  va_end(ap);
-	}
-	csync_messages_printed++;
+	va_start(ap, fmt);
+	csync_vdebug(lv, fmt, ap);
+	va_end(ap);
 }
-
-/* Test 3 */
