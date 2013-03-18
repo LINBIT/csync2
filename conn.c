@@ -206,16 +206,18 @@ int conn_set(int infd, int outfd)
 static void ssl_log(int level, const char* msg)
 { csync_debug(level, "%s", msg); }
 
-static const char *ssl_keyfile = ETCDIR "/csync2_ssl_key.pem";
-static const char *ssl_certfile = ETCDIR "/csync2_ssl_cert.pem";
-
 int conn_activate_ssl(int server_role)
 {
 	gnutls_alert_description_t alrt;
+	char *ssl_keyfile;
+	char *ssl_certfile;
 	int err;
 
 	if (csync_conn_usessl)
 		return 0;
+
+	ASPRINTF(&ssl_keyfile, "%s/csync2_ssl_key.pem", systemdir);
+	ASPRINTF(&ssl_certfile, "%s/csync_ssl_cert.pem", systemdir);
 
 	gnutls_global_init();
 	gnutls_global_set_log_function(ssl_log);

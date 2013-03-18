@@ -52,6 +52,8 @@ int db_type = DB_SQLITE3;
 static char *file_config = 0;
 static char *dbdir = DBDIR;
 char *cfgname = "";
+char *systemdir = NULL;	/* ETCDIR */
+char *lockfile = NULL;	/* ETCDIR/csync2.lock */
 
 char myhostname[256] = "";
 int bind_to_myhostname = 0;
@@ -202,7 +204,14 @@ PACKAGE_STRING " - cluster synchronization tool, 2nd generation\n"
 "Creating key file:\n"
 "	%s -k filename\n"
 "\n"
-"Csync2 will refuse to do anything when a " ETCDIR "/csync2.lock file is found.\n"
+"Environment variables:\n"
+"\n"
+"	CSYNC2_SYSTEM_DIR\n"
+"		Directory containing csync2.cfg and other csync2 system files.\n"
+"		Defaults to " ETCDIR ".\n"
+"\n"
+"Csync2 will refuse to do anything if this file is found:\n"
+"$CSYNC2_SYSTEM_DIR/csync2.lock\n"
 "\n",
 		cmd, cmd);
 	exit(1);
@@ -379,8 +388,13 @@ int main(int argc, char ** argv)
 		return create_keyfile(argv[2]);
 	}
 
-	if (!access(ETCDIR "/csync2.lock", F_OK)) {
-		printf("Found " ETCDIR "/csync2.lock.\n");
+	systemdir = getenv("CSYNC2_SYSTEM_DIR");
+	if (!systemdir)
+		systemdir = ETCDIR;
+
+	ASPRINTF(&lockfile, "%s/csync2.lock", systemdir);
+	if (!access(lockfile , F_OK)) {
+		printf("Found %s\n", lockfile);
 		return 1;
 	}
 
@@ -609,7 +623,7 @@ int main(int argc, char ** argv)
 			cfgname = strdup(url_decode(para));
 	}
 	if ( !*cfgname ) {
-	     ASPRINTF(&file_config, ETCDIR "/csync2.cfg");
+	     ASPRINTF(&file_config, "%s/csync2.cfg", systemdir);
 	} else {
 		int i;
 
@@ -621,7 +635,7 @@ int main(int argc, char ** argv)
 				return mode != MODE_INETD;
 			}
 
-		ASPRINTF(&file_config, ETCDIR "/csync2_%s.cfg", cfgname);
+		ASPRINTF(&file_config, "%s/csync2_%s.cfg", systemdir, cfgname);
 	}
 
 	csync_debug(2, "Config-File:   %s\n", file_config);

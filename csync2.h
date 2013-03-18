@@ -441,6 +441,7 @@ extern char *csync_port;
 extern char *active_grouplist;
 extern char *active_peerlist;
 
+extern char *systemdir;
 extern char *cfgname;
 
 extern int csync_ignore_uid;
