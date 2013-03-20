@@ -850,7 +850,12 @@ found_host_check:
 	}
 
 	conn_printf("HELLO %s\n", myname);
-	read_conn_status(0, peername); //why is response ignored?
+	if (!is_ok_response(read_conn_status(0, peername))) {
+		csync_debug(0, "ERROR: remote host %s did not accept my identification.\n", peername);
+		csync_error_count++;
+		conn_close();
+		return 0;
+	}
 
 	conn_printf("LIST %s %s", peername, filename ? url_encode(filename) : "-");
 	for (g = csync_group; g; g = g->next) {
