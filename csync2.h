@@ -437,6 +437,7 @@ extern int csync_timestamps;
 extern int csync_new_force;
 
 extern char myhostname[];
+extern int bind_to_myhostname;
 extern char *csync_port;
 extern char *active_grouplist;
 extern char *active_peerlist;

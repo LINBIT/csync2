@@ -112,13 +112,57 @@ enum connection_response conn_response_to_enum(const char *response)
 		return CR_ERROR;
 }
 
+static void csync_client_bind(int sfd, struct addrinfo *peer_ai)
+{
+	struct addrinfo hints;
+	struct addrinfo *result, *rp;
+	int s;
+
+	if (!bind_to_myhostname)
+		return;
+
+	memset(&hints, 0, sizeof(struct addrinfo));
+	hints.ai_family = peer_ai->ai_family;
+	hints.ai_socktype = SOCK_STREAM;
+
+	s = getaddrinfo(bind_to_myhostname ? myhostname : NULL, 0, &hints, &result);
+	if (s != 0) {
+		csync_debug(1, "Cannot prepare local socket for bind, getaddrinfo: %s\n", gai_strerror(s));
+		return;
+	}
+
+	for (rp = result; rp != NULL; rp = rp->ai_next) {
+		if (bind(sfd, rp->ai_addr, rp->ai_addrlen) == 0)
+			break;	/* Success */
+	}
+
+	if (rp != NULL) {
+		char hbuf[NI_MAXHOST], sbuf[NI_MAXSERV];
+		if (getnameinfo(rp->ai_addr, rp->ai_addrlen,
+				hbuf, sizeof(hbuf), sbuf, sizeof(sbuf),
+				NI_NUMERICHOST | NI_NUMERICSERV) == 0)
+			csync_debug(1, "Bound to %s:%s as %s.\n",
+				hbuf, sbuf, myhostname);
+		else
+			/* WTF, is failure even possible here?
+			 * Anyways, bind() did not report an error. */
+			csync_debug(1, "Bound local socket as %s.\n", myhostname);
+	} else
+		/* So bind() failed. Ignore, and try to connect anyways.
+		 * Maybe it still works, maybe identification paranoia of the
+		 * peer will kick us out. */
+		csync_debug(1, "Local socket bind() to %s failed; ignored.\n", myhostname);
+
+	freeaddrinfo(result);	/* No longer needed */
+}
 
 /* getaddrinfo stuff mostly copied from its manpage */
 int conn_connect(const char *peername)
 {
 	struct addrinfo hints;
 	struct addrinfo *result, *rp;
-	int sfd, s;
+	int save_errno = 0;
+	int sfd = -1, s;
 
 	/* Obtain address(es) matching host/port */
 	memset(&hints, 0, sizeof(struct addrinfo));
@@ -143,15 +187,35 @@ int conn_connect(const char *peername)
 		if (sfd == -1)
 			continue;
 
+		/* If called with -N somehostname, try to bind to that name.
+		 * If that fails, ignore, and try the connect anyways. */
+		csync_client_bind(sfd, rp);
+
 		if (connect(sfd, rp->ai_addr, rp->ai_addrlen) != -1)
 			break;	/* Success */
+		save_errno = errno;
 
 		close(sfd);
+		sfd = -1;
 	}
+
+	if (sfd != -1) {
+		char hbuf[NI_MAXHOST], sbuf[NI_MAXSERV];
+		if (getnameinfo(rp->ai_addr, rp->ai_addrlen,
+				hbuf, sizeof(hbuf), sbuf, sizeof(sbuf),
+				NI_NUMERICHOST | NI_NUMERICSERV) == 0)
+			csync_debug(1, "Connect to %s:%s (%s).\n",
+				hbuf, sbuf, peername);
+		else
+			/* WTF, is failure even possible here? */
+			csync_debug(1, "Connect to <?>:%s (%s).\n",
+				csync_port, peername);
+	}
+
 	freeaddrinfo(result);	/* No longer needed */
 
-	if (rp == NULL)	/* No address succeeded */
-		return -1;
+	if (sfd == -1 && save_errno)
+		errno = save_errno;
 
 	return sfd;
 }
@@ -162,7 +226,7 @@ int conn_open(const char *peername)
 
         conn_fd_in = conn_connect(peername);
         if (conn_fd_in < 0) {
-                csync_debug(1, "Can't create socket.\n");
+                csync_debug(1, "Can't create socket: %s\n", strerror(errno));
                 return -1;
         }
 
