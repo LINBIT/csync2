@@ -467,6 +467,8 @@ void conn_debug(const char *name, const char*buf, size_t count)
 
 	if ( csync_debug_level < 3 ) return;
 
+	if (csync_server_child_pid)
+		fprintf(csync_debug_out, "<%d> ", csync_server_child_pid);
 	fprintf(csync_debug_out, "%s> ", name);
 	for (i=0; i<count; i++) {
 		switch (buf[i]) {
