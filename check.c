@@ -267,6 +267,7 @@ int csync_check_mod(const char *file, int recursive, int ignnoent, int init_run)
 			if (!strcmp(file, p->path)) {
 				char new_file[strlen(p->name) + 3];
 				sprintf(new_file, "%%%s%%", p->name);
+				csync_debug(2, "Prefix matched: %s <- %s.\n", new_file, file);
 				csync_check_mod(new_file, recursive, ignnoent, init_run);
 				continue;
 			}
