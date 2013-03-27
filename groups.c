@@ -126,6 +126,11 @@ void csync_check_usefullness(const char *file, int recursive)
 				int p_len = strlen(p->path);
 				int f_len = strlen(file);
 
+				/* p->path is some subtree of file */
+				if (p_len > f_len && !strncmp(p->path, file, f_len) && p->path[f_len] == '/')
+					return;
+
+				/* file is somewhere below p->path */
 				if (p_len <= f_len && !strncmp(p->path, file, p_len) &&
 						(file[p_len] == '/' || !file[p_len])) {
 					char new_file[strlen(p->name) + strlen(file+p_len) + 10];
