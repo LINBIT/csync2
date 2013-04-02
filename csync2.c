@@ -805,12 +805,12 @@ found_a_group:;
 					else
 						ASPRINTF(&where_rec, "or (filename > '%s/' "
 							"and filename < '%s0')",
-							url_encode(realname), url_encode(realname));
+							url_encode(pfname), url_encode(pfname));
 				}
 
 				SQL("Mark file as to be forced",
 					"UPDATE dirty SET forced = 1 WHERE filename = '%s' %s",
-					url_encode(realname), where_rec);
+					url_encode(pfname), where_rec);
 
 				if ( recursive )
 					free(where_rec);
