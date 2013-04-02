@@ -461,32 +461,64 @@ int conn_raw_read(void *buf, size_t count)
 	return 0;
 }
 
+struct conn_debug_buf {
+	char *pos;
+	size_t rlen;
+};
+
+static void buf_printf(struct conn_debug_buf *b, const char *fmt, ...)
+{
+	va_list ap;
+	int c;
+
+	if (b->rlen <= 0)
+		return;
+
+	va_start(ap, fmt);
+	c = vsnprintf(b->pos, b->rlen, fmt, ap);
+	va_end(ap);
+
+	if (c >= b->rlen) {
+		b->pos[b->rlen - 1] = '\0';
+		c = b->rlen;
+	}
+	if (c >= 0) {
+		b->rlen -= c;
+		b->pos += c;
+	}
+}
+
 void conn_debug(const char *name, const char*buf, size_t count)
 {
+	char buffer[1024];
+	struct conn_debug_buf b = {
+		.pos = buffer,
+		.rlen = sizeof(buffer)
+	};
 	int i;
 
 	if ( csync_debug_level < 3 ) return;
 
 	if (csync_server_child_pid)
-		fprintf(csync_debug_out, "<%d> ", csync_server_child_pid);
-	fprintf(csync_debug_out, "%s> ", name);
+		buf_printf(&b, "<%d> ", csync_server_child_pid);
+	buf_printf(&b, "%s> ", name);
 	for (i=0; i<count; i++) {
 		switch (buf[i]) {
 			case '\n':
-				fprintf(csync_debug_out, "\\n");
+				buf_printf(&b, "\\n");
 				break;
 			case '\r':
-				fprintf(csync_debug_out, "\\r");
+				buf_printf(&b, "\\r");
 				break;
 			default:
 				if (buf[i] < 32 || buf[i] >= 127)
-					fprintf(csync_debug_out, "\\%03o", buf[i]);
+					buf_printf(&b, "\\%03o", buf[i]);
 				else
-					fprintf(csync_debug_out, "%c", buf[i]);
+					buf_printf(&b, "%c", buf[i]);
 				break;
 		}
 	}
-	fprintf(csync_debug_out, "\n");
+	fprintf(csync_debug_out, "%s\n", buffer);
 }
 
 int conn_read(void *buf, size_t count)
