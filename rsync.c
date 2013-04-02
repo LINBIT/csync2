@@ -252,6 +252,13 @@ static FILE *open_temp_file(char *fnametmp, const char *fname)
 	return f;
 }
 
+/* FIXME ftell? long? seriously?
+ *
+ * Then again, it is only a sigfile, so the base file size would need to be
+ * positively huge to have the size of the signature overflow a 32 bit LONG_MAX.
+ * In which case csync2 would be the wrong tool anyways.
+ */
+
 void csync_send_file(FILE *in)
 {
 	char buffer[512];
@@ -290,6 +297,7 @@ int csync_recv_file(FILE *out)
 		if (!strcmp(buffer, "ERROR\n")) { errno=EIO; return -1; }
 		csync_fatal("Format-error while receiving data.\n");
 	}
+	if (size < 0) { errno=EIO; return -1; }
 
 	csync_debug(3, "Receiving %ld bytes ..\n", size);
 
@@ -315,18 +323,64 @@ int csync_recv_file(FILE *out)
 	return 0;
 }
 
+/*
+ * Return:
+ * 	0, *sig_file == NULL: base file does not exist, empty sig.
+ * 	0, *sig_file != NULL: sig_file contains the sig
+ *     -1, *sig_file == NULL: "IO Error"
+ *     -1, *sig_file != NULL: librsync error
+ */
+int csync_rs_sigfile(const char *filename, FILE **sig_file_out)
+{
+	char tmpfname[MAXPATHLEN];
+	struct stat st;
+	FILE *basis_file;
+	FILE *sig_file = NULL;
+	int r = -1;
+	rs_result result;
+	rs_stats_t stats;
+
+	csync_debug(3, "Opening basis_file and sig_file for %s\n", filename);
+	*sig_file_out = NULL;
+
+	basis_file = fopen(prefixsubst(filename), "rb");
+	if (!basis_file && errno == ENOENT) {
+		csync_debug(3, "Basis file does not exist.\n");
+		return 0;
+	}
+	if (!basis_file || fstat(fileno(basis_file), &st) || !S_ISREG(st.st_mode))
+		goto out;
+
+	sig_file = open_temp_file(tmpfname, prefixsubst(filename));
+	if (!sig_file)
+		goto out;
+	if (unlink(tmpfname) < 0)
+		goto out;
+
+	csync_debug(3, "Running rs_sig_file() from librsync....\n");
+	result = rs_sig_file(basis_file, sig_file, RS_DEFAULT_BLOCK_LEN, RS_DEFAULT_STRONG_LEN, &stats);
+	*sig_file_out = sig_file;
+	sig_file = NULL;
+	if (result != RS_DONE)
+		csync_debug(0, "Internal error from rsync library!\n");
+	else
+		r = 0;
+out:
+	if (basis_file)
+		fclose(basis_file);
+	if (sig_file)
+		fclose(sig_file);
+	return r;
+}
+
 int csync_rs_check(const char *filename, int isreg)
 {
-	FILE *basis_file = 0, *sig_file = 0;
+	FILE *sig_file = 0;
 	char buffer1[512], buffer2[512];
-	struct stat st;
 	int rc, chunk, found_diff = 0;
 	int backup_errno;
-	rs_stats_t stats;
-	rs_result result;
 	long size;
 	long my_size = 0;
-	char tmpfname[MAXPATHLEN];
 
 	csync_debug(3, "Csync2 / Librsync: csync_rs_check('%s', %d [%s])\n",
 		    filename, isreg, isreg ? "regular file" : "non-regular file");
@@ -334,41 +388,27 @@ int csync_rs_check(const char *filename, int isreg)
 	csync_debug(3, "Reading signature size from peer....\n");
 	if (!conn_gets(buffer1, 100) || sscanf(buffer1, "octet-stream %ld\n", &size) != 1)
 		csync_fatal("Format-error while receiving data.\n");
+
+	if (size < 0) {
+		errno = EIO;
+		goto io_error;
+	}
+
 	csync_debug(3, "Receiving %ld bytes ..\n", size);
 
 	if (isreg) {
-		csync_debug(3, "Opening basis_file and sig_file..\n");
-
-		basis_file = fopen(prefixsubst(filename), "rb");
-		if (!basis_file && errno == ENOENT) {
-			csync_debug(3, "Basis file does not exist.\n");
-			goto local_sig_empty;
-		}
-		if (!basis_file || fstat(fileno(basis_file), &st) || !S_ISREG(st.st_mode))
-			goto io_error;
-
-		sig_file = open_temp_file(tmpfname, prefixsubst(filename));
-		if (!sig_file)
-			goto io_error;
-		if (unlink(tmpfname) < 0)
-			goto io_error;
-
-		csync_debug(3, "Running rs_sig_file() from librsync....\n");
-		result = rs_sig_file(basis_file, sig_file, RS_DEFAULT_BLOCK_LEN, RS_DEFAULT_STRONG_LEN, &stats);
-		if (result != RS_DONE) {
-			csync_debug(0, "Internal error from rsync library!\n");
+		if (csync_rs_sigfile(filename, &sig_file)) {
+			if (!sig_file)
+				goto io_error;
 			goto error;
 		}
-
-		fclose(basis_file);
-		basis_file = 0;
-
-		fflush(sig_file);
-		my_size = ftell(sig_file);
-		rewind(sig_file);
+		if (sig_file) {
+			fflush(sig_file);
+			my_size = ftell(sig_file);
+			rewind(sig_file);
+		}
 	}
 
-local_sig_empty:
 	if (size != my_size) {
 		csync_debug(2, "Signature size differs: local=%d, peer=%d\n", my_size, size);
 		found_diff = 1;
@@ -416,8 +456,6 @@ error:
 		size -= rc;
 	}
 
-	if (basis_file)
-		fclose(basis_file);
 	if (sig_file)
 		fclose(sig_file);
 	errno = backup_errno;
@@ -426,43 +464,37 @@ error:
 
 void csync_rs_sig(const char *filename)
 {
-	FILE *basis_file = 0, *sig_file = 0;
-	rs_stats_t stats;
-	rs_result result;
-	char tmpfname[MAXPATHLEN];
+	FILE *sig_file;
 
 	csync_debug(3, "Csync2 / Librsync: csync_rs_sig('%s')\n", filename);
 
-	csync_debug(3, "Opening basis_file and sig_file..\n");
+	if (csync_rs_sigfile(filename, &sig_file)) {
+		/* error */
+		if (sig_file)
+			csync_fatal("Got an error from librsync, too bad!\n");
+		csync_debug(0, "I/O Error '%s' in rsync-sig: %s\n",
+				strerror(errno), prefixsubst(filename));
 
-	sig_file = open_temp_file(tmpfname, prefixsubst(filename));
-	if ( !sig_file ) goto io_error;
-	if (unlink(tmpfname) < 0) goto io_error;
+		/* FIXME.
+		 * Peer expected some sort of sig,
+		 * we need to communicate an error instead. */
+		conn_printf("octet-stream -1\n");
+		return;
+	}
 
-	basis_file = fopen(prefixsubst(filename), "rb");
-	if ( !basis_file ) basis_file = fopen("/dev/null", "rb");
-
-	csync_debug(3, "Running rs_sig_file() from librsync..\n");
-	result = rs_sig_file(basis_file, sig_file,
-			RS_DEFAULT_BLOCK_LEN, RS_DEFAULT_STRONG_LEN, &stats);
-	if (result != RS_DONE)
-		csync_fatal("Got an error from librsync, too bad!\n");
-
+	/* no error */
 	csync_debug(3, "Sending sig_file to peer..\n");
-	csync_send_file(sig_file);
-
-	csync_debug(3, "Signature has been created successfully.\n");
-	fclose(basis_file);
-	fclose(sig_file);
-
-	return;
-
-io_error:
-	csync_debug(0, "I/O Error '%s' in rsync-sig: %s\n",
-			strerror(errno), prefixsubst(filename));
-
-	if (basis_file) fclose(basis_file);
-	if (sig_file) fclose(sig_file);
+	if (sig_file) {
+		csync_send_file(sig_file);
+		fclose(sig_file);
+	} else {
+		/* This is the signature for an "empty" file
+		 * as returned by rs_sig_file(/dev/null).
+		 * No point in re-calculating it over and over again. */
+		conn_printf("octet-stream 12\n");
+		conn_write("rs\0016\000\000\010\000\000\000\000\010", 12);
+	}
+	csync_debug(3, "Signature has been successfully sent.\n");
 }
 
 
