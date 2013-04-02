@@ -327,37 +327,6 @@ auto_resolve_entry_point:
 				url_encode(key), url_encode(filename));
 		last_conn_status = read_conn_status(filename, peername);
 
-		if (last_conn_status == CR_ERR_PARENT_DIR_MISSING) {
-			int filename_length=strlen(filename);
-			char parent_dirname[filename_length];
-			struct stat sb;
-			struct textlist *tl = 0, *t;
-
-			split_dirname_basename(parent_dirname, NULL, filename);
-			csync_debug(2,"missing parent dir : %s\n",parent_dirname);
-
-			/* ASCII '/' (0x2f) and '0' (0x30) happen to be
-			 * adjacent symbols.  That makes everything strictly
-			 * sorting between file/ and file0 the subdir tree. */
-			SQL_BEGIN("Query File Table for missing files on the peer",
-				"SELECT filename FROM file WHERE filename = '%s' UNION ALL "
-				"SELECT filename FROM file WHERE filename > '%s/' and filename < '%s0' "
-				"ORDER BY filename;",
-				url_encode(parent_dirname),
-				url_encode(parent_dirname), url_encode(parent_dirname))
-			{
-				const char *fn = url_decode(SQL_V(0));
-				if (lstat_strict(prefixsubst(fn), &sb) == 0 && csync_check_pure(fn) == 0)
-					textlist_add(&tl, fn, 0);
-			} SQL_END;
-
-			for (t = tl; t != 0; t = t->next) {
-				csync_debug(3, "path %s added to dirty path list\n", t->value);
-				csync_mark(t->value, peername, 0);
-			}
-			textlist_free(tl);
-			return last_conn_status;
-		}
 		if (!is_ok_response(last_conn_status)) {
 			csync_debug(3, "error from peer\n");
 			goto got_error;
@@ -609,36 +578,173 @@ int compare_files(const char *filename, const char *pattern, int recursive)
 	return 0;
 }
 
-void csync_update_host(const char *peername,
-		const char **patlist, int patnum, int recursive, int dry_run)
+struct textlist *csync_find_files_recursive(const char *filename)
 {
-	struct textlist *tl = 0, *t, *next_t;
-	struct textlist *tl_mod = 0, **last_tn=&tl;
-	char *current_name = 0;
-	struct stat st;
+	const char *ue_filename = url_encode(filename);
+	struct textlist *tl = NULL;
+	struct stat sb;
+
+	/* ASCII '/' (0x2f) and '0' (0x30) happen to be
+	 * adjacent symbols.  That makes everything strictly
+	 * sorting between file/ and file0 the subdir tree. */
+	SQL_BEGIN("Query File Table for missing files on the peer",
+		"SELECT filename FROM file WHERE filename = '%s' UNION ALL "
+		"SELECT filename FROM file WHERE filename > '%s/' and filename < '%s0' "
+		"ORDER BY filename;",
+		ue_filename,
+		ue_filename, ue_filename)
+	{
+		const char *fn = url_decode(SQL_V(0));
+		if (lstat_strict(prefixsubst(fn), &sb) == 0 && csync_check_pure(fn) == 0)
+			textlist_add(&tl, fn, 0);
+	} SQL_END;
+
+	return tl;
+}
+
+void csync_mark_tl(struct textlist *tl, const char *peername)
+{
+	struct textlist *t;
+	for (t = tl; t != NULL; t = t->next)
+		csync_mark(t->value, peername, NULL);
+}
+
+struct update_context {
+	char *current_name;
+	const char *peername;
+	const char *ue_peername;
+	const char **patlist;
+	int patnum;
+
+	int recursive;
+	int dry_run;
+
+	char *missing_parent_dir;
+};
+
+enum connection_response conn_hello(struct update_context *c, struct textlist *t)
+{
+	enum connection_response r = CR_OK;
+	if ( !c->current_name || strcmp(c->current_name, t->value2) ) {
+		csync_debug(3, "Dirty item %s %s %d\n", t->value, t->value2, t->intvalue); 
+		conn_printf("HELLO %s\n", url_encode(t->value2));
+		r = read_conn_status(t->value, c->peername);
+		if (!is_ok_response(r))
+			return r;
+		free(c->current_name);
+		c->current_name = strdup(t->value2);
+	}
+	return r;
+}
+
+enum connection_response csync_update_tl_mod(struct textlist *tl_mod, struct update_context *c)
+{
+	struct textlist *t;
+	char *skip_subtree;
+	size_t skip_subtree_len;
+	enum connection_response r = CR_OK;
+
+	/* If we had a missing_parent_dir before, skip ahead, to make sure we
+	 * make progress in case we have more than one missing subtree,
+	 * and some conflict or other error when trying to re-create them.
+	 */
+	skip_subtree = c->missing_parent_dir;
+	skip_subtree_len = skip_subtree ? strlen(skip_subtree) : 0;
+
+	for (t = tl_mod; t != 0; t = t->next) {
+		if (skip_subtree) {
+			int cmp = strncmp(skip_subtree, t->value, skip_subtree_len);
+			if (cmp > 0)
+				continue;
+			if (cmp == 0 && t->value[skip_subtree_len] == '/') {
+					csync_debug(3, "Skipped %s\n", t->value);
+					continue;
+			}
+			skip_subtree = NULL;
+			skip_subtree_len = 0;
+		}
+		r = conn_hello(c, t);
+		if (!is_ok_response(r))
+			return r;
+		if (!connection_closed_error)
+			r = csync_update_file_mod(c->peername, t->value, t->intvalue, c->dry_run);
+
+		if (r == CR_ERR_PARENT_DIR_MISSING) {
+			struct textlist *tl = NULL;
+			int filename_length = strlen(t->value);
+			char parent_dirname[filename_length];
+
+			split_dirname_basename(parent_dirname, NULL, t->value);
+			csync_debug(1, "missing parent dir : %s\n", parent_dirname);
+			if (c->missing_parent_dir
+			&& strcmp(c->missing_parent_dir, parent_dirname) == 0) {
+				/* Don't take action, if we had this same dir
+				 * missing on a previous iteration.
+				 * Instead skip ahead the todo list.
+				 */
+				skip_subtree = t->value;
+				skip_subtree_len = strlen(skip_subtree);
+
+				/* change to generic error, in case this was
+				 * the last item on the todo list */
+				r = CR_ERROR;
+			} else {
+				tl = csync_find_files_recursive(parent_dirname);
+				csync_mark_tl(tl, c->peername);
+				textlist_free(tl);
+				free(c->missing_parent_dir);
+				c->missing_parent_dir = strdup(parent_dirname);
+				break;
+			}
+		}
+	}
+	return r;
+}
+
+struct textlist *csync_find_dirty(struct update_context *c)
+{
+	struct textlist *tl = NULL;
+
 	SQL_BEGIN("Get files for host from dirty table",
 		"SELECT filename, myname, forced FROM dirty WHERE peername = '%s' "
-		"ORDER by filename ASC", url_encode(peername))
+		"ORDER by filename ASC", c->ue_peername)
 	{
 		const char *filename = url_decode(SQL_V(0));
-		int i, use_this = patnum == 0;
-		for (i=0; i<patnum && !use_this; i++)
-			if ( compare_files(filename, patlist[i], recursive) ) use_this = 1;
+		int use_this = (c->patnum == 0);
+		int i;
+		for (i=0; i < c->patnum && !use_this; i++)
+			if (compare_files(filename, c->patlist[i], c->recursive))
+				use_this = 1;
 		if (use_this)
 			textlist_add2(&tl, filename, url_decode(SQL_V(1)), atoi(SQL_V(2)));
 	} SQL_END;
 
+	return tl;
+}
+
+void csync_update_host_c(struct update_context *c)
+{
+	struct textlist *tl, *t, *next_t;
+	struct textlist *tl_mod, **last_tn;
+	enum connection_response r = CR_OK;
+	int saved_csync_error_count = csync_error_count;
+
+	tl = csync_find_dirty(c);
+	tl_mod = NULL;
+	last_tn=&tl;
+
 	/* just return if there are no files to update */
 	if ( !tl ) return;
 
-	if ( connect_to_host(peername) ) {
+	if ( connect_to_host(c->peername) ) {
 		csync_error_count++;
-		csync_debug(0, "ERROR: Connection to remote host `%s' failed.\n", peername);
+		csync_debug(0, "ERROR: Connection to remote host `%s' failed.\n", c->peername);
 		csync_debug(1, "Host stays in dirty state. "
 				"Try again later...\n");
 		return;
 	}
 
+redo:
 	/*
 	 * The SQL statement above creates a linked list. Due to the
 	 * way the linked list is created, it has the reversed order
@@ -653,48 +759,59 @@ void csync_update_host(const char *peername,
 	 *
 	 */
 	for (t = tl; t != 0; t = next_t) {
+		struct stat st;
 		next_t = t->next;
 		if ( !lstat_strict(prefixsubst(t->value), &st) != 0 && !csync_check_pure(t->value)) {
 			*last_tn = next_t;
 			t->next = tl_mod;
 			tl_mod = t;
 		} else {
-		        csync_debug(3, "Dirty item %s %s %d \n", t->value, t->value2, t->intvalue);
-			if ( !current_name || strcmp(current_name, t->value2) ) {
-				conn_printf("HELLO %s\n", url_encode(t->value2));
-				if (!is_ok_response(read_conn_status(t->value, peername)))
-					goto ident_failed_1;
-				current_name = t->value2;
-			}
+			r = conn_hello(c, t);
+			if (!is_ok_response(r))
+				goto ident_failed_1;
+
 			if (!connection_closed_error)
-				csync_update_file_del(peername,
-						t->value, t->intvalue, dry_run);
+				csync_update_file_del(c->peername,
+						t->value, t->intvalue, c->dry_run);
 ident_failed_1:
 			last_tn=&(t->next);
 		}
 	}
 
-	for (t = tl_mod; t != 0; t = t->next) {
-		if ( !current_name || strcmp(current_name, t->value2) ) {
-		        csync_debug(3, "Dirty item %s %s %d ", t->value, t->value2, t->intvalue); 
-			conn_printf("HELLO %s\n", url_encode(t->value2));
-			if (!is_ok_response(read_conn_status(t->value, peername)))
-				goto ident_failed_2;
-			current_name = t->value2;
-		}
-		if (!connection_closed_error)
-			csync_update_file_mod(peername,
-					t->value, t->intvalue, dry_run);
-ident_failed_2:;
-	}
+	r = csync_update_tl_mod(tl_mod, c);
 
 	textlist_free(tl_mod);
 	textlist_free(tl);
 
+	if (r == CR_ERR_PARENT_DIR_MISSING) {
+		csync_error_count = saved_csync_error_count;
+		tl = csync_find_dirty(c);
+		tl_mod = NULL;
+		last_tn=&tl;
+		goto redo;
+	}
+
 	conn_printf("BYE\n");
-	read_conn_status(0, peername);//why is response ignored?
+	read_conn_status(0, c->peername);//why is response ignored?
 	conn_close();
 }
+
+void csync_update_host(const char *peername,
+		const char **patlist, int patnum, int recursive, int dry_run)
+{
+	struct update_context c = {
+		.current_name = NULL,
+		.peername = peername,
+		.ue_peername = strdup(url_encode(peername)),
+		.patlist = patlist,
+		.patnum = patnum,
+		.recursive = recursive,
+		.dry_run = dry_run,
+		.missing_parent_dir = NULL,
+	};
+	csync_update_host_c(&c);
+}
+
 
 void csync_update(const char ** patlist, int patnum, int recursive, int dry_run)
 {
