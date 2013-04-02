@@ -53,7 +53,7 @@ enum connection_response read_conn_status(const char *file, const char *host)
 		csync_debug(2, "While syncing file %s:\n", file);
 	else
 		file = "<no file>";
-	csync_debug(3, "response from peer(%s): %s %s", file, host, line);
+	csync_debug(3, "response from peer(%s): %s [%u] <- %s", file, host, conn_status, line);
 	return conn_status;
 }
 
