@@ -219,47 +219,6 @@ static FILE *open_temp_file(char *fnametmp, const char *fname)
 	return f;
 }
 
-
-
-#ifdef _SVID_SOURCE
-static FILE *paranoid_tmpfile()
-{
-	char *name;
-	FILE *f;
-	int fd;
-
-	name = tempnam(csync_tempdir, "csync2");
-	if (!name)
-		csync_fatal("ERROR: tempnam() didn't return a valid filename!\n");
-
-	f = NULL;
-	fd = open(name, O_CREAT | O_EXCL | O_RDWR, S_IWUSR | S_IRUSR);
-	if (fd >= 0) {
-		f = fdopen(fd, "wb+");
-		unlink(name);
-	}
-	if (fd < 0 || !f)
-		csync_fatal("ERROR: Could not open result from tempnam(%s)!\n", name);
-
-	csync_debug(3, "Tempfilename is %s\n", name);
-	free(name);
-	return f;
-}
-#else
-static FILE *paranoid_tmpfile()
-{
-	FILE *f;
-
-	if ( access(P_tmpdir, R_OK|W_OK|X_OK) < 0 )
-		csync_fatal("Temp directory '%s' does not exist!\n", P_tmpdir);
-
-	if ( !(f = tmpfile()) )
-		csync_fatal("ERROR: tmpfile() didn't return a valid file handle!\n");
-
-	return f;
-}
-#endif
-
 void csync_send_file(FILE *in)
 {
 	char buffer[512];
