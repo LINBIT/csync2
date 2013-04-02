@@ -337,6 +337,9 @@ static int csync_server_loop(int single_connect)
 
 		fflush(stdout); fflush(stderr);
 
+		if (single_connect)
+			close(listenfd);
+
 		if (single_connect || !fork()) {
 			char hbuf[NI_MAXHOST], sbuf[NI_MAXSERV];
 			/* need to restore default SIGCHLD handler in the session,
