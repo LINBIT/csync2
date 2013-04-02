@@ -540,11 +540,12 @@ void csync_daemon_session()
 			}
 		}
 
-		if ( cmdtab[cmdnr].check_dirty && csync_check_dirty(tag[2], peer,
-				cmdtab[cmdnr].action == A_FLUSH) ) goto abort_cmd;
+		if ( cmdtab[cmdnr].check_dirty &&
+			csync_check_dirty(tag[2], peer, cmdtab[cmdnr].action == A_FLUSH) )
+			goto abort_cmd;
 
 		if ( cmdtab[cmdnr].unlink )
-				csync_unlink(tag[2], cmdtab[cmdnr].unlink);
+			csync_unlink(tag[2], cmdtab[cmdnr].unlink);
 
 		switch ( cmdtab[cmdnr].action )
 		{
