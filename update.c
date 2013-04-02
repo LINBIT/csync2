@@ -285,17 +285,17 @@ got_error:
 	csync_debug(1, "File stays in dirty state. Try again later...\n");
 }
 
-void csync_update_file_mod(const char *peername,
+enum connection_response csync_update_file_mod(const char *peername,
 		const char *filename, int force, int dry_run)
 {
 	struct stat st;
-	enum connection_response last_conn_status;
+	enum connection_response last_conn_status = CR_ERROR;
 	int auto_resolve_run = 0;
 	const char *key = csync_key(peername, filename);
 
 	if ( !key ) {
 		csync_debug(2, "Skipping file update %s on %s - not in my groups.\n", filename, peername);
-		return;
+		return	CR_ERROR;
 	}
 
 auto_resolve_entry_point:
@@ -310,11 +310,12 @@ auto_resolve_entry_point:
 	if ( force ) {
 		if ( dry_run ) {
 			printf("!M: %-15s %s\n", peername, filename);
-			return;
+			return CR_OK;
 		}
 		conn_printf("FLUSH %s %s\n",
 				url_encode(key), url_encode(filename));
-		if (!is_ok_response(read_conn_status(filename, peername)))
+		last_conn_status = read_conn_status(filename, peername);
+		if (!is_ok_response(last_conn_status))
 			goto got_error;
 	} else {
 		int i, found_diff = 0;
@@ -346,20 +347,19 @@ auto_resolve_entry_point:
 				url_encode(parent_dirname), url_encode(parent_dirname))
 			{
 				const char *fn = url_decode(SQL_V(0));
-				if ( lstat_strict(prefixsubst(fn), &sb) == 0 && csync_check_pure(fn) ==0 ) {
+				if (lstat_strict(prefixsubst(fn), &sb) == 0 && csync_check_pure(fn) == 0)
 					textlist_add(&tl, fn, 0);
-					csync_debug(3,"path %s added to dirty path list",fn);
-				}
 			} SQL_END;
 
 			for (t = tl; t != 0; t = t->next) {
+				csync_debug(3, "path %s added to dirty path list\n", t->value);
 				csync_mark(t->value, peername, 0);
-				//csync_update_file_mod(peername,t->value,1,0);
 			}
 			textlist_free(tl);
-
-		} else if (!is_ok_response(last_conn_status)) {
-			csync_debug(3,"error from peer");
+			return last_conn_status;
+		}
+		if (!is_ok_response(last_conn_status)) {
+			csync_debug(3, "error from peer\n");
 			goto got_error;
 		}
 
@@ -380,7 +380,8 @@ auto_resolve_entry_point:
 			csync_debug(2, "File is different on peer (rsync sig).\n");
 			found_diff=1;
 		}
-		if (!is_ok_response(read_conn_status(filename, peername)))
+		last_conn_status = read_conn_status(filename, peername);
+		if (!is_ok_response(last_conn_status))
 			goto got_error;
 
 		if ( !found_diff ) {
@@ -394,7 +395,7 @@ auto_resolve_entry_point:
 		}
 		if ( dry_run ) {
 			printf("?M: %-15s %s\n", peername, filename);
-			return;
+			return last_conn_status;
 		}
 	}
 
@@ -409,10 +410,12 @@ auto_resolve_entry_point:
 			goto maybe_auto_resolve;
 
 		if ( csync_rs_delta(filename) ) {
-			read_conn_status(filename, peername);//why is the response ignored?
+			//why is the response ignored?
+			last_conn_status = read_conn_status(filename, peername);
 			goto got_error;
 		}
-		if (!is_ok_response(read_conn_status(filename, peername)))
+		last_conn_status = read_conn_status(filename, peername);
+		if (!is_ok_response(last_conn_status))
 			goto got_error;
 	} else
 	if ( S_ISDIR(st.st_mode) ) {
@@ -474,13 +477,15 @@ auto_resolve_entry_point:
 	conn_printf("SETOWN %s %s %d %d\n",
 			url_encode(key), url_encode(filename),
 			st.st_uid, st.st_gid);
-	if (!is_ok_response(read_conn_status(filename, peername)))
+	last_conn_status = read_conn_status(filename, peername);
+	if (!is_ok_response(last_conn_status))
 		goto got_error;
 
 	if ( !S_ISLNK(st.st_mode) ) {
 		conn_printf("SETMOD %s %s %d\n", url_encode(key),
 				url_encode(filename), st.st_mode);
-		if (!is_ok_response(read_conn_status(filename, peername)))
+		last_conn_status = read_conn_status(filename, peername);
+		if (!is_ok_response(last_conn_status))
 			goto got_error;
 	}
 
@@ -489,7 +494,8 @@ skip_action:
 		conn_printf("SETIME %s %s %Ld\n",
 				url_encode(key), url_encode(filename),
 				(long long)st.st_mtime);
-		if (!is_ok_response(read_conn_status(filename, peername)))
+		last_conn_status = read_conn_status(filename, peername);
+		if (!is_ok_response(last_conn_status))
 			goto got_error;
 	}
 
@@ -501,7 +507,7 @@ skip_action:
 	if (auto_resolve_run)
 		csync_error_count--;
 
-	return;
+	return last_conn_status;
 
 maybe_auto_resolve:
 	if (!auto_resolve_run && (last_conn_status == CR_ERR_ALSO_DIRTY_HERE))
@@ -547,8 +553,9 @@ maybe_auto_resolve:
 					}
 
 					conn_printf("%s %s %s\n", cmd, url_encode(key), url_encode(filename));
-					if (!is_ok_response(read_conn_status(filename, peername)))
-						goto got_error_in_autoresolve;
+					last_conn_status = read_conn_status(filename, peername);
+					if (!is_ok_response(last_conn_status))
+						goto got_error;
 
 					if ( !conn_gets(buffer, 4096) ) goto got_error_in_autoresolve;
 					remotedata = atol(buffer);
@@ -588,6 +595,7 @@ got_error:
 got_error_in_autoresolve:
 		csync_debug(0, "ERROR: Auto-resolving failed. Giving up.\n");
 	csync_debug(1, "File stays in dirty state. Try again later...\n");
+	return last_conn_status;
 }
 
 int compare_files(const char *filename, const char *pattern, int recursive)
