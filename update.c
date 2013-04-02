@@ -171,7 +171,8 @@ auto_resolve_entry_point:
 			return;
 		}
 		conn_printf("FLUSH %s %s\n", url_encode(key), url_encode(filename));
-		if (!is_ok_response(read_conn_status(filename, peername)))
+		last_conn_status = read_conn_status(filename, peername);
+		if (!is_ok_response(last_conn_status))
 			goto got_error;
 	} else {
 		int i, found_diff = 0;
@@ -182,7 +183,14 @@ auto_resolve_entry_point:
 		conn_printf("SIG %s %s\n",
 				url_encode(key), url_encode(filename));
 
-		if (!is_ok_response(read_conn_status(filename, peername)))
+		last_conn_status = read_conn_status(filename, peername);
+		if (last_conn_status == CR_ERR_PARENT_DIR_MISSING) {
+			/* In this case, this is not really an error. */
+			--csync_error_count;
+			goto already_gone;
+		}
+
+		if (!is_ok_response(last_conn_status))
 			goto got_error;
 
 		if ( !conn_gets(chk1, 4096) ) goto got_error;
@@ -204,6 +212,7 @@ auto_resolve_entry_point:
 		if (!is_ok_response(read_conn_status(filename, peername))) goto got_error;
 
 		if ( !found_diff ) {
+already_gone:
 			csync_debug(1, "File is already up to date on peer.\n");
 			if ( dry_run ) {
 				printf("?S: %-15s %s\n", peername, filename);
