@@ -319,60 +319,60 @@ int csync_rs_check(const char *filename, int isreg)
 {
 	FILE *basis_file = 0, *sig_file = 0;
 	char buffer1[512], buffer2[512];
+	struct stat st;
 	int rc, chunk, found_diff = 0;
 	int backup_errno;
 	rs_stats_t stats;
 	rs_result result;
 	long size;
+	long my_size = 0;
 	char tmpfname[MAXPATHLEN];
 
 	csync_debug(3, "Csync2 / Librsync: csync_rs_check('%s', %d [%s])\n",
 		    filename, isreg, isreg ? "regular file" : "non-regular file");
 
-	csync_debug(3, "Opening basis_file and sig_file..\n");
+	csync_debug(3, "Reading signature size from peer....\n");
+	if (!conn_gets(buffer1, 100) || sscanf(buffer1, "octet-stream %ld\n", &size) != 1)
+		csync_fatal("Format-error while receiving data.\n");
+	csync_debug(3, "Receiving %ld bytes ..\n", size);
 
-	sig_file = open_temp_file(tmpfname, prefixsubst(filename));
-	if (!sig_file)
-		goto io_error;
-	if (unlink(tmpfname) < 0)
-		goto io_error;
+	if (isreg) {
+		csync_debug(3, "Opening basis_file and sig_file..\n");
 
-	basis_file = fopen(prefixsubst(filename), "rb");
-	if (!basis_file) {	/* ?? why a tmp file? */
-		basis_file = open_temp_file(tmpfname, prefixsubst(filename));
-		if (!basis_file)
+		basis_file = fopen(prefixsubst(filename), "rb");
+		if (!basis_file && errno == ENOENT) {
+			csync_debug(3, "Basis file does not exist.\n");
+			goto local_sig_empty;
+		}
+		if (!basis_file || fstat(fileno(basis_file), &st) || !S_ISREG(st.st_mode))
+			goto io_error;
+
+		sig_file = open_temp_file(tmpfname, prefixsubst(filename));
+		if (!sig_file)
 			goto io_error;
 		if (unlink(tmpfname) < 0)
 			goto io_error;
-	}
 
-	if (isreg) {
 		csync_debug(3, "Running rs_sig_file() from librsync....\n");
 		result = rs_sig_file(basis_file, sig_file, RS_DEFAULT_BLOCK_LEN, RS_DEFAULT_STRONG_LEN, &stats);
 		if (result != RS_DONE) {
 			csync_debug(0, "Internal error from rsync library!\n");
 			goto error;
 		}
+
+		fclose(basis_file);
+		basis_file = 0;
+
+		fflush(sig_file);
+		my_size = ftell(sig_file);
+		rewind(sig_file);
 	}
 
-	fclose(basis_file);
-	basis_file = 0;
-
-	{
-		char line[100];
-		csync_debug(3, "Reading signature size from peer....\n");
-		if (!conn_gets(line, 100) || sscanf(line, "octet-stream %ld\n", &size) != 1)
-			csync_fatal("Format-error while receiving data.\n");
-	}
-
-	fflush(sig_file);
-	if (size != ftell(sig_file)) {
-		csync_debug(2, "Signature size differs: local=%d, peer=%d\n", ftell(sig_file), size);
+local_sig_empty:
+	if (size != my_size) {
+		csync_debug(2, "Signature size differs: local=%d, peer=%d\n", my_size, size);
 		found_diff = 1;
 	}
-	rewind(sig_file);
-
-	csync_debug(3, "Receiving %ld bytes ..\n", size);
 
 	while (size > 0) {
 		chunk = size > 512 ? 512 : size;
@@ -382,28 +382,40 @@ int csync_rs_check(const char *filename, int isreg)
 			csync_fatal("Read-error while receiving data.\n");
 		chunk = rc;
 
-		if (fread(buffer2, chunk, 1, sig_file) != 1) {
-			csync_debug(2, "Found EOF in local sig file.\n");
-			found_diff = 1;
-		}
-		if (memcmp(buffer1, buffer2, chunk)) {
-			csync_debug(2, "Found diff in sig at -%d:-%d\n", size, size - chunk);
-			found_diff = 1;
-		}
+		if (sig_file) {
+			if (fread(buffer2, chunk, 1, sig_file) != 1) {
+				csync_debug(2, "Found EOF in local sig file.\n");
+				found_diff = 1;
+			}
+			if (memcmp(buffer1, buffer2, chunk)) {
+				csync_debug(2, "Found diff in sig at -%d:-%d\n", size, size - chunk);
+				found_diff = 1;
+			}
+		} /* else just drain */
 
 		size -= chunk;
 		csync_debug(3, "Got %d bytes, %ld bytes left ..\n", chunk, size);
 	}
 
 	csync_debug(3, "File has been checked successfully (%s).\n", found_diff ? "difference found" : "files are equal");
-	fclose(sig_file);
+	if (sig_file)
+		fclose(sig_file);
 	return found_diff;
 
 io_error:
 	csync_debug(0, "I/O Error '%s' in rsync-check: %s\n", strerror(errno), prefixsubst(filename));
-
 error:
 	backup_errno = errno;
+
+	/* drain response */
+	while (size > 0) {
+		chunk = size > 512 ? 512 : size;
+		rc = conn_read(buffer1, chunk);
+		if (rc <= 0)
+			csync_fatal("Read-error while receiving data.\n");
+		size -= rc;
+	}
+
 	if (basis_file)
 		fclose(basis_file);
 	if (sig_file)
