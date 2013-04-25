@@ -431,12 +431,21 @@ permissions.
 
 \subsubsection{The {\tt tempdir} statement}
 
+Preferably don't use this setting.
+
 The {\tt tempdir} statement specifies the directory to be used for temporary
 files while receiving data through librsync.
+
 \csync2 will try to create temporary files in {\tt tempdir} if specified,
 in the same directory as the currently processed file,
 in the directory given by the {\tt TMPDIR} environment variable,
 the system default {\tt P\_tmpdir}, or {\tt /tmp}, in that order.
+
+This implies that if you specify a {\tt tempdir} which is not on the
+same file system as the processed files, it will be impossible to
+rename the patched files in place, and \csync2 will fall back to truncate
+and copy. Which can in various failure scenarios result in corrupted (partially
+transfered, truncated) files on the destination.
 
 \subsubsection{The {\tt lock-timeout} statement}
 
@@ -864,6 +873,11 @@ For sure, an intruder would be able to work around this security checks when
 ACLs, Linux ext2fs/ext3fs attributes and other extended filesystem permissions
 are neither synced nor flushed (e.g. if they are set automatically when
 the file is created).
+
+On {\tt cygwin}, due to unresolved permission inheritance problems,
+no {\tt rename()} is attempted, but existing files are always truncated
+and then copied into from the temporary files.
+Suggestions for how to resolve that are most welcome.
 
 \section{Alternatives}
 

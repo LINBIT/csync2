@@ -712,6 +712,7 @@ int csync_rs_patch(const char *filename)
 
 	csync_debug(3, "Renaming tmp file to data file..\n");
 	fclose(basis_file);
+	basis_file = NULL;
 
 #ifdef __CYGWIN__
 
@@ -741,10 +742,48 @@ int csync_rs_patch(const char *filename)
 			goto error;
 		}
 		CloseHandle(winfh);
+		goto copy;
 	}
 #endif
 
-	if (rename(newfname, prefixsubst(filename)) < 0) { errstr="renaming tmp file to to be patched file"; goto io_error; }
+	if (rename(newfname, prefixsubst(filename))) {
+		char buffer[512];
+		int rc;
+
+		if (errno != EXDEV) {
+			errstr="renaming tmp file to to be patched file";
+			goto io_error;
+		}
+#ifdef __CYGWIN__
+copy:
+#endif
+		csync_debug(1, "rename not possible! Will truncate and copy instead.\n");
+		basis_file = fopen(prefixsubst(filename), "wb");
+		if ( !basis_file ) {
+			errstr="opening data file for writing";
+			goto io_error;
+		}
+
+		/* FIXME
+		 * Can easily lead to partially transfered files on the receiving side!
+		 * Think truncate, then connection loss.
+		 * Or any other failure scenario.
+		 * Need better error checks!
+		 */
+		rewind(new_file);
+		while ( (rc = fread(buffer, 1, 512, new_file)) > 0 )
+			fwrite(buffer, rc, 1, basis_file);
+		/* at least retain the temp file, if something went wrong. */
+		if (ferror(new_file) || ferror(basis_file)) {
+			csync_debug(0, "ERROR while copying temp file '%s' to basis file '%s'; "
+					"basis file may be corrupted; temp file has been retained.\n",
+					newfname, prefixsubst(filename));
+			goto error;
+		}
+		unlink(newfname);
+		fclose(basis_file);
+		basis_file = NULL;
+	}
 
 	csync_debug(3, "File has been patched successfully.\n");
 	fclose(delta_file);
@@ -753,9 +792,10 @@ int csync_rs_patch(const char *filename)
 	return 0;
 
 io_error:
+	backup_errno = errno;
 	csync_debug(0, "I/O Error '%s' while %s in rsync-patch: %s\n",
 			strerror(errno), errstr, prefixsubst(filename));
-
+	errno = backup_errno;
 error:;
 	backup_errno = errno;
 	if ( delta_file ) fclose(delta_file);
