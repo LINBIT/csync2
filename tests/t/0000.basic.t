@@ -38,6 +38,10 @@ TEST_EXPECT_EXIT_CODE 2 "list non-existent db"	csync2 -L -N $N1
 # in preparation for the next test,
 # remove some files, create some files, change some content
 
+# However, DO NOT use redirection or non-simple commands directly on a "TEST"
+# command line. If you need that, use eval, like so:
+# TEST "short description" eval 'some | involved | pipe || other > with 2> redirection'
+
 # populate $D1 
 # ------------
 
@@ -73,7 +77,7 @@ TEST_EXPECT_EXIT_CODE 2	"nothing dirty"	csync2 -N $N2 -M
 
 # This time, we expect it to populate the dirty table,
 # and -M should have an exit code of 0.
-TEST	"touch again 2"	touch $D2/b/f
+TEST	"touch again 2"	eval "date > $D2/b/f"
 TEST	"check db 2"	csync2 -N $N2 -crvv $D2
 TEST	"list dirty 2"	csync2 -N $N2 -M
 
