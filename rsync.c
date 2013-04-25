@@ -134,14 +134,109 @@ int mkpath(const char *path, mode_t mode) {
 	return 0;
 }
 
+/* This has been taken from rsync sources: syscall.c */
+
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
+
+/* like mkstemp but forces permissions */
+int do_mkstemp(char *template, mode_t perms)
+{
+	perms |= S_IWUSR;
+
+#if defined HAVE_SECURE_MKSTEMP && defined HAVE_FCHMOD && (!defined HAVE_OPEN64 || defined HAVE_MKSTEMP64)
+	{
+		int fd = mkstemp(template);
+		if (fd == -1)
+			return -1;
+		if (fchmod(fd, perms) != 0) {
+			int errno_save = errno;
+			close(fd);
+			unlink(template);
+			errno = errno_save;
+			return -1;
+		}
+#if defined HAVE_SETMODE && O_BINARY
+		setmode(fd, O_BINARY);
+#endif
+		return fd;
+	}
+#else
+	if (!mktemp(template))
+		return -1;
+	return open(template, O_RDWR|O_EXCL|O_CREAT | O_BINARY, perms);
+#endif
+}
 
 
-/* This has been taken from rsync sources: receiver.c */
+/* define the order in which directories are tried when creating temp files */
+static int next_tempdir(char **dir, unsigned int stage)
+{
+	static char *dirs_to_try[] = {
+		NULL /* csync_tempdir */,
+		NULL /* stays NULL, same dir as input name */,
+		NULL /* getenv("TMPDIR") */,
+		P_tmpdir,
+		"/tmp",
+	};
+	static int n_dirs;
+	int i;
+
+	if (!n_dirs) {
+		n_dirs = sizeof(dirs_to_try)/sizeof(dirs_to_try[0]);
+		dirs_to_try[0] = csync_tempdir;
+		dirs_to_try[2] = getenv("TMPDIR");
+		for (i = 0; i < n_dirs; i++) {
+			struct stat sbuf;
+			int ret;
+			if (!dirs_to_try[i])
+				continue;
+			if (!dirs_to_try[i][0]) {
+				/* drop "" */
+				dirs_to_try[i] = NULL;
+				continue;
+			}
+			ret = stat(dirs_to_try[i], &sbuf);
+			if (ret || !S_ISDIR(sbuf.st_mode)) {
+				csync_debug(1, "dropping tempdir candidate '%s': not a directory\n",
+					dirs_to_try[i]);
+				dirs_to_try[i] = NULL;
+			}
+		}
+	}
+
+	/* skip this stage, if previous stages have been equal. */
+	for (; stage < n_dirs; stage++) {
+		if (dirs_to_try[stage] && !dirs_to_try[stage][0])
+			continue;
+
+		for (i = 0; i < stage; i++) {
+			if (dirs_to_try[i] == dirs_to_try[stage])
+				break;
+			if (!dirs_to_try[i] || !dirs_to_try[stage])
+				continue;
+			if (!strcmp(dirs_to_try[i], dirs_to_try[stage]))
+				break;
+		}
+		if (i == stage) {
+			*dir = dirs_to_try[stage];
+			return stage+1;
+		}
+	}
+	return -1;
+}
+
+/* This has been taken from rsync sources: receiver.c,
+ * and adapted: dropped the "make_unique" parameter,
+ * as in our use case it is always false.
+ *
+ * Added tempdir parameter,
+ * so we can try several dirs before giving up.
+ */
 
 #define TMPNAME_SUFFIX ".XXXXXX"
 #define TMPNAME_SUFFIX_LEN ((int)sizeof TMPNAME_SUFFIX - 1)
-#define MAX_UNIQUE_NUMBER 999999
-#define MAX_UNIQUE_LOOP 100
 
 /* get_tmpname() - create a tmp filename for a given filename
  *
@@ -155,31 +250,32 @@ int mkpath(const char *path, mode_t mode) {
  * the basename basically becomes 8 characters longer.  In such a case, the
  * original name is shortened sufficiently to make it all fit.
  *
- * If the make_unique arg is True, the XXXXXX string is replaced with a unique
- * string that doesn't exist at the time of the check.  This is intended to be
- * used for creating hard links, symlinks, devices, and special files, since
- * normal files should be handled by mkstemp() for safety.
- *
  * Of course, the only reason the file is based on the original name is to
  * make it easier to figure out what purpose a temp file is serving when a
  * transfer is in progress. */
-
-static int get_tmpname(char *fnametmp, const char *fname)
+static int get_tmpname(char *fnametmp, const char *tempdir, const char *fname)
 {
-	int maxname, added, length = 0;
+	int maxname, length = 0;
 	const char *f;
 	char *suf;
 
-	static unsigned counter_limit;
-	unsigned counter;
+	if (tempdir) {
+		/* Note: this can't overflow, so the return value is safe */
+		length = strlcpy(fnametmp, tempdir, MAXPATHLEN - 2);
+		fnametmp[length++] = '/';
+	}
 
 	if ((f = strrchr(fname, '/')) != NULL) {
 		++f;
-		length = f - fname;
-		/* copy up to and including the slash */
-		strlcpy(fnametmp, fname, length + 1);
+		if (!tempdir) {
+			length = f - fname;
+			/* copy up to and including the slash */
+			strlcpy(fnametmp, fname, length + 1);
+		}
 	} else
 		f = fname;
+	if (*f == '.') /* avoid an extra leading dot for OS X's sake */
+		f++;
 	fnametmp[length++] = '.';
 
 	/* The maxname value is bufsize, and includes space for the '\0'.
@@ -187,65 +283,72 @@ static int get_tmpname(char *fnametmp, const char *fname)
 	maxname = MIN(MAXPATHLEN - length - TMPNAME_SUFFIX_LEN,
 		      NAME_MAX - 1 - TMPNAME_SUFFIX_LEN);
 
-	if (maxname < 1) {
+	if (maxname < 0) {
 		csync_debug(1, "temporary filename too long: %s\n", fname);
 		fnametmp[0] = '\0';
 		return 0;
 	}
 
-	added = strlcpy(fnametmp + length, f, maxname);
-	if (added >= maxname)
-		added = maxname - 1;
-	suf = fnametmp + length + added;
+	if (maxname) {
+		int added = strlcpy(fnametmp + length, f, maxname);
+		if (added >= maxname)
+			added = maxname - 1;
+		suf = fnametmp + length + added;
 
-	if (!counter_limit) {
-		counter_limit = (unsigned)getpid() + MAX_UNIQUE_LOOP;
-		if (counter_limit > MAX_UNIQUE_NUMBER || counter_limit < MAX_UNIQUE_LOOP)
-			counter_limit = MAX_UNIQUE_LOOP;
-
-		counter = counter_limit - MAX_UNIQUE_LOOP;
-
-		/* This doesn't have to be very good because we don't need
-		 * to worry about someone trying to guess the values:  all
-		 * a conflict will do is cause a device, special file, hard
-		 * link, or symlink to fail to be created.  Also: avoid
-		 * using mktemp() due to gcc's annoying warning. */
-		while (1) {
-			snprintf(suf, TMPNAME_SUFFIX_LEN+1, ".%d", counter);
-			if (access(fnametmp, 0) < 0)
-				break;
-			if (++counter >= counter_limit)
-				return 0;
+		/* Trim any dangling high-bit chars if the first-trimmed char (if any) is
+		 * also a high-bit char, just in case we cut into a multi-byte sequence.
+		 * We are guaranteed to stop because of the leading '.' we added. */
+		if ((int)f[added] & 0x80) {
+			while ((int)suf[-1] & 0x80)
+				suf--;
 		}
+		/* trim one trailing dot before our suffix's dot */
+		if (suf[-1] == '.')
+			suf--;
 	} else
-		memcpy(suf, TMPNAME_SUFFIX, TMPNAME_SUFFIX_LEN+1);
+		suf = fnametmp + length - 1; /* overwrite the leading dot with suffix's dot */
+
+	memcpy(suf, TMPNAME_SUFFIX, TMPNAME_SUFFIX_LEN+1);
 
 	return 1;
 }
 
 /* Returns open file handle for a temp file that resides in the
-   same directory as file fname. The file must be removed after
-   usage.
-*/
+ * csync_tempdir (if specified), or
+ * the same directory as fname.
+ * If tempfile creation was not possible, before giving up,
+ * TMPDIR, P_tmpdir, or /tmp are also tried, in that order.
+ * The file must be removed after usage, or renamed into place.
+ */
 
-static FILE *open_temp_file(char *fnametmp, const char *fname)
+static FILE* open_temp_file(char *fnametmp, const char *fname)
 {
-	FILE *f;
+	FILE *f = NULL;
+	char *dir = NULL;
 	int fd;
+	int i = 0;
 
-	if (get_tmpname(fnametmp, fname) == 0) {
-		csync_debug(1, "ERROR: Couldn't find tempname for file %s\n", fname);
-		return NULL;
-	}
+	do {
+		if (i > 0)
+			csync_debug(3, "mkstemp %s failed: %s\n", fnametmp, strerror(errno));
 
-	f = NULL;
-	fd = open(fnametmp, O_CREAT | O_EXCL | O_RDWR, S_IWUSR | S_IRUSR);
+		i = next_tempdir(&dir, i);
+		if (i < 0)
+			return NULL;
+
+		if (!get_tmpname(fnametmp, dir, fname))
+			return NULL;
+
+		fd = do_mkstemp(fnametmp, S_IRUSR|S_IWUSR);
+	} while (fd < 0 && errno == ENOENT);
+
 	if (fd >= 0) {
 		f = fdopen(fd, "wb+");
 			/* not unlinking since rename wouldn't work then */
 	}
+
 	if (fd < 0 || !f) {
-		csync_debug(1, "ERROR: Could not open result from tempnam(%s)!\n", fnametmp);
+		csync_debug(1, "mkstemp %s failed: %s\n", fnametmp, strerror(errno));
 		return NULL;
 	}
 

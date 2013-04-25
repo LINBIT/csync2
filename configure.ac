@@ -42,6 +42,40 @@ fi
 AM_CONDITIONAL([HAVE_PDFLATEX], test -n "$PDFLATEX")
 
 
+dnl inspired by rsync's configure.ac
+AC_CHECK_FUNCS(fchmod setmode open64 mkstemp64)
+AC_CACHE_CHECK([for secure mkstemp],csync_cv_HAVE_SECURE_MKSTEMP,[
+AC_TRY_RUN([#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+main() {
+  struct stat st;
+  char tpl[20]="/tmp/test.XXXXXX";
+  int fd = mkstemp(tpl);
+  if (fd == -1) exit(1);
+  unlink(tpl);
+  if (fstat(fd, &st) != 0) exit(1);
+  if ((st.st_mode & 0777) != 0600) exit(1);
+  exit(0);
+}],
+csync_cv_HAVE_SECURE_MKSTEMP=yes,
+csync_cv_HAVE_SECURE_MKSTEMP=no,
+csync_cv_HAVE_SECURE_MKSTEMP=cross)])
+if test x"$csync_cv_HAVE_SECURE_MKSTEMP" = x"yes"; then
+    case $host_os in
+    hpux*)
+	dnl HP-UX has a broken mkstemp() implementation they refuse to fix,
+	dnl so we noisily skip using it.  See HP change request JAGaf34426
+	dnl for details. (sbonds)
+	AC_MSG_WARN(Skipping broken HP-UX mkstemp() -- using mktemp() instead)
+	;;
+    *)
+	AC_DEFINE(HAVE_SECURE_MKSTEMP, 1, [Define to 1 if mkstemp() is available and works right])
+	;;
+    esac
+fi
+
 # check for large file support
 AC_SYS_LARGEFILE
 
