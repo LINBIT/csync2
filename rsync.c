@@ -96,6 +96,45 @@ void split_dirname_basename(char *dirname, char* basename, const char *filepath)
 		strlcpy(basename, base, baselen + 1);
 }
 
+/*
+ * Recursively creates the given path, with the given mode
+ * Note that path argument is not directory name here but rather
+ * a path to a file that you are going to create after calling mkpath().
+ * Works with relative paths as well.
+ * Shamelessly copied from
+ * Stackoverlow.com#http://stackoverflow.com/questions/2336242/recursive-mkdir-system-call-on-unix
+ * Returns: 0 on success and -1 on error
+ */
+int mkpath(const char *path, mode_t mode) {
+	char temp[MAXPATHLEN];
+	char *remaining;
+
+	if(!mode) {
+		mode=S_IRWXU;
+	}
+	if(!path){
+		csync_debug(2,"invalid path");
+		return -1;
+	}
+
+	strlcpy(temp,path,strlen(path));
+	csync_debug(1,"mkpath full path: %s",temp);
+	for( remaining=strchr(temp+1, '/'); remaining!=NULL; remaining=strchr(remaining+1, '/') ){
+		*remaining='\0';
+		if(mkdir(temp, mode)==-1) { //strchr keeps the parent in temp and child[ren] in remaining
+			if(errno != EEXIST) {
+				*remaining='/';
+				csync_debug(1,"error occured while creating path %s; cause : %s",temp,strerror(errno));
+				return -1;
+			}
+		}
+		csync_debug(1,"mkdir parent dir: %s",temp);
+		*remaining='/';
+	}
+	return 0;
+}
+
+
 
 /* This has been taken from rsync sources: receiver.c */
 
@@ -183,45 +222,6 @@ static int get_tmpname(char *fnametmp, const char *fname)
 
 	return 1;
 }
-
-/*
- * Recursively creates the given path, with the given mode
- * Note that path argument is not directory name here but rather
- * a path to a file that you are going to create after calling mkpath().
- * Works with relative paths as well.
- * Shamelessly copied from
- * Stackoverlow.com#http://stackoverflow.com/questions/2336242/recursive-mkdir-system-call-on-unix
- * Returns: 0 on success and -1 on error
- */
-int mkpath(const char *path, mode_t mode) {
-	char temp[MAXPATHLEN];
-	char *remaining;
-
-	if(!mode) {
-		mode=S_IRWXU;
-	}
-	if(!path){
-		csync_debug(2,"invalid path");
-		return -1;
-	}
-
-	strlcpy(temp,path,strlen(path));
-	csync_debug(1,"mkpath full path: %s",temp);
-	for( remaining=strchr(temp+1, '/'); remaining!=NULL; remaining=strchr(remaining+1, '/') ){
-		*remaining='\0';
-		if(mkdir(temp, mode)==-1) { //strchr keeps the parent in temp and child[ren] in remaining
-			if(errno != EEXIST) {
-				*remaining='/';
-				csync_debug(1,"error occured while creating path %s; cause : %s",temp,strerror(errno));
-				return -1;
-			}
-		}
-		csync_debug(1,"mkdir parent dir: %s",temp);
-		*remaining='/';
-	}
-	return 0;
-}
-
 
 /* Returns open file handle for a temp file that resides in the
    same directory as file fname. The file must be removed after
