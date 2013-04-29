@@ -31,7 +31,7 @@
 #include "dl.h"
 
 #ifdef HAVE_POSTGRES
-#include <postgresql/libpq-fe.h>
+#include <libpq-fe.h>
 #endif
 
 #if (!defined HAVE_POSTGRES)
