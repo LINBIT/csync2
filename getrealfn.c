@@ -22,6 +22,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <assert.h>
 
@@ -107,7 +108,9 @@ char *getrealfn(const char *filename)
 
 	/* ok - this might be ugly, but who cares .. */
 	{
-		char *oldpwd = my_get_current_dir_name();
+		int cwdfd = open(".", O_RDONLY);
+		if (cwdfd < 0)
+			csync_fatal("Cannot open current directory!\n");
 		if ( !chdir(tempfn) ) {
 			char *t2, *t1 = my_get_current_dir_name();
 			if ( st_mark ) {
@@ -116,7 +119,9 @@ char *getrealfn(const char *filename)
 			} else {
 				free(tempfn); tempfn = t1;
 			}
-			chdir(oldpwd);
+			if (fchdir(cwdfd))
+				csync_fatal("Cannot chdir back to previous directory!\n");
+			close(cwdfd);
 		} else
 			if ( st_mark ) *st_mark = '/';
 	}
