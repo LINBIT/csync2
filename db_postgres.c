@@ -87,42 +87,12 @@ static void db_postgres_dlopen(void)
    If an optional keyword is not given, the value of the parameter is not changed.
 */
 
-static int db_pgsql_parse_url(char *url, char **host, char **user, char **pass, char **database, unsigned int *port)
-{
-	char *pos = strchr(url, '@');
-	if (pos) {
-		*(pos) = 0;
-		*(user) = url;
-		url = pos + 1;
-
-		pos = strchr(*user, ':');
-		if (pos) {
-			*(pos) = 0;
-			*(pass) = (pos + 1);
-		}
-	}
-	*host = url;
-	pos = strchr(*host, '/');
-	if (pos) {
-		// Database
-		(*pos) = 0;
-		*database = pos + 1;
-	}
-	pos = strchr(*host, ':');
-	if (pos) {
-		(*pos) = 0;
-		*port = atoi(pos + 1);
-	}
-	return DB_OK;
-}
-
 int db_postgres_open(const char *file, db_conn_p * conn_p)
 {
 	PGconn *pg_conn;
 	char *host, *user, *pass, *database;
 	unsigned int port = 5432;	/* default postgres port */
-	char *db_url = malloc(strlen(file) + 1);
-	char *create_database_statement;
+	char *db_url = strdup(file);
 	char *pg_conn_info;
 
 	db_postgres_dlopen();
@@ -130,17 +100,9 @@ int db_postgres_open(const char *file, db_conn_p * conn_p)
 	if (db_url == NULL)
 		csync_fatal("No memory for db_url\n");
 
-	user = "postgres";
-	pass = "";
-	host = "localhost";
-	database = "csync2";
-
-	strcpy(db_url, file);
-	int rc = db_pgsql_parse_url(db_url, &host, &user, &pass, &database, &port);
-	if (rc != DB_OK)
-		return rc;
-
-	ASPRINTF(&pg_conn_info, "host='%s' user='%s' password='%s' dbname='%s' port=%d", host, user, pass, database, port);
+	csync_parse_url(db_url, &host, &user, &pass, &database, &port);
+	ASPRINTF(&pg_conn_info, "host='%s' user='%s' password='%s' dbname='%s' port=%d",
+		host ?: "localhost", user ?: "csync2", pass ?: "", database, port);
 
 	pg_conn = f.PQconnectdb_fn(pg_conn_info);
 	if (pg_conn == NULL)

@@ -77,54 +77,13 @@ static void db_mysql_dlopen(void)
 	LOOKUP_SYMBOL(dl_handle, mysql_warning_count);
 }
 
-int db_mysql_parse_url(char *url, char **host, char **user, char **pass, char **database, unsigned int *port, char **unix_socket)
-{
-	char *pos = strchr(url, '@');
-	if (pos) {
-		// Optional user/passwd
-		*(pos) = 0;
-		*(user) = url;
-		url = pos + 1;
-		// TODO password
-		pos = strchr(*user, ':');
-		if (pos) {
-			*(pos) = 0;
-			*(pass) = (pos + 1);
-		} else
-			*pass = 0;
-	} else {
-		// No user/pass password 
-		*user = 0;
-		*pass = 0;
-	}
-	*host = url;
-	pos = strchr(*host, '/');
-	if (pos) {
-		// Database
-		(*pos) = 0;
-		*database = pos + 1;
-	} else {
-		*database = 0;
-	}
-	pos = strchr(*host, ':');
-	if (pos) {
-		(*pos) = 0;
-		*port = atoi(pos + 1);
-	}
-	*unix_socket = 0;
-	return DB_OK;
-}
-
-#endif
-
 int db_mysql_open(const char *file, db_conn_p * conn_p)
 {
-#ifdef HAVE_MYSQL
 	db_mysql_dlopen();
 
 	MYSQL *db = f.mysql_init_fn(0);
-	char *host, *user, *pass, *database, *unix_socket;
-	unsigned int port;
+	char *host, *user, *pass, *database;
+	unsigned int port = 0;
 	char *db_url = malloc(strlen(file) + 1);
 	char *create_database_statement;
 
@@ -132,36 +91,31 @@ int db_mysql_open(const char *file, db_conn_p * conn_p)
 		csync_fatal("No memory for db_url\n");
 
 	strcpy(db_url, file);
-	int rc = db_mysql_parse_url(db_url, &host, &user, &pass, &database, &port, &unix_socket);
-	if (rc != DB_OK) {
-		return rc;
-	}
+	csync_parse_url(db_url, &host, &user, &pass, &database, &port);
 
-	if (f.mysql_real_connect_fn(db, host, user, pass, database, port, unix_socket, 0) == NULL) {
-		if (f.mysql_errno_fn(db) == ER_BAD_DB_ERROR) {
-			if (f.mysql_real_connect_fn(db, host, user, pass, NULL, port, unix_socket, 0) != NULL) {
-				ASPRINTF(&create_database_statement, "create database %s", database);
+	if (f.mysql_real_connect_fn(db, host, user, pass, database, port, NULL, 0) == NULL) {
+		if (f.mysql_errno_fn(db) != ER_BAD_DB_ERROR)
+			goto fatal;
+		if (f.mysql_real_connect_fn(db, host, user, pass, NULL, port, NULL, 0) == NULL)
+			goto fatal;
 
-				csync_debug(2, "creating database %s\n", database);
-				if (f.mysql_query_fn(db, create_database_statement) != 0)
-					csync_fatal("Cannot create database %s: Error: %s\n", database, f.mysql_error_fn(db));
-				free(create_database_statement);
+		ASPRINTF(&create_database_statement, "create database %s", database);
 
-				f.mysql_close_fn(db);
-				db = f.mysql_init_fn(0);
+		csync_debug(2, "creating database %s\n", database);
+		if (f.mysql_query_fn(db, create_database_statement) != 0)
+			csync_fatal("Cannot create database %s: Error: %s\n", database, f.mysql_error_fn(db));
+		free(create_database_statement);
 
-				if (f.mysql_real_connect_fn(db, host, user, pass, database, port, unix_socket, 0) == NULL)
-					goto fatal;
-			}
-		} else
-fatal:
-			csync_fatal("Failed to connect to database: Error: %s\n", f.mysql_error_fn(db));
+		f.mysql_close_fn(db);
+		db = f.mysql_init_fn(0);
+
+		if (f.mysql_real_connect_fn(db, host, user, pass, database, port, NULL, 0) == NULL)
+			goto fatal;
 	}
 
 	db_conn_p conn = calloc(1, sizeof(*conn));
-	if (conn == NULL) {
+	if (conn == NULL)
 		return DB_ERROR;
-	}
 	*conn_p = conn;
 	conn->private = db;
 	conn->close = db_mysql_close;
@@ -170,13 +124,11 @@ fatal:
 	conn->errmsg = db_mysql_errmsg;
 	conn->upgrade_to_schema = db_mysql_upgrade_to_schema;
 
-	return rc;
-#else
+	return DB_OK;
+fatal:
+	csync_fatal("Failed to connect to database: Error: %s\n", f.mysql_error_fn(db));
 	return DB_ERROR;
-#endif
 }
-
-#ifdef HAVE_MYSQL
 
 void db_mysql_close(db_conn_p conn)
 {

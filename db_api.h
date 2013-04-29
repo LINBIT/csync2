@@ -41,6 +41,16 @@ struct db_stmt_t {
 
 //struct db_conn *db_conn;
 
+/* Design BUGs:
+ *  Does expect the scheme:// part of the url to be already stripped!
+ *  Does change its *url argument.
+ * Note:
+ *  *port will be unchanged, if no port is mentioned.
+ *  *host, *user, *pass and *database will all be explicitly set,
+ *  if nothing appropriate is found in url, they will be initialized to NULL.
+ **/
+void csync_parse_url(char *url, char **host, char **user, char **pass, char **database, unsigned int *port);
+
 int       db_open(const char *file, int type, db_conn_p *db);
 void      db_close(db_conn_p conn);
 

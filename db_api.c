@@ -20,9 +20,6 @@
 #define DEADLOCK_MESSAGE \
 	"Database backend is exceedingly busy => Terminating (requesting retry).\n"
 
-int db_sqlite_open(const char *file, db_conn_p * db);
-int db_mysql_open(const char *file, db_conn_p * db);
-
 int db_detect_type(const char **db_str, int type)
 {
 	const char *db_types[] = { "mysql://", "sqlite3://", "sqlite2://", "pgsql://", 0 };
@@ -37,6 +34,74 @@ int db_detect_type(const char **db_str, int type)
 		}
 	}
 	return type;
+}
+
+/* expects the "scheme://" prefix to be removed already!
+ * eg. if full url had been
+ *   mysql://user:password@host:port/db
+ * input url to this function:
+ *   user:password@host:port/db
+ * Note:
+ *   if no database is specified, it will default to
+ *      csync2_<thishostname>_<configname>
+ *   or csync2_<thishostname>, if no explicit config name is used.
+ *
+ * Note that the output arguments *host, *user, *pass and *database will be initialized.
+ * *port should be initialized to the default port before calling this function.
+ *
+ * TODO:
+ * add support for unix domain sockets?
+ **/
+void csync_parse_url(char *url, char **host, char **user, char **pass, char **database, unsigned int *port)
+{
+	char *pos = strchr(url, '@');
+	if (pos) {
+		/* Optional user/passwd */
+		*pos = '\0';
+		*user = url;
+		url = pos + 1;
+		/* password */
+		pos = strchr(*user, ':');
+		if (pos) {
+			*pos = '\0';
+			*pass = pos + 1;
+		} else
+			*pass = NULL;
+	} else {
+		/* No user:pass@ */
+		*user = NULL;
+		*pass = NULL;
+	}
+	*host = url;
+	pos = strchr(*host, '/');
+	if (pos) {
+		// Database
+		*pos = '\0';
+		*database = pos + 1;
+	} else
+		*database = NULL;
+	pos = strchr(*host, ':');
+	if (pos) {
+		*pos = '\0';
+		*port = atoi(pos + 1);
+	}
+
+	if (!*database || !*database[0])
+		ASPRINTF(database, "csync2_%s%s%s", myhostname, cfgname[0] ? "_" : "", cfgname);
+
+	/* I just don't want to know about special characters,
+	 * or differences between db engines. */
+	for (pos = *database; *pos; pos++) {
+		switch (*pos) {
+		case 'a' ... 'z':
+		case 'A' ... 'Z':
+		case '0' ... '9':
+		case '_':
+			break;
+		default:
+			*pos = '_';
+		}
+	}
 }
 
 int db_open(const char *file, int type, db_conn_p * db)
