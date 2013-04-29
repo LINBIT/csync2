@@ -173,7 +173,7 @@ extern int csync_db_next(void *vmx, const char *err,
 		int *pN, const char ***pazValue, const char ***pazColName);
 extern void csync_db_fin(void *vmx, const char *err);
 extern const void * csync_db_colblob(void *stmtx,int col);
-extern char *db_default_database(char *dbdir, char *myhostname, char *cfg_name);
+extern char *db_default_database(char *dbdir);
 
 
 #define SQL(e, s, ...) csync_db_sql(e, s, ##__VA_ARGS__)

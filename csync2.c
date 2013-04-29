@@ -50,7 +50,6 @@ char *csync_database = 0;
 int db_type = DB_SQLITE3;
 
 static char *file_config = 0;
-static char *dbdir = DBDIR;
 char *cfgname = "";
 char *systemdir = NULL;	/* ETCDIR */
 char *lockfile = NULL;	/* ETCDIR/csync2.lock */
@@ -196,12 +195,15 @@ PACKAGE_STRING " - cluster synchronization tool, 2nd generation\n"
 "		The directory names in this output are zero-terminated.\n"
 "\n"
 "Database switches:\n"
-"	-D database-dir\n"
-"		Use sqlite database in database dir (default: /var/lib/csync2)\n"
-"\n"
-"	-a mysql-url\n"
-"		Use mysql database in URL:\n"
+"	-D database-dir or url\n"
+"		default: /var/lib/csync2\n"
+"		Absolute path: use sqlite database in that directory\n"
+"	    URLs:\n"
+"		sqlite:///some/where.db3, same as:\n"
+"		sqlite3:///some/where.db3\n"
+"		sqlite2:///some/where.db\n"
 "		mysql://[<user>:<password>@]<hostname>/<database>\n"
+"		pgsql://[<user>:<password>@]<hostname>/<database>\n"
 "\n"
 "Creating key file:\n"
 "	%s -k filename\n"
@@ -402,13 +404,9 @@ int main(int argc, char ** argv)
 		return 1;
 	}
 
-	while ( (opt = getopt(argc, argv, "a:W:s:Ftp:G:P:C:D:N:HBAIXULlSTMRvhcuoimfxrd")) != -1 ) {
+	while ( (opt = getopt(argc, argv, "W:s:Ftp:G:P:C:D:N:HBAIXULlSTMRvhcuoimfxrd")) != -1 ) {
 
 		switch (opt) {
-		        case 'a':
-			        csync_database = optarg;
-				db_type = DB_MYSQL;
-				break;
 			case 'W':
 				csync_dump_dir_fd = atoi(optarg);
 				if (write(csync_dump_dir_fd, 0, 0) < 0)
@@ -455,7 +453,7 @@ int main(int argc, char ** argv)
 				cfgname = optarg;
 				break;
 			case 'D':
-				dbdir = optarg;
+				csync_database = optarg;
 				break;
 			case 'N':
 				snprintf(myhostname, 256, "%s", optarg);
@@ -650,8 +648,8 @@ int main(int argc, char ** argv)
 	yyparse();
 	fclose(yyin);
 
-	if (!csync_database)
-		csync_database = db_default_database(dbdir, myhostname, cfgname);
+	if (!csync_database || !csync_database[0] || csync_database[0] == '/')
+		csync_database = db_default_database(csync_database);
 
 	csync_debug(2, "My hostname is %s.\n", myhostname);
 	csync_debug(2, "Database-File: %s\n", csync_database);

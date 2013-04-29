@@ -1,6 +1,5 @@
 /*
    DB API
-   
  */
 
 #include "csync2.h"
@@ -22,9 +21,15 @@
 
 int db_detect_type(const char **db_str, int type)
 {
-	const char *db_types[] = { "mysql://", "sqlite3://", "sqlite2://", "pgsql://", 0 };
-	int types[] = { DB_MYSQL, DB_SQLITE3, DB_SQLITE2, DB_PGSQL };
+	/* *INDENT-OFF* */
+	const char *db_types[]	= { "mysql://", "sqlite://", "sqlite3://", "sqlite2://", "pgsql://", 0 };
+	const int types[]	= { DB_MYSQL,   DB_SQLITE3,  DB_SQLITE3,   DB_SQLITE2,   DB_PGSQL,   DB_UNKNOWN_SCHEME };
+	/* *INDENT-ON* */
 	int index;
+
+	if (*db_str[0] == '/')
+		return DB_SQLITE3;
+
 	for (index = 0; 1; index++) {
 		if (db_types[index] == 0)
 			break;
@@ -33,6 +38,8 @@ int db_detect_type(const char **db_str, int type)
 			return types[index];
 		}
 	}
+	if (strstr(*db_str, "://"))
+		return DB_UNKNOWN_SCHEME;
 	return type;
 }
 
@@ -104,15 +111,30 @@ void csync_parse_url(char *url, char **host, char **user, char **pass, char **da
 	}
 }
 
-int db_open(const char *file, int type, db_conn_p * db)
+int db_open(const char *db_str, int type, db_conn_p * db)
 {
 	int rc = DB_ERROR;
-	const char *db_str;
-	db_str = file;
 
 	type = db_detect_type(&db_str, type);
+	if (type == DB_SQLITE2 || type == DB_SQLITE3) {
+		struct stat sbuf;
+		if (stat(db_str, &sbuf) == 0 && S_ISDIR(sbuf.st_mode)) {
+			/* trim trailing slashes; don't trim "/". */
+			size_t len = strlen(db_str);
+			char *tmp = strdup(db_str);
+			while (len > 1 && tmp[--len] == '/')
+				tmp[len] = '\0';
+			ASPRINTF((char**)&db_str, "%s/%s%s%s.db%s",
+				 tmp, myhostname, cfgname[0] ? "_" : "", cfgname, (type == DB_SQLITE3) ? "3" : "");
+			free(tmp);
+		}
+	}
+
 	/* Switch between implementation */
 	switch (type) {
+	case DB_UNKNOWN_SCHEME:
+		csync_fatal("Unknown database scheme: %s\n", db_str);
+		break;
 	case DB_SQLITE2:
 		rc = db_sqlite2_open(db_str, db);
 
@@ -129,30 +151,24 @@ int db_open(const char *file, int type, db_conn_p * db)
 				"Cannot open database file: %s, maybe you need three slashes (like sqlite:///var/lib/csync2/csync2.db)\n",
 				db_str);
 		break;
+	case DB_MYSQL:
 #ifdef HAVE_MYSQL
-	case DB_MYSQL:
 		rc = db_mysql_open(db_str, db);
-		break;
 #else
-	case DB_MYSQL:
 		csync_fatal("No Mysql support configured. Please reconfigure with --enable-mysql (database is %s).\n", file);
-		rc = DB_ERROR;
-		break;
 #endif
+		break;
+	case DB_PGSQL:
 #ifdef HAVE_POSTGRES
-	case DB_PGSQL:
 		rc = db_postgres_open(db_str, db);
-		break;
 #else
-	case DB_PGSQL:
 		csync_fatal("No Postgres SQL support configured. Please reconfigure with --enable-postgres (database is %s).\n",
-			    file);
-		rc = DB_ERROR;
-		break;
+			    db_str);
 #endif
+		break;
 
 	default:
-		csync_fatal("Database type not found. Can't open database %s\n", file);
+		csync_fatal("Database type not found. Can't open database %s\n", db_str);
 		rc = DB_ERROR;
 	}
 	if (*db)

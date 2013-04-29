@@ -296,39 +296,21 @@ void csync_db_fin(void *vmx, const char *err)
 	in_sql_query--;
 }
 
-#if defined(HAVE_SQLITE)
-#define DBEXTENSION ".db"
-#endif
-#if defined(HAVE_SQLITE3)
-#define DBEXTENSION ".db3"
-#endif
-
-char *db_default_database(char *dbdir, char *myhostname, char *cfg_name)
+char *db_default_database(char *dbdir)
 {
 	char *db;
 
+	if (!dbdir || !dbdir[0])
+		dbdir = DBDIR;
+
 #if defined(HAVE_SQLITE3)
-	if (cfg_name[0] != '\0')
-		ASPRINTF(&db, "sqlite3://%s/%s_%s" DBEXTENSION, dbdir, myhostname, cfgname);
-	else
-		ASPRINTF(&db, "sqlite3://%s/%s" DBEXTENSION, dbdir, myhostname);
+	ASPRINTF(&db, "sqlite3://%s/%s%s%s.db3", dbdir, myhostname, cfgname[0] ? "_" : "", cfgname);
 #elif defined(HAVE_SQLITE)
-	if (cfg_name[0] != '\0')
-		ASPRINTF(&db, "sqlite2://%s/%s_%s" DBEXTENSION, dbdir, myhostname, cfgname);
-	else
-		ASPRINTF(&db, "sqlite2://%s/%s" DBEXTENSION, dbdir, myhostname);
+	ASPRINTF(&db, "sqlite2://%s/%s%s%s.db", dbdir, myhostname, cfgname[0] ? "_" : "", cfgname);
 #elif defined(HAVE_MYSQL)
-	if (cfg_name[0] != '\0')
-		ASPRINTF(&db, "mysql://root@localhost/csync2_%s_%s" DBEXTENSION, myhostname, cfgname);
-	else
-		ASPRINTF(&db, "mysql://root@localhost/csync2_%s" DBEXTENSION, myhostname);
-
+	ASPRINTF(&db, "mysql://root@localhost/csync2_%s%s%s", myhostname, cfgname[0] ? "_" : "", cfgname);
 #elif defined(HAVE_POSTGRES)
-	if (cfg_name[0] != '\0')
-		ASPRINTF(&db, "pgsql://root@localhost/csync2_%s_%s" DBEXTENSION, myhostname, cfgname);
-	else
-		ASPRINTF(&db, "pgsql://root@localhost/csync2_%s" DBEXTENSION, myhostname);
-
+	ASPRINTF(&db, "pgsql://root@localhost/csync2_%s%s%s", myhostname, cfgname[0] ? "_" : "", cfgname);
 #else
 #error "No database backend available. Please install either libpg, libmysqlclient or libsqlite, reconfigure and recompile"
 #endif
