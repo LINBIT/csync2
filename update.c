@@ -907,8 +907,9 @@ found_host_check:
 	old_sigpipe_handler = signal(SIGPIPE, SIG_IGN);
 	p = popen(buffer, "w");
 
-	while ( (rc=conn_read(buffer, 512)) > 0 )
-		fwrite(buffer, rc, 1, p);
+	while ( (rc=conn_read(buffer, 512)) > 0
+		&& fwrite(buffer, rc, 1, p) == rc)
+		;
 
 	fclose(p);
 	signal(SIGPIPE, old_sigpipe_handler);

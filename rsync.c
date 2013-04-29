@@ -771,8 +771,9 @@ copy:
 		 * Need better error checks!
 		 */
 		rewind(new_file);
-		while ( (rc = fread(buffer, 1, 512, new_file)) > 0 )
-			fwrite(buffer, rc, 1, basis_file);
+		while ( (rc = fread(buffer, 1, 512, new_file)) > 0
+			&& fwrite(buffer, rc, 1, basis_file) == rc )
+			;
 		/* at least retain the temp file, if something went wrong. */
 		if (ferror(new_file) || ferror(basis_file)) {
 			csync_debug(0, "ERROR while copying temp file '%s' to basis file '%s'; "
