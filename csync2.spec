@@ -30,8 +30,8 @@ License:      GPL
 Group:        System/Monitoring
 Requires:     sqlite openssl librsync
 Autoreqprov:  on
-Version:      2.0
-Release:      0.1.rc1
+Version: 2.0
+Release:      0.2.rc2
 Source0:      csync2-%{version}.tar.gz
 URL:          http://oss.linbit.com/csync2
 BuildRoot:    %{_tmppath}/%{name}-%{version}-build
@@ -87,6 +87,9 @@ fi
 %config(noreplace) %{_sysconfdir}/csync2.cfg
 
 %changelog
+* Thu May 02 2013 Lars Ellenberg <lars@linbit.com> - 2.0-0.2.rc2
+- preparations for 2.0 release
+
 * Tue Dec 06 2005 Clifford Wolf <clifford.wolf@linbit.com>
 - Some fixes and cleanups for RPM 4.4.1
 
