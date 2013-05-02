@@ -368,38 +368,38 @@ int db_postgres_upgrade_to_schema(int version)
 	/* *INDENT-OFF* */
 	csync_db_sql("Creating action table",
 		     "CREATE TABLE action ("
-		     "  filename varchar(255) DEFAULT NULL,"
-		     "  command text,"
-		     "  logfile text,"
+		     "  filename TEXT NOT NULL,"
+		     "  command TEXT NOT NULL,"
+		     "  logfile TEXT NOT NULL,"
 		     "  UNIQUE (filename,command)"
 		     ");");
 
 	csync_db_sql("Creating dirty table",
 		     "CREATE TABLE dirty ("
-		     "  filename varchar(200) DEFAULT NULL,"
-		     "  forced int DEFAULT NULL,"
-		     "  myname varchar(100) DEFAULT NULL,"
-		     "  peername varchar(100) DEFAULT NULL,"
+		     "  filename TEXT NOT NULL,"
+		     "  forced INTEGER NOT NULL,"
+		     "  myname TEXT NOT NULL,"
+		     "  peername TEXT NOT NULL,"
 		     "  UNIQUE (filename,peername)"
 		     ");");
 
 	csync_db_sql("Creating file table",
 		     "CREATE TABLE file ("
-		     "  filename varchar(200) DEFAULT NULL,"
-		     "  checktxt varchar(200) DEFAULT NULL,"
+		     "  filename TEXT NOT NULL,"
+		     "  checktxt TEXT NOT NULL,"
 		     "  UNIQUE (filename)"
 		     ");");
 
 	csync_db_sql("Creating hint table",
 		     "CREATE TABLE hint ("
-		     "  filename varchar(255) DEFAULT NULL,"
-		     "  recursive int DEFAULT NULL"
+		     "  filename TEXT NOT NULL,"
+		     "  recursive INTEGER NOT NULL"
 		     ");");
 
 	csync_db_sql("Creating x509_cert table",
 		     "CREATE TABLE x509_cert ("
-		     "  peername varchar(255) DEFAULT NULL,"
-		     "  certdata varchar(255) DEFAULT NULL,"
+		     "  peername TEXT NOT NULL,"
+		     "  certdata TEXT NOT NULL,"
 		     "  UNIQUE (peername)"
 		     ");");
 	/* *INDENT-ON* */

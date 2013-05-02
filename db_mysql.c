@@ -294,6 +294,26 @@ int db_mysql_stmt_close(db_stmt_p stmt)
 	return DB_OK;
 }
 
+/* NOTE:
+ * NI_MAXHOST is 1025.  That should be plenty for typical hostnames.
+ *
+ * Use TEXT fields:
+ * PATH_MAX is typically 4096, and that is assumed elsewhere in the code as
+ * well.  But as all filenames (and other interesting fields) are stored as
+ * transformed by url_encode(), they can be three times as long.
+ * checktxt may be very long, if it stores the target of a very long symlink.
+ *
+ * The INTEGER are actually used as boolean flags.
+ *
+ * prefix limit MyISAM: 1000 bytes, InnoDB: 767 bytes.
+ * Which is also the max key length.
+ * utf8: up to 3 bytes per "character" --> sum of key prefix lengths: 767/3 = 255
+ *
+ * We must not define UNIQUE keys on prefixes,
+ * or we would not be able to handle long path names.
+ * We should be able to get away with just "key",
+ * typically the code does "delete from" before "insert into" anyways.
+ * */
 int db_mysql_upgrade_to_schema(int version)
 {
 	if (version < 0)
@@ -306,42 +326,43 @@ int db_mysql_upgrade_to_schema(int version)
 
 	/* *INDENT-OFF* */
 	csync_db_sql("Creating action table",
-		     "CREATE TABLE `action` ("
-		     "  `filename` varchar(4096) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,"
-		     "  `command` text,"
-		     "  `logfile` text,"
-		     "  UNIQUE KEY `filename` (`filename`(326),`command`(20))"
-		     ")");
+		     "CREATE TABLE action ("
+		     "  filename TEXT NOT NULL,"
+		     "  command TEXT NOT NULL,"
+		     "  logfile TEXT NOT NULL,"
+		     "  KEY filename (filename(255)),"
+		     "  KEY command (command(255))"
+		     ");");
 
 	csync_db_sql("Creating dirty table",
-		     "CREATE TABLE `dirty` ("
-		     "  `filename` varchar(4096) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,"
-		     "  `forced`   int(11)      DEFAULT NULL,"
-		     "  `myname`   varchar(50)  DEFAULT NULL,"
-		     "  `peername` varchar(50)  DEFAULT NULL,"
-		     "  UNIQUE KEY `filename` (`filename`(316),`peername`),"
-		     "  KEY `dirty_host` (`peername`(10))"
-		     ")");
+		     "CREATE TABLE dirty ("
+		     "  filename TEXT NOT NULL,"
+		     "  forced INTEGER NOT NULL,"
+		     "  myname TEXT NOT NULL,"
+		     "  peername TEXT NOT NULL,"
+		     "  KEY filename (filename(255)),"
+		     "  KEY dirty_host (peername(255))"
+		     ");");
 
 	csync_db_sql("Creating file table",
-		     "CREATE TABLE `file` ("
-		     "  `filename` varchar(4096) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,"
-		     "  `checktxt` varchar(200) DEFAULT NULL,"
-		     "  UNIQUE KEY `filename` (`filename`(333))"
-		     ")");
+		     "CREATE TABLE file ("
+		     "  filename TEXT NOT NULL,"
+		     "  checktxt TEXT NOT NULL,"
+		     "  KEY filename (filename(255))"
+		     ");");
 
 	csync_db_sql("Creating hint table",
-		     "CREATE TABLE `hint` ("
-		     "  `filename` varchar(4096) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,"
-		     "  `recursive` int(11)     DEFAULT NULL"
-		     ")");
+		     "CREATE TABLE hint ("
+		     "  filename TEXT NOT NULL,"
+		     "  recursive INTEGER NOT NULL"
+		     ");");
 
 	csync_db_sql("Creating x509_cert table",
-		     "CREATE TABLE `x509_cert` ("
-		     "  `peername` varchar(50)  DEFAULT NULL,"
-		     "  `certdata` varchar(255) DEFAULT NULL,"
-		     "  UNIQUE KEY `peername` (`peername`)"
-		     ")");
+		     "CREATE TABLE x509_cert ("
+		     "  peername TEXT NOT NULL,"
+		     "  certdata TEXT NOT NULL,"
+		     "  KEY peername (peername(255))"
+		     ");");
 	/* *INDENT-ON* */
 
 	return DB_OK;
