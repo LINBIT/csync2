@@ -96,6 +96,12 @@ Run in stand\-alone server mode (one connect only).
 .TP
 \fB\-R\fR
 Remove files from database which do not match config entries.
+.SS "Exit codes:"
+.IP
+The modes \fB\-H\fR, \fB\-L\fR, \fB\-M\fR and \fB\-S\fR return 2 if the requested db is empty.
+The mode \fB\-T\fR returns 2 if both hosts are in sync.
+Otherwise, only exit codes 0 (no errors)
+and 1 (some unspecified errrors) are expected.
 .SS "Modifiers:"
 .TP
 \fB\-r\fR
@@ -128,7 +134,7 @@ Don't mark all other peers as dirty when doing a \fB\-TI\fR run.
 .HP
 \fB\-G\fR Group1,Group2,Group3,...
 .IP
-Only use this groups from config\-file.
+Only use these groups from config\-file.
 .HP
 \fB\-P\fR peer1,peer1,...
 .IP
@@ -151,19 +157,37 @@ found to the specified file descriptor (when doing a \fB\-c\fR run).
 The directory names in this output are zero\-terminated.
 .SS "Database switches:"
 .HP
-\fB\-D\fR database\-dir
+\fB\-D\fR database\-dir or url
 .IP
-Use sqlite database in database dir (default: /var/lib/csync2)
-.HP
-\fB\-a\fR mysql\-url
+default: /var/lib/csync2
+    Absolute path: use sqlite database in that directory.
 .IP
-Use mysql database in URL:
-mysql://[<user>:<password>@]<hostname>/<database>
+URLs:
+    sqlite:///some/path[/database.db3]
+    sqlite3:///some/path[/database.db3]
+    sqlite2:///some/path[/database.db]
+    mysql://[<user>:<password>@]<hostname>/[database]
+    pgsql://[<user>:<password>@]<hostname>/[database]
+.IP
+If
+.B database
+is not given, it defaults to
+.B csync2_<qualified hostname>
+.IP
+Note that for non-sqlite backends, the database name is "cleaned",
+characters outside of [0-9][a-z][A-Z] will be replaced with _.
 .SS "Creating key file:"
 .IP
 .B csync2 -k filename
+.SS "Environment variables:"
+.IP
+CSYNC2_SYSTEM_DIR
+.IP
+Directory containing csync2.cfg and other csync2 system files.
+Defaults to /etc.
 .SS "Note:"
-Csync2 will refuse to do anything when a /etc/csync2.lock file is found.
+Csync2 will refuse to do anything if this file is found:
+$CSYNC2_SYSTEM_DIR/csync2.lock
 .SH "SEE ALSO"
 .PD 0
 .TP

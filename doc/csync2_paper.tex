@@ -576,7 +576,7 @@ Version: 2.0
 
 This program is free software under the terms of the GNU GPL.
 
-Usage: csync2 [-v..] [-C config-name] \
+Usage: ./csync2 [-v..] [-C config-name] \
                 [-D database-dir] [-N hostname] [-p port] ..
 
 With file parameters:
@@ -584,7 +584,7 @@ With file parameters:
         -c [-r] file..          Check files and maybe add to dirty db
         -u [-d] [-r] file..     Updates files if listed in dirty db
         -o [-r] file..          Create list of files in compare-mode
-        -f [-r] file..          Force this file in sync (resolve conflict)
+        -f [-r] file..          Force files to win next conflict resolution
         -m file..               Mark files in database as dirty
 
 Simple mode:
@@ -612,9 +612,6 @@ Without file parameters:
 
         -TT     As -T, but print the unified diffs.
 
-        The modes -H, -L, -M and -S return 2 if the requested db is empty.
-        The mode -T returns 2 if both hosts are in sync.
-
         -i      Run in inetd server mode.
         -ii     Run in stand-alone server mode.
         -iii    Run in stand-alone server mode (one connect only).
@@ -627,6 +624,12 @@ Without file parameters:
 
 \begin{tiny}
 \begin{verbatim}
+Exit codes:
+        The modes -H, -L, -M and -S return 2 if the requested db is empty.
+        The mode -T returns 2 if both hosts are in sync.
+        Otherwise, only exit codes 0 (no errors)
+        and 1 (some unspecified errrors) are expected.
+
 Modifiers:
         -r      Recursive operation over subdirectories
         -d      Dry-run on all remote update operations
@@ -648,11 +651,11 @@ Modifiers:
         -U      Don't mark all other peers as dirty when doing a -TI run.
 
         -G Group1,Group2,Group3,...
-                Only use this groups from config-file.
+                Only use these groups from config-file.
 
         -P peer1,peer1,...
-                Only update this peers (still mark all as dirty).
-                Only show files for this peers in -o (compare) mode.
+                Only update these peers (still mark all as dirty).
+                Only show files for these peers in -o (compare) mode.
 
         -F      Add new entries to dirty database with force flag set.
 
@@ -666,17 +669,29 @@ Modifiers:
                 The directory names in this output are zero-terminated.
 
 Database switches:
-
-        -D database-dir
-                Use sqlite database in database dir (defaults to /var/lib/csync2)
-
-        -a mysql-url
-                Use mysql database in URL: mysql://[<user>:<password>@]<hostname>/<database>
+        -D database-dir or url
+                default: /var/lib/csync2
+                Absolute path: use sqlite database in that directory
+            URLs:
+                sqlite:///some/path[/database.db3]
+                sqlite3:///some/path[/database.db3]
+                sqlite2:///some/path[/database.db]
+                mysql://[<user>:<password>@]<hostname>/[database]
+                pgsql://[<user>:<password>@]<hostname>/[database]
+        If database is not given, it defaults to csync2_<qualified hostname>.
+        Note that for non-sqlite backends, the database name is "cleaned",
+        characters outside of [0-9][a-z][A-Z] will be replaced with _.
 
 Creating key file:
         csync2 -k filename
 
-Csync2 will refuse to do anything when a /etc/csync2.lock file is found.
+Environment variables:
+        CSYNC2_SYSTEM_DIR
+                Directory containing csync2.cfg and other csync2 system files.
+                Defaults to /etc.
+
+Csync2 will refuse to do anything if this file is found:
+$CSYNC2_SYSTEM_DIR/csync2.lock
 \end{verbatim}
 \end{tiny}
       \tabularnewline
