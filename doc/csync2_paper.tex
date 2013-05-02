@@ -6,7 +6,8 @@
 \begin{document}
 
 \title{Cluster synchronization with \csync2}
-\author{Clifford Wolf, http://www.clifford.at/}
+\author{Original Author: Clifford Wolf for LINBIT\\
+Developed and maintained by LINBIT, http://www.linbit.com/}
 \maketitle
 
 \section{Introduction}
@@ -617,6 +618,12 @@ Without file parameters:
         -iii    Run in stand-alone server mode (one connect only).
 
         -R      Remove files from database which do not match config entries.
+
+Exit codes:
+        The modes -H, -L, -M and -S return 2 if the requested db is empty.
+        The mode -T returns 2 if both hosts are in sync.
+        Otherwise, only exit codes 0 (no errors)
+        and 1 (some unspecified errrors) are expected.
 \end{verbatim}
 \end{tiny}
 
@@ -624,12 +631,6 @@ Without file parameters:
 
 \begin{tiny}
 \begin{verbatim}
-Exit codes:
-        The modes -H, -L, -M and -S return 2 if the requested db is empty.
-        The mode -T returns 2 if both hosts are in sync.
-        Otherwise, only exit codes 0 (no errors)
-        and 1 (some unspecified errrors) are expected.
-
 Modifiers:
         -r      Recursive operation over subdirectories
         -d      Dry-run on all remote update operations
