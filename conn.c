@@ -636,6 +636,8 @@ size_t conn_gets(char *s, size_t size)
 	s[i] = 0;
 
 	conn_debug("Peer", s, i);
+	if (i > 1 && s[i-1] != '\n')
+		csync_fatal("Received line too long for buffer size (%u), giving up.\n", size);
 	return i;
 }
 
