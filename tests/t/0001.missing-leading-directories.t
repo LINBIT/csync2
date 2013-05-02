@@ -31,8 +31,9 @@ TEST_EXPECT_EXIT_CODE 2 "list non-existent db"	csync2 -L -N $N2
 mkdir -p $D1/{a,b,c}/d/e
 TEST	"init db 1"	csync2 -N $N1 -cIr $D1
 
-touch $D1/{a,b,c}/d/e/f
+touch -d "last week" $D1/{a,b,c}/d/e/f
 TEST	"check"		csync2 -N $N1 -cr $D1
+TEST	"list dirty"	csync2 -N $N1 -M
 
 # compare and sync between both instances
 # ---------------------------------------
@@ -45,6 +46,7 @@ TEST	"diff -rq"	diff -rq $D1 $D2
 rm -rf $D2/{a,b,c}
 touch $D1/{a,b,c}/d/e/f
 TEST			"check again"	csync2 -N $N1 -cr $D1
+TEST			"list dirty"	csync2 -N $N1 -M
 TEST_EXPECT_EXIT_CODE 1	"csync2 -uv"	csync2_u $N1 $N2
 
 # force 1 -> 2
