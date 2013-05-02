@@ -228,7 +228,7 @@ int db_mysql_prepare(db_conn_p conn, const char *sql, db_stmt_p * stmt_p, char *
 
 	MYSQL_RES *mysql_stmt = f.mysql_store_result_fn(conn->private);
 	if (mysql_stmt == NULL) {
-		csync_debug(2, "Error in mysql_store_result: %s", f.mysql_error_fn(conn->private));
+		csync_debug(2, "Error in mysql_store_result: %s\n", f.mysql_error_fn(conn->private));
 		return DB_ERROR;
 	}
 
