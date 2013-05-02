@@ -50,7 +50,7 @@ It is expedient for HA-clusters, HPC-clusters, COWs and server farms.
 %build
 export CFLAGS="$RPM_OPT_FLAGS -I/usr/kerberos/include"
 if ! [ -f configure ]; then ./autogen.sh; fi
-%configure
+%configure --enable-mysql --enable-postgres --enable-sqlite3
 
 make all 
 
