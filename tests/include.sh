@@ -61,15 +61,48 @@ dbg()
 
 csync2()
 {
-	dbg 1 "CSYNC2_SYSTEM_DIR=$CSYNC2_SYSTEM_DIR csync2 -D $CSYNC2_SQLITE_DIR $*"
-	command "$SOURCE_DIR/csync2" -D "$CSYNC2_SQLITE_DIR" "$@"
+	local ex
+	dbg 1 "CSYNC2_SYSTEM_DIR=$CSYNC2_SYSTEM_DIR csync2 -D $CSYNC2_DATABASE $*"
+	command "$SOURCE_DIR/csync2" -D "$CSYNC2_DATABASE" "$@"
+	ex=$?
+	dbg 1 "exit code: $ex"
+	return $ex
 }
 
 ## Does NOT remove the config file
 cleanup()
 {
-	mkdir -p "$CSYNC2_SQLITE_DIR/" 
-	rm -f "$CSYNC2_SQLITE_DIR/"*.csync2.test.db*
+	local host
+	local i
+	case $CSYNC2_DATABASE in
+		sqlite://*|sqlite2://*|sqlite3://*|/*)
+			mkdir -p "$CSYNC2_DATABASE/"
+			rm -f "$CSYNC2_DATABASE/"*.csync2.test.db*
+			;;
+		pgsql://csync2:csync2@*/)
+			host=${CSYNC2_DATABASE#pgsql://csync2:csync2@}
+			host=${host%/}
+			[[ $host = *[/\ ]* ]] && bail_out "cannot use $CSYNC2_DATABASE"
+			for i in {1..9}; do
+				psql "host=$host user=csync2 password=csync2 dbname=postgres" \
+					-c "DROP DATABASE IF EXISTS csync2_${i}_csync2_test;" \
+				|| bail_out "could not cleanup postgres database $i"
+			done
+			;;
+		mysql://csync2:csync2@*/)
+			host=${CSYNC2_DATABASE#mysql://csync2:csync2@}
+			host=${host%/}
+			[[ $host = *[/\ ]* ]] && bail_out "cannot use $CSYNC2_DATABASE"
+			for i in {1..9}; do
+				mysql --host=$host --user=csync2 --password=csync2 mysql \
+					-e "DROP DATABASE IF EXISTS csync2_${i}_csync2_test;" \
+				|| bail_out "could not cleanup mysql database $i"
+			done
+			;;
+		*)
+			bail_out "unsupported CSYNC2_DATABASE setting $CSYNC2_DATABASE"
+			;;
+	esac
 	rm -rf "$TESTS_DIR/"{1..9}
 	mkdir -p "$TESTS_DIR/"{1..9}
 }
@@ -272,9 +305,9 @@ fi
 TESTS_DIR=$(cd "$TESTS_DIR" && pwd )
 SOURCE_DIR=$(cd "$TESTS_DIR/.." && pwd )
 
-CSYNC2_PORT=30865
-CSYNC2_SYSTEM_DIR=$TESTS_DIR/etc
-CSYNC2_SQLITE_DIR=$TESTS_DIR/db
+: CSYNC2_PORT	    ${CSYNC2_PORT:=30865}
+: CSYNC2_SYSTEM_DIR ${CSYNC2_SYSTEM_DIR:=$TESTS_DIR/etc}
+: CSYNC2_DATABASE   ${CSYNC2_DATABASE:=$TESTS_DIR/db}
 
 : DEBUG_LEVEL=${DEBUG_LEVEL:=0}
 
@@ -301,7 +334,7 @@ if [[ $# -gt 1 ]] && [[ $1 = require ]]; then
 	"$@"
 fi
 
-export CSYNC2_SYSTEM_DIR CSYNC2_SQLITE_DIR
+export CSYNC2_SYSTEM_DIR CSYNC2_DATABASE
 export TESTS_DIR TESTS_TMP_DIR SOURCE_DIR
 prepare_etc_hosts
 
