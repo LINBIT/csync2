@@ -593,12 +593,13 @@ int main(int argc, char ** argv)
 	 * before we open the config file and database
 	 */
 	if ( mode == MODE_INETD ) {
-		char line[4096], *cmd, *para;
+		static char line[4 * 4096];
+		char *cmd, *para;
 
 		/* configure conn.c for inetd mode */
 		conn_set(0, 1);
 
-		if ( !conn_gets(line, 4096) ) return 0;
+		if ( !conn_gets(line, sizeof(line)) ) return 0;
 		cmd = strtok(line, "\t \r\n");
 		para = cmd ? strtok(0, "\t \r\n") : 0;
 
@@ -607,7 +608,7 @@ int main(int argc, char ** argv)
 			conn_resp(CR_OK_ACTIVATING_SSL);
 			conn_activate_ssl(1);
 
-			if ( !conn_gets(line, 4096) ) return 0;
+			if ( !conn_gets(line, sizeof(line)) ) return 0;
 			cmd = strtok(line, "\t \r\n");
 			para = cmd ? strtok(0, "\t \r\n") : 0;
 #else

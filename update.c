@@ -38,7 +38,7 @@ enum connection_response read_conn_status(const char *file, const char *host)
 	char line[4096];
 	enum connection_response conn_status;
 
-	if ( conn_gets(line, 4096) ) {
+	if ( conn_gets(line, sizeof(line)) ) {
 		conn_status = conn_response_to_enum(line);
 
 		if (!is_ok_response(conn_status))
@@ -175,10 +175,10 @@ auto_resolve_entry_point:
 		if (!is_ok_response(last_conn_status))
 			goto got_error;
 	} else {
+		static char chk1[4 * 4096];
+		const char *chk2 = "---";
 		int i, found_diff = 0;
 		int rs_check_result;
-		const char *chk2 = "---";
-		char chk1[4096];
 
 		conn_printf("SIG %s %s\n",
 				url_encode(key), url_encode(filename));
@@ -193,7 +193,7 @@ auto_resolve_entry_point:
 		if (!is_ok_response(last_conn_status))
 			goto got_error;
 
-		if ( !conn_gets(chk1, 4096) ) goto got_error;
+		if ( !conn_gets(chk1, sizeof(chk1)) ) goto got_error;
 		for (i=0; chk1[i] && chk1[i] != '\n' && chk2[i]; i++)
 			if ( chk1[i] != chk2[i] ) {
 				csync_debug(2, "File is different on peer (cktxt char #%d).\n", i);
@@ -327,10 +327,10 @@ auto_resolve_entry_point:
 		if (!is_ok_response(last_conn_status))
 			goto got_error;
 	} else {
+		static char chk1[4 * 4096];
+		const char *chk2;
 		int i, found_diff = 0;
 		int rs_check_result;
-		char chk1[4096];
-		const char *chk2;
 
 		conn_printf("SIG %s %s\n",
 				url_encode(key), url_encode(filename));
@@ -341,7 +341,7 @@ auto_resolve_entry_point:
 			goto got_error;
 		}
 
-		if ( !conn_gets(chk1, 4096) ) goto got_error;
+		if ( !conn_gets(chk1, sizeof(chk1)) ) goto got_error;
 		chk2 = csync_genchecktxt(&st, filename, 1);
 		for (i=0; chk1[i] && chk1[i] != '\n' && chk2[i]; i++)
 			if ( chk1[i] != chk2[i] ) {
@@ -517,7 +517,8 @@ maybe_auto_resolve:
 			case CSYNC_AUTO_METHOD_BIGGER:
 			case CSYNC_AUTO_METHOD_SMALLER:
 				{
-					char buffer[1024], *type, *cmd;
+					static char buffer[4 * 4096];
+					char *type, *cmd;
 					long remotedata, localdata;
 					struct stat sbuf;
 
@@ -535,7 +536,7 @@ maybe_auto_resolve:
 					if (!is_ok_response(last_conn_status))
 						goto got_error;
 
-					if ( !conn_gets(buffer, 4096) ) goto got_error_in_autoresolve;
+					if ( !conn_gets(buffer, sizeof(buffer)) ) goto got_error_in_autoresolve;
 					remotedata = atol(buffer);
 
 					if (remotedata == -1)
@@ -927,7 +928,7 @@ int csync_insynctest_readline(char **file, char **checktxt)
 	if (*checktxt) free(*checktxt);
 	*file = *checktxt = 0;
 
-	if ( !conn_gets(inbuf, 2048) ) return 1;
+	if ( !conn_gets(inbuf, sizeof(inbuf)) ) return 1;
 	if ( inbuf[0] != 'v' ) {
 		if ( !strncmp(inbuf, "OK (", 4) ) {
 			csync_debug(2, "End of query results: %s", inbuf);

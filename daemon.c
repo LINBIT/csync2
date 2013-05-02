@@ -475,10 +475,11 @@ static void destroy_tag(char *tag[32])
 }
 void csync_daemon_session()
 {
+	static char line[4 * 4096];
 	struct stat sb;
 	address_t peername = { .sa.sa_family = AF_UNSPEC, };
 	socklen_t peerlen = sizeof(peername);
-	char line[4096], *peer=0, *tag[32];
+	char *peer=0, *tag[32];
 	int i;
 
 
@@ -499,7 +500,7 @@ void csync_daemon_session()
 		break;
 	}
 
-	while ( conn_gets(line, 4096) ) {
+	while ( conn_gets(line, sizeof(line)) ) {
 		int cmdnr;
 
 		if (!setup_tag(tag, line))
