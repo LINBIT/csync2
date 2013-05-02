@@ -155,7 +155,7 @@ int db_open(const char *db_str, int type, db_conn_p * db)
 #ifdef HAVE_MYSQL
 		rc = db_mysql_open(db_str, db);
 #else
-		csync_fatal("No Mysql support configured. Please reconfigure with --enable-mysql (database is %s).\n", file);
+		csync_fatal("No Mysql support configured. Please reconfigure with --enable-mysql (database is %s).\n", db_str);
 #endif
 		break;
 	case DB_PGSQL:
