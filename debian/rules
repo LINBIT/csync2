@@ -7,7 +7,7 @@
 export DH_VERBOSE=1
 
 
-CFLAGS = -Wall -g
+CFLAGS = -Wall -g -I /usr/include/postgresql
 
 ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
 	CFLAGS += -O0
@@ -21,7 +21,7 @@ endif
 configure: configure-stamp
 configure-stamp:
 	dh_testdir
-	./configure CFLAGS="$(CFLAGS)" --prefix=/usr --localstatedir=/var --sysconfdir=/etc
+	./configure CFLAGS="$(CFLAGS)" --prefix=/usr --localstatedir=/var --sysconfdir=/etc --enable-mysql --enable-postgres --enable-sqlite3
 	touch configure-stamp
 
 build: build-stamp
