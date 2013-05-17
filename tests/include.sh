@@ -123,7 +123,14 @@ prepare_etc_hosts_bring_up_ips()
 # generates a new config file with proper %demodir% prefixes
 prepare_cfg_file()
 {
-	cat  >"$CSYNC2_SYSTEM_DIR/csync2.cfg" <<-___
+	local CFG="$CSYNC2_SYSTEM_DIR/csync2.cfg";
+	if test -e "$CFG" ; then
+		dbg 1 "$CFG already in place, using it as is"
+		return
+	fi
+
+	dbg 0 "generating $CFG"
+	cat > "$CFG" <<-___
 	group demo
 	{
 		host 1.csync2.test;
@@ -339,6 +346,7 @@ fi
 export CSYNC2_SYSTEM_DIR CSYNC2_DATABASE
 export TESTS_DIR TESTS_TMP_DIR SOURCE_DIR
 prepare_etc_hosts_bring_up_ips
+prepare_cfg_file
 
 # The Plan
 echo 1..$__test_total_cnt
