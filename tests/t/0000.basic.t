@@ -29,6 +29,10 @@ cleanup
 #	* a "simple command" with optional arguments.
 # TEST is shorthand for TEST_EXPECT_EXIT_CODE 0 
 
+# ALL tests in this just have to work.
+# bail out at the first failure
+BAIL_OUT_EARLY=1
+
 TEST_EXPECT_EXIT_CODE 1 "usage output"		csync2
 TEST_EXPECT_EXIT_CODE 1 "host not mentioned"	csync2 -L -N does.not.exist
 TEST_EXPECT_EXIT_CODE 2 "list non-existent db"	csync2 -L -N $N1
