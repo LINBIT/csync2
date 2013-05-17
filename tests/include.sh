@@ -107,7 +107,7 @@ cleanup()
 	mkdir -p "$TESTS_DIR/"{1..9}
 }
 
-prepare_etc_hosts()
+prepare_etc_hosts_bring_up_ips()
 {
 	for i in {1..9}; do
 		eval N$i=$i.csync2.test
@@ -115,6 +115,8 @@ prepare_etc_hosts()
 		eval D$i=$TESTS_DIR/$i
 		grep -qFxe "127.2.1.$i $i.csync2.test" /etc/hosts \
 		||    echo "127.2.1.$i $i.csync2.test" >> /etc/hosts
+		ip -o -f inet a s dev lo | grep -qFe " 127.2.1.$i/" ||
+		ip a add dev lo 127.2.1.$i/24
 	done
 }
 
@@ -336,7 +338,7 @@ fi
 
 export CSYNC2_SYSTEM_DIR CSYNC2_DATABASE
 export TESTS_DIR TESTS_TMP_DIR SOURCE_DIR
-prepare_etc_hosts
+prepare_etc_hosts_bring_up_ips
 
 # The Plan
 echo 1..$__test_total_cnt
