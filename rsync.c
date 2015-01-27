@@ -461,7 +461,17 @@ int csync_rs_sigfile(const char *filename, FILE **sig_file_out)
 		goto out;
 
 	csync_debug(3, "Running rs_sig_file() from librsync....\n");
+/* see upstream
+ * https://github.com/librsync/librsync/commit/152323729ac831727032daf50a10c1448b48f252
+ * as reaction to SECURITY: CVE-2014-8242
+ */
+#ifdef RS_DEFAULT_STRONG_LEN
 	result = rs_sig_file(basis_file, sig_file, RS_DEFAULT_BLOCK_LEN, RS_DEFAULT_STRONG_LEN, &stats);
+#else
+	/* For backward compatibility, for now hardcode RS_MD4_SIG_MAGIC.
+	 * TODO: allow changing to RS_BLAKE2_SIG_MAGIC. */
+	result = rs_sig_file(basis_file, sig_file, RS_DEFAULT_BLOCK_LEN, 0, RS_MD4_SIG_MAGIC, &stats);
+#endif
 	*sig_file_out = sig_file;
 	sig_file = NULL;
 	if (result != RS_DONE)
