@@ -31,7 +31,7 @@ Group:        System/Monitoring
 Requires:     sqlite openssl librsync
 Autoreqprov:  on
 Version: 2.0
-Release:      0.2.rc2
+Release:      1
 Source0:      csync2-%{version}.tar.gz
 URL:          http://oss.linbit.com/csync2
 BuildRoot:    %{_tmppath}/%{name}-%{version}-build
@@ -63,6 +63,7 @@ mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/xinetd.d
 %makeinstall
 
 install -m 644 csync2.xinetd $RPM_BUILD_ROOT%{_sysconfdir}/xinetd.d/csync2
+install -m 644 doc/csync2_paper.pdf $RPM_BUILD_ROOT%{_docdir}/csync2/csync2_paper.pdf
 
 %clean
 [ "$RPM_BUILD_ROOT" != "/" ] && [ -d $RPM_BUILD_ROOT ] && rm -rf $RPM_BUILD_ROOT
@@ -87,23 +88,5 @@ fi
 %config(noreplace) %{_sysconfdir}/csync2.cfg
 
 %changelog
-* Thu May 02 2013 Lars Ellenberg <lars@linbit.com> - 2.0-0.2.rc2
-- preparations for 2.0 release
-
-* Tue Dec 06 2005 Clifford Wolf <clifford.wolf@linbit.com>
-- Some fixes and cleanups for RPM 4.4.1
-
-* Sat Jun 04 2005 Clifford Wolf <clifford.wolf@linbit.com>
-- xinetd init script is now "%config(noreplace)"
-- Some tiny cleanups
-
-* Mon Dec 10 2004 Tim Jackson <tim@timj.co.uk>
-- Added xinetd init script
-- Abstracted some config paths
-- Tidied
-
-* Tue Oct 12 2004 Clifford Wolf <clifford.wolf@linbit.com>
-- Automatic set sepcs file 'Version' tag
-
-* Tue Sep 09 2004 - phil@linbit.com
-- initial package
+* Tue Jan 27 2015 Lars Ellenberg <lars.ellenberg@linbit.com> - 2.0-1
+- New upstream release
