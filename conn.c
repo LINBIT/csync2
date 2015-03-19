@@ -281,7 +281,7 @@ int conn_activate_ssl(int server_role)
 		return 0;
 
 	ASPRINTF(&ssl_keyfile, "%s/csync2_ssl_key.pem", systemdir);
-	ASPRINTF(&ssl_certfile, "%s/csync_ssl_cert.pem", systemdir);
+	ASPRINTF(&ssl_certfile, "%s/csync2_ssl_cert.pem", systemdir);
 
 	gnutls_global_init();
 	gnutls_global_set_log_function(ssl_log);
