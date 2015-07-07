@@ -2,7 +2,7 @@
 #  Test if this synchronization pair is in sync.
 #
 #  csync2 - cluster synchronization tool, 2nd generation
-#  Copyright (C) 2004 - 2013 LINBIT Information Technologies GmbH
+#  Copyright (C) 2004 - 2015 LINBIT Information Technologies GmbH
 #  http://www.linbit.com; see also AUTHORS
 #
 #  This program is free software; you can redistribute it and/or modify

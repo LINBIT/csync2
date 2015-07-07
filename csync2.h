@@ -1,6 +1,6 @@
 /*
  *  csync2 - cluster synchronization tool, 2nd generation
- *  Copyright (C) 2004 - 2013 LINBIT Information Technologies GmbH
+ *  Copyright (C) 2004 - 2015 LINBIT Information Technologies GmbH
  *  http://www.linbit.com; see also AUTHORS
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -21,7 +21,7 @@
 #ifndef CSYNC2_H
 #define CSYNC2_H 1
 
-#define CSYNC2_VERSION "2.0-rc1"
+#define CSYNC2_VERSION "2.0"
 
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE

@@ -1,6 +1,6 @@
 /*
  *  csync2 - cluster synchronization tool, 2nd generation
- *  Copyright (C) 2004 - 2013 LINBIT Information Technologies GmbH
+ *  Copyright (C) 2004 - 2015 LINBIT Information Technologies GmbH
  *  http://www.linbit.com; see also AUTHORS
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -100,7 +100,7 @@ void help(char *cmd)
 	printf(
 "\n"
 PACKAGE_STRING " - cluster synchronization tool, 2nd generation\n"
-"Copyright (C) 2004 - 2013 LINBIT Information Technologies GmbH\n"
+"Copyright (C) 2004 - 2015 LINBIT Information Technologies GmbH\n"
 "        http://www.linbit.com\n"
 "See also: http://git.linbit.com/csync2.git/?a=blob;f=AUTHORS\n"
 "\n"
