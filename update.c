@@ -909,11 +909,13 @@ found_host_check:
 	p = popen(buffer, "w");
 
 	while ( (rc=conn_read(buffer, 512)) > 0
-		&& fwrite(buffer, rc, 1, p) == rc)
+		&& fwrite(buffer, 1, rc, p) == rc)
 		;
 
 	fclose(p);
 	signal(SIGPIPE, old_sigpipe_handler);
+	if (rc > 0)
+		fprintf(stdout, "*** output to diff truncated\n");
 
 finish:
 	conn_close();
