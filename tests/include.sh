@@ -59,6 +59,16 @@ dbg()
 	>&44 echo "##<$lvl># $*"
 }
 
+# Sometimes (e.g. when doing "-TT"), single shot ("-iii") is not good enough.
+# But we should be able to kill that daemon without using "killall".
+# So several layers of indirection are bad,
+# the caller would not know whom to kill really.
+csync2_daemon()
+{
+	dbg 1 "CSYNC2_SYSTEM_DIR=$CSYNC2_SYSTEM_DIR csync2 -D $CSYNC2_DATABASE $*"
+	exec "$SOURCE_DIR/csync2" -D "$CSYNC2_DATABASE" "$@"
+}
+
 csync2()
 {
 	local ex
