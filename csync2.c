@@ -856,6 +856,7 @@ found_a_group:;
 
 		case MODE_TEST_SYNC: {
 			char *realname;
+			char *pfname;
 			if (init_run && init_run_with_removals)
 				init_run |= 2;
 			if (init_run && init_run_straight)
@@ -866,12 +867,14 @@ found_a_group:;
 				realname = getrealfn(argv[optind+2]);
 				csync_check_usefullness(realname, 0);
 
+				pfname=strdup(prefixencode(realname));
 				if ( mode_test_auto_diff ) {
 					csync_compare_mode = 1;
-					retval = csync_diff(argv[optind], argv[optind+1], realname);
+					retval = csync_diff(argv[optind], argv[optind+1], pfname);
 				} else
-					if ( csync_insynctest(argv[optind], argv[optind+1], init_run, 0, realname) )
+					if ( csync_insynctest(argv[optind], argv[optind+1], init_run, 0, pfname) )
 						retval = 2;
+				free(pfname);
 				break;
 			case 2:
 				if ( csync_insynctest(argv[optind], argv[optind+1], init_run, mode_test_auto_diff, 0) )
@@ -881,10 +884,12 @@ found_a_group:;
 				realname = getrealfn(argv[optind]);
 				csync_check_usefullness(realname, 0);
 
+				pfname=strdup(prefixencode(realname));
 				if ( mode_test_auto_diff )
 					csync_compare_mode = 1;
-				if ( csync_insynctest_all(init_run, mode_test_auto_diff, realname) )
+				if ( csync_insynctest_all(init_run, mode_test_auto_diff, pfname) )
 					retval = 2;
+				free(pfname);
 				break;
 			case 0:
 				if ( csync_insynctest_all(init_run, mode_test_auto_diff, 0) )

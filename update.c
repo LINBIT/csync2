@@ -884,7 +884,7 @@ found_host_check:
 	if (!is_ok_response(read_conn_status(NULL, peername)))
 		goto finish;
 
-	conn_printf("TYPE %s %s\n", g->key, filename);
+	conn_printf("TYPE %s %s\n", url_encode(g->key), url_encode(filename));
 	if (!is_ok_response(read_conn_status(NULL, peername)))
 		goto finish;
 
@@ -899,7 +899,7 @@ found_host_check:
 	setenv("my_label",buffer,1);
 	snprintf(buffer,512,"%s:%s",peername,filename);
 	setenv("peer_label",buffer,1);
-	snprintf(buffer,512,"%s",filename);
+	snprintf(buffer,512,"%s",prefixsubst(filename));
 	setenv("diff_file",buffer,1);
 	/* XXX no error check on setenv
 	 * (could be insufficient space in environment) */
