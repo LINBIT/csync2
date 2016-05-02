@@ -578,7 +578,7 @@ int main(int argc, char ** argv)
 
 	/* Some inetd connect stderr to stdout.  The debug level messages on
 	 * stderr would confuse the csync2 protocol. Log to syslog instead. */
-	if ( mode == MODE_INETD && csync_debug_level && !csync_syslog )
+	if ( mode == MODE_INETD && !csync_syslog )
 		csync_openlog();
 
 	if ( *myhostname == 0 ) {
