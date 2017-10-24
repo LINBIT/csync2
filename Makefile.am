@@ -21,7 +21,7 @@ sbin_PROGRAMS = csync2
 sbin_SCRIPTS = csync2-compare
 man_MANS = csync2.1
 
-csync2_SOURCES = action.c cfgfile_parser.y cfgfile_scanner.l check.c	\
+csync2_SOURCES = action.c cfgfile_parser.y cfgfile_scanner.l check.c cap.c \
                  checktxt.c csync2.c daemon.c db.c error.c getrealfn.c	\
                  groups.c rsync.c update.c urlencode.c conn.c prefixsubst.c \
 		 db_api.c db_sqlite.c db_sqlite2.c db_mysql.c db_postgres.c \

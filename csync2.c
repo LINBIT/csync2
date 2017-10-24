@@ -789,7 +789,7 @@ found_a_group:;
 			break;
 
 		case MODE_INETD:
-			conn_resp(CR_OK_CMD_FINISHED);
+			conn_resp(CR_OK_CMD_CAPS);
 			csync_daemon_session();
 			break;
 

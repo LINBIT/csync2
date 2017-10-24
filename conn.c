@@ -29,6 +29,7 @@
 #include <unistd.h>
 #include <netdb.h>
 #include <errno.h>
+#include "cap.h"
 
 #ifdef HAVE_LIBGNUTLS
 #  include <gnutls/gnutls.h>
@@ -75,9 +76,11 @@ static const int __response_size = sizeof(__response)/sizeof(__response[0]);
 
 const char *conn_response(unsigned i)
 {
-	if (i < __response_size
-	&& __response[i]
-	&& __response[i][0])
+	if (i == CR_OK_CMD_CAPS)
+		return get_caps();
+	else if (i < __response_size
+			&& __response[i]
+			&& __response[i][0])
 		return __response[i];
 
 	csync_fatal("BUG! No such response: %u\n", i);

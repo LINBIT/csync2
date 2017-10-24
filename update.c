@@ -30,10 +30,11 @@
 #include <fnmatch.h>
 #include <stdarg.h>
 #include <signal.h>
+#include "cap.h"
 
 static int connection_closed_error = 1;
 
-enum connection_response read_conn_status(const char *file, const char *host)
+enum connection_response _read_conn_status(const char *file, const char *host, int parse_caps)
 {
 	char line[4096];
 	enum connection_response conn_status;
@@ -43,6 +44,12 @@ enum connection_response read_conn_status(const char *file, const char *host)
 
 		if (!is_ok_response(conn_status))
 			csync_error_count++;
+		else if (parse_caps) {
+			/* parse +TOKEN flags out of `line` here, e.g.
+			 *   if (strstr(line, CAP_STR(FOO))) CAP_SET(FOO, peer_caps);
+			 * no capabilities are advertised yet. */
+		}
+
 	} else {
 		csync_error_count++;
 		connection_closed_error = 1;
@@ -55,6 +62,16 @@ enum connection_response read_conn_status(const char *file, const char *host)
 		file = "<no file>";
 	csync_debug(3, "response from peer(%s): %s [%u] <- %s", file, host, conn_status, line);
 	return conn_status;
+}
+
+enum connection_response read_conn_status(const char *file, const char *host)
+{
+	return _read_conn_status(file, host, 0);
+}
+
+enum connection_response read_conn_status_and_caps(const char *file, const char *host)
+{
+	return _read_conn_status(file, host, 1);
 }
 
 int connect_to_host(const char *peername)
@@ -95,7 +112,7 @@ int connect_to_host(const char *peername)
 	}
 
 	conn_printf("CONFIG %s\n", url_encode(cfgname));
-	if (!is_ok_response(read_conn_status(NULL, peername))) {
+	if (!is_ok_response(read_conn_status_and_caps(NULL, peername))) {
 		csync_debug(1, "Config command failed.\n");
 		conn_close();
 		return -1;

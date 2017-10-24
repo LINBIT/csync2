@@ -125,6 +125,7 @@ enum connection_response {
 	CR_OK_PATH_NOT_FOUND,		/* "OK (path_not_found).", */
 	CR_OK_CU_LATER,			/* "OK (cu_later).", */
 	CR_OK_ACTIVATING_SSL,		/* "OK (activating_ssl).", */
+	CR_OK_CMD_CAPS,			/* "OK (+CAP1 +CAP2 ...)." as this is dynamic, it is never mapped back */
 
 	CR_ERROR,
 	/* special error codes, MUST NOT start with "OK (" */
