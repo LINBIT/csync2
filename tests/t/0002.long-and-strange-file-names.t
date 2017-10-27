@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# cd to canonical path of .
+cd -P .
+
 . $(dirname $0)/../include.sh
 
 # That prepared some "node names" ($N1 .. $N9) and corresponding
