@@ -290,7 +290,7 @@ int csync_check_mod(const char *file, int recursive, int ignnoent, int init_run)
 	if ( check_type>0 && lstat_strict(prefixsubst(file), &st) != 0 ) {
 		if ( ignnoent ) return 0;
 		csync_fatal("This should not happen: "
-				"Can't stat %s.\n", file);
+				"Can't stat %s.\n", prefixsubst(file));
 	}
 
 	switch ( check_type )
