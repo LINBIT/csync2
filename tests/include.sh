@@ -283,19 +283,35 @@ require()
 
 csync2_u()
 {
+	local tmp kid now client_exit nc_exit server_exit
 	if csync2 -N $1 -M > /dev/null; then
 		csync2 -N $2 -iii -vvv &
 		kid=$!
 
+		# try to avoid the connect-before-listen race,
+		# wait for the expected listening socket to show up,
+		# with timeout using bash magic $SECONDS.
+		now=$SECONDS
+		while ! ss -tnl src $2:csync2 | grep -q ^LISTEN; do
+			kill -0 $kid
+			(( SECONDS - now < 2 ))
+			sleep 0.1
+		done
+
 		csync2 -N $1 -uvvv
 		client_exit=$?
 
-		# server still alive?
-		# then no connection was made...
-		# attempt do one now.
-		tmp=$(nc $2 $CSYNC2_PORT <<<"BYE" )
-		nc_exit=$?
+		if ss -tnl src $2:csync2 | grep -q ^LISTEN; then
+			# server still alive?
+			# then no connection was made...
+			# attempt to do one now.
+			tmp=$(nc $2 $CSYNC2_PORT <<<"BYE" )
+			nc_exit=$?
 
+			[[ $nc_exit = 0 ]] || kill $kid
+		else
+			nc_exit=1
+		fi
 		wait $kid
 		server_exit=$?
 		[[ $client_exit = 0 && $server_exit = 0 && $nc_exit != 0 ]]
