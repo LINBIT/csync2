@@ -1,12 +1,14 @@
 .\"                                      Hey, EMACS: -*- nroff -*-
-.TH CSYNC2 "1" "March 2013" "csync2 " "User Commands"
+.TH CSYNC2 "1" "October 2017" "csync2 " "User Commands"
 .SH NAME
-csync2 \- cluster synchronization tool, 2nd generation
+csync2 2.0 \- cluster synchronization tool, 2nd generation
 .SH SYNOPSIS
 .B csync2
 .RI [ -v.. ] " [-C config-name]" " [-D database-dir]" " [-N hostname]" " [-p port]" ...
 .SH COPYRIGHT
-csync2 is copyright \(co 2004 \- 2013 by LINBIT Information Technologies GmbH
+csync2 is copyright \(co 2004 \- 2017 by LINBIT Information Technologies GmbH
+.IP
+http://www.linbit.com
 .PP
 csync2 is distributed under the GNU public license.
 See the file COPYING for details.
@@ -81,9 +83,9 @@ Test only this file in this sync pair.
 .TP
 \fB\-TT\fR
 As \fB\-T\fR, but print the unified diffs.
-.IP
-The modes \fB\-H\fR, \fB\-L\fR, \fB\-M\fR and \fB\-S\fR return 2 if the requested db is empty.
-The mode \fB\-T\fR returns 2 if both hosts are in sync.
+.TP
+\fB\-R\fR
+Remove files from database which do not match config entries.
 .TP
 \fB\-i\fR
 Run in inetd server mode.
@@ -94,8 +96,10 @@ Run in stand\-alone server mode.
 \fB\-iii\fR
 Run in stand\-alone server mode (one connect only).
 .TP
-\fB\-R\fR
-Remove files from database which do not match config entries.
+\fB\-l\fR
+Send some messages to syslog instead of stderr to not clobber
+the protocol in case stdout and stderr point to the same fd.
+Default for inetd mode.
 .SS "Exit codes:"
 .IP
 The modes \fB\-H\fR, \fB\-L\fR, \fB\-M\fR and \fB\-S\fR return 2 if the requested db is empty.
@@ -120,6 +124,13 @@ lines are used or huge files are transferred.
 Open database in asynchronous mode. This will cause data
 corruption if the operating system crashes or the computer
 loses power.
+.TP
+\fB\-N\fR address
+When running in stand\-alone mode with \fB\-ii\fR bind to a
+.IP
+specific interface. You can pass either a hostname or ip
+address. If used, this value must match exactly the host
+value in each csync2.cfg file.
 .TP
 \fB\-I\fR
 Init\-run. Use with care and read the documentation first!
@@ -159,7 +170,7 @@ The directory names in this output are zero\-terminated.
 .HP
 \fB\-D\fR database\-dir or url
 .IP
-default: /var/lib/csync2
+default: \fI\,/var/lib/csync2\/\fP
     Absolute path: use sqlite database in that directory.
 .IP
 URLs:

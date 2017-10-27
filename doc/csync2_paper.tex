@@ -569,7 +569,7 @@ other hosts in the csync2 cluster (like the SSH {\tt known\_hosts} file).
 \begin{tiny}
 \begin{verbatim}
 csync2 2.0 - cluster synchronization tool, 2nd generation
-Copyright (C) 2004 - 2015 LINBIT Information Technologies GmbH
+Copyright (C) 2004 - 2017 LINBIT Information Technologies GmbH
         http://www.linbit.com
 See also: http://git.linbit.com/csync2.git/?a=blob;f=AUTHORS
 
@@ -617,6 +617,10 @@ Without file parameters:
         -ii     Run in stand-alone server mode.
         -iii    Run in stand-alone server mode (one connect only).
 
+        -l      Send some messages to syslog instead of stderr to not clobber
+                the protocol in case stdout and stderr point to the same fd.
+                Default for inetd mode.
+
         -R      Remove files from database which do not match config entries.
 
 Exit codes:
@@ -643,6 +647,11 @@ Modifiers:
         -A      Open database in asynchronous mode. This will cause data
                 corruption if the operating system crashes or the computer
                 loses power.
+
+        -N address      When running in stand-alone mode with -ii bind to a
+                specific interface. You can pass either a hostname or ip
+                address. If used, this value must match exactly the host
+                value in each csync2.cfg file.
 
         -I      Init-run. Use with care and read the documentation first!
                 You usually do not need this option unless you are
