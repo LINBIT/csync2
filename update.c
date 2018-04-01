@@ -53,7 +53,7 @@ enum connection_response read_conn_status(const char *file, const char *host)
 		csync_debug(2, "While syncing file %s:\n", file);
 	else
 		file = "<no file>";
-	csync_debug(3, "response from peer(%s): %s [%u] <- %s", file, host, conn_status, line);
+	csync_debug(3, "response from peer(%s): [%s] [%u] <- %s", file, host, conn_status, line);
 	return conn_status;
 }
 
@@ -72,7 +72,7 @@ int connect_to_host(const char *peername)
 		}
 	}
 
-	csync_debug(1, "Connecting to host %s (%s) ...\n",
+	csync_debug(1, "Connecting to host [%s] (%s) ...\n",
 			peername, use_ssl ? "SSL" : "PLAIN");
 
 	if ( conn_open(peername) ) return -1;
@@ -366,7 +366,7 @@ auto_resolve_entry_point:
 			csync_debug(1, "File is already up to date on peer.\n");
 			if ( dry_run ) {
 				printf("?S: %-15s %s\n", peername, filename);
-				// DS also skip on dry_run 
+				// DS also skip on dry_run
 				// return;
 			}
 			goto skip_action;
@@ -636,7 +636,7 @@ enum connection_response conn_hello(struct update_context *c, struct textlist *t
 {
 	enum connection_response r = CR_OK;
 	if ( !c->current_name || strcmp(c->current_name, t->value2) ) {
-		csync_debug(3, "Dirty item %s %s %d\n", t->value, t->value2, t->intvalue); 
+		csync_debug(3, "Dirty item %s %s %d\n", t->value, t->value2, t->intvalue);
 		conn_printf("HELLO %s\n", url_encode(t->value2));
 		r = read_conn_status(t->value, c->peername);
 		if (!is_ok_response(r))
@@ -1150,7 +1150,7 @@ void csync_remove_old()
 		const struct csync_group *g = 0;
 		const struct csync_group_host *h;
 
-		const char *filename = url_decode(SQL_V(0)); 
+		const char *filename = url_decode(SQL_V(0));
 
 		while ((g=csync_find_next(g, filename)) != 0) {
 			if (!strcmp(g->myname, SQL_V(1)))
@@ -1186,4 +1186,3 @@ this_dirty_record_is_ok:
 	}
 	textlist_free(tl);
 }
-
