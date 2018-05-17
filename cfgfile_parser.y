@@ -53,12 +53,14 @@ void yyerror(char *text)
 static void new_group(char *name)
 {
 	int static autonum = 1;
-	int rc; 
+	int rc = 0;
 	struct csync_group *t =
 		calloc(sizeof(struct csync_group), 1);
 
 	if (name == 0)
 		rc = asprintf(&name, "group_%d", autonum++);
+	if (!t || rc == -1)
+		csync_fatal("Out of memory while parsing config file.\n");
 
 	t->next = csync_group;
 	t->auto_method = -1;
