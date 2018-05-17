@@ -119,11 +119,11 @@ int csync_file_backup(const char *filepath)
 
 	while ((g = csync_find_next(g, filepath))) {
 		if (g->backup_directory && g->backup_generations > 1) {
-			int bak_dir_len = strlen(g->backup_directory);
-			char backup_filename[bak_dir_len + filename_len + 10];
-			char backup_otherfilename[bak_dir_len + filename_len + 10];
-			int fd_in, fd_out, i;
-			int lastSlash = 0;
+			unsigned int bak_dir_len = strlen(g->backup_directory);
+			char backup_filename[bak_dir_len + filename_len + 12];
+			char backup_otherfilename[bak_dir_len + filename_len + 12];
+			int fd_in, fd_out;
+			unsigned int i, lastSlash = 0;
 			mode_t mode;
 
 			csync_debug(1, "backup %s for group %s\n", filename, g->gname);
@@ -189,9 +189,9 @@ int csync_file_backup(const char *filepath)
 			for (i = g->backup_generations - 1; i; i--) {
 
 				if (i != 1)
-					snprintf(backup_filename + bak_dir_len + filename_len, 10, ".%d", i - 1);
+					snprintf(backup_filename + bak_dir_len + filename_len, 12, ".%u", i - 1);
 				backup_filename[bak_dir_len + filename_len] = '\0';
-				snprintf(backup_otherfilename + bak_dir_len + filename_len, 10, ".%d", i);
+				snprintf(backup_otherfilename + bak_dir_len + filename_len, 12, ".%u", i);
 
 				rc = rename(backup_filename, backup_otherfilename);
 				csync_debug(1,
