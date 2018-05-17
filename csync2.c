@@ -237,9 +237,11 @@ int create_keyfile(const char *filename)
 	int fd = open(filename, O_WRONLY|O_CREAT|O_EXCL, 0600);
 	int rand = open("/dev/urandom", O_RDONLY);
 	char matrix[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._";
-	unsigned char n;
-	int i;
+	unsigned char key[64 /* plus newline */ +1];
+	unsigned char key_bin[48 /* (sizeof(key)*8)/6 */];
+	int i, j;
 	int rc;
+
 	assert(sizeof(matrix) == 65);
 	if ( fd == -1 ) {
 		fprintf(stderr, "Can't create key file: %s\n", strerror(errno));
@@ -249,13 +251,28 @@ int create_keyfile(const char *filename)
 		fprintf(stderr, "Can't open /dev/urandom: %s\n", strerror(errno));
 		return 1;
 	}
-	for (i=0; i<64; i++) {
-		rc = read(rand, &n, 1);
-		rc = write(fd, matrix+(n&63), 1);
+	rc = read(rand, key_bin, sizeof(key_bin));
+	if (rc != sizeof(key_bin)) {
+		fprintf(stderr, "Failed to read %zu bytes from /dev/urandom: %s\n",
+				sizeof(key_bin),
+				rc == -1 ? strerror(errno) : "short read?");
+		return -1;
 	}
-	rc = write(fd, "\n", 1);
 	close(rand);
-	close(fd);
+	for (i = j = 0; i < sizeof(key)/4*4; i+=4, j+=3) {
+		key[i+0] = matrix[  key_bin[j]                              & 63];
+		key[i+1] = matrix[((key_bin[j]   >>  6)|(key_bin[j+1] <<2)) & 63];
+		key[i+2] = matrix[((key_bin[j+1] >>  4)|(key_bin[j+2] <<4)) & 63];
+		key[i+3] = matrix[ (key_bin[j+2] >>  2)                     & 63];
+	}
+	key[sizeof(key) -1] = '\n';
+	errno = 0;
+	rc = write(fd, key, sizeof(key));
+	if (close(fd) || rc != sizeof(key)) {
+		fprintf(stderr, "Failed to write out keyfile: %s\n",
+				errno ? strerror(errno) : "short write?");
+		unlink(filename);
+	}
 	return 0;
 }
 
