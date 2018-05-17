@@ -3,8 +3,8 @@
 #define DB_API_H
 
 #define DB_UNKNOWN_SCHEME   -1
-#define DB_SQLITE2 1 
-#define DB_SQLITE3 2 
+#define DB_SQLITE2 1
+#define DB_SQLITE3 2
 #define DB_MYSQL   3
 #define DB_PGSQL   4
 

@@ -27,7 +27,7 @@ cleanup
 #	* an expectation (exit code)
 #	* a description,
 #	* a "simple command" with optional arguments.
-# TEST is shorthand for TEST_EXPECT_EXIT_CODE 0 
+# TEST is shorthand for TEST_EXPECT_EXIT_CODE 0
 
 # ALL tests in this just have to work.
 # bail out at the first failure
@@ -46,7 +46,7 @@ TEST_EXPECT_EXIT_CODE 2 "list non-existent db"	csync2 -L -N $N1
 # command line. If you need that, use eval, like so:
 # TEST "short description" eval 'some | involved | pipe || other > with 2> redirection'
 
-# populate $D1 
+# populate $D1
 # ------------
 
 mkdir -p $D1/a

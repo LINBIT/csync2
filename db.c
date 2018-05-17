@@ -33,7 +33,7 @@
 int db_blocking_mode = 1;
 int db_sync_mode = 1;
 
-extern int db_type; 
+extern int db_type;
 static db_conn_p db = 0;
 // TODO make configurable
 int wait = 1;
@@ -202,7 +202,7 @@ void* csync_db_begin(const char *err, const char *fmt, ...)
 	char *sql;
 	va_list ap;
 	int rc, busyc = 0;
-	char *ppTail; 
+	char *ppTail;
 	va_start(ap, fmt);
 	VASPRINTF(&sql, fmt, ap);
 	va_end(ap);
@@ -244,11 +244,11 @@ int csync_db_next(void *vmx, const char *err,
 
 	while (1) {
 		rc = db_stmt_next(stmt);
-		if ( rc != DB_BUSY ) 
+		if ( rc != DB_BUSY )
 		  break;
-		if (busyc++ > get_dblock_timeout()) { 
-		  db = 0; 
-		  csync_fatal(DEADLOCK_MESSAGE); 
+		if (busyc++ > get_dblock_timeout()) {
+		  db = 0;
+		  csync_fatal(DEADLOCK_MESSAGE);
 		}
 		csync_debug(2, "Database is busy, sleeping a sec.\n");
 		sleep(1);
@@ -282,7 +282,7 @@ void csync_db_fin(void *vmx, const char *err)
 
 	while (1) {
 	  rc = db_stmt_close(stmt);
-	  if ( rc != DB_BUSY ) 
+	  if ( rc != DB_BUSY )
 	    break;
 	  if (busyc++ > get_dblock_timeout()) { db = 0; csync_fatal(DEADLOCK_MESSAGE); }
 	  csync_debug(2, "Database is busy, sleeping a sec.\n");

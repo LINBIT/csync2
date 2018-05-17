@@ -15,7 +15,7 @@ cd -P .
 # You may even do it several times throughout such a script.
 cleanup
 
-# populate $D1 
+# populate $D1
 # ------------
 
 f_trailing_space_pad_to_255=$(printf "%-255s" 'f trailing space pad to 255, contains umlauts äüöÄÖÜß and other special chars ☺ smiley : colon ^H ^? \\backslash single '\'' and double " quote')

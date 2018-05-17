@@ -138,7 +138,7 @@ if test "$enable_mysql" == yes
 then
 	# Check for mysql.
 	# This is a bloody hack for fedora core
-	CFLAGS="$CFLAGS `mysql_config --cflags`"	
+	CFLAGS="$CFLAGS `mysql_config --cflags`"
 
 	# Check MySQL development header
 	AC_CHECK_HEADERS([mysql/mysql.h], , [AC_MSG_ERROR([[mysql header not found; install mysql-devel and dependencies for MySQL Support]])])

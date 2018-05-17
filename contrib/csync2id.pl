@@ -60,7 +60,7 @@ sub logger {
 	my($level,@args)=@_;
 	my ($prio)=$prios{$level}||$prios{'default'}; # :$prios{'default'};
 	if($usesyslog) {
-		syslog($prio,@args) if (($level<= LOGDEBUG && $level<=$::debug)||($::debug>=LOGDEBUG && $level&$::debug)) 
+		syslog($prio,@args) if (($level<= LOGDEBUG && $level<=$::debug)||($::debug>=LOGDEBUG && $level&$::debug))
 	} else {
 		print "LOG: $prio ";
 		print(@args);
@@ -184,7 +184,7 @@ sub checkchildren {
 ################################################################################
 # CSYNC RUNNERS
 # groups queued hints into single csync commands
-# run csync update and check commands 
+# run csync update and check commands
 ################################################################################
 
 # use constant { CSYNCHINT => 0 , CSYNCCHECK=>1 , CSYNCUPDATE=>2 };
@@ -322,7 +322,7 @@ while () {
 		logger(LOGDEBUG, "Main: timeout->check and update");
 		runchecker();
 		runupdater();
-		# 
+		#
 	}
 	if($nfound>0) {
 		my @events = $inotify->read;

@@ -219,8 +219,8 @@ int csync_file_backup(const char *filepath)
 				snprintf(error_buffer, 1024, "Write error while backing up '%s': %s\n", filename, strerror(errno));
 
 				cmd_error = error_buffer;
-				// TODO verify file disapeared ? 
-				// 
+				// TODO verify file disapeared ?
+				//
 				// return 1;
 			}
 			csync_setBackupFileStatus(backup_filename, bak_dir_len);
@@ -243,7 +243,7 @@ int csync_copy_file(int fd_in, int fd_out)
 			if (rc == -1) {
 				close(fd_in);
 				close(fd_out);
-				//TODO verify return code. 
+				//TODO verify return code.
 				return errno;
 			}
 			write_len += rc;

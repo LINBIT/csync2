@@ -16,7 +16,7 @@ cleanup
 #	* an expectation (exit code)
 #	* a description,
 #	* a "simple command" with optional arguments.
-# TEST is shorthand for TEST_EXPECT_EXIT_CODE 0 
+# TEST is shorthand for TEST_EXPECT_EXIT_CODE 0
 
 TEST_EXPECT_EXIT_CODE 2 "list non-existent db"	csync2 -L -N $N1
 TEST_EXPECT_EXIT_CODE 2 "list non-existent db"	csync2 -L -N $N2
@@ -25,7 +25,7 @@ TEST_EXPECT_EXIT_CODE 2 "list non-existent db"	csync2 -L -N $N2
 # in preparation for the next test,
 # remove some files, create some files, change some content
 
-# populate $D1 
+# populate $D1
 # ------------
 
 mkdir -p $D1/a

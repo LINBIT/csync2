@@ -25,7 +25,7 @@ configure-stamp:
 	touch configure-stamp
 
 build: build-stamp
-build-stamp: configure-stamp 
+build-stamp: configure-stamp
 	dh_testdir
 	$(MAKE)
 	touch build-stamp
@@ -35,12 +35,12 @@ clean:
 	dh_testroot
 	rm -f build-stamp configure-stamp
 	-$(MAKE) clean
-	dh_clean 
+	dh_clean
 
 install: build
 	dh_testdir
 	dh_testroot
-	dh_clean -k 
+	dh_clean -k
 	dh_installdirs
 	install csync2 $(CURDIR)/debian/csync2/usr/sbin/csync2
 	install csync2-compare $(CURDIR)/debian/csync2/usr/sbin/csync2-compare
@@ -55,7 +55,7 @@ binary-indep: build install
 binary-arch: build install
 	dh_testdir
 	dh_testroot
-	dh_installchangelogs 
+	dh_installchangelogs
 	dh_installdocs
 	dh_installman csync2.1
 	dh_installcron

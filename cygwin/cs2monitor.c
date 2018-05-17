@@ -438,7 +438,7 @@ restart_entry_point:
 			wheel_counter = (wheel_counter+1) % 16;
 			remaining_restart_time = restart_time - time(0);
 
-			printf("[%02d:%02d] (%c) %.*s\r", 
+			printf("[%02d:%02d] (%c) %.*s\r",
 				(int)(remaining_restart_time / 60),
 				(int)(remaining_restart_time % 60),
 				"/-\\|/-\\|:.,.:`:|"[wheel_counter],

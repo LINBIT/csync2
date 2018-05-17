@@ -366,7 +366,7 @@ auto_resolve_entry_point:
 			csync_debug(1, "File is already up to date on peer.\n");
 			if ( dry_run ) {
 				printf("?S: %-15s %s\n", peername, filename);
-				// DS also skip on dry_run 
+				// DS also skip on dry_run
 				// return;
 			}
 			goto skip_action;
@@ -636,7 +636,7 @@ enum connection_response conn_hello(struct update_context *c, struct textlist *t
 {
 	enum connection_response r = CR_OK;
 	if ( !c->current_name || strcmp(c->current_name, t->value2) ) {
-		csync_debug(3, "Dirty item %s %s %d\n", t->value, t->value2, t->intvalue); 
+		csync_debug(3, "Dirty item %s %s %d\n", t->value, t->value2, t->intvalue);
 		conn_printf("HELLO %s\n", url_encode(t->value2));
 		r = read_conn_status(t->value, c->peername);
 		if (!is_ok_response(r))
@@ -1155,7 +1155,7 @@ void csync_remove_old()
 		const struct csync_group *g = 0;
 		const struct csync_group_host *h;
 
-		const char *filename = url_decode(SQL_V(0)); 
+		const char *filename = url_decode(SQL_V(0));
 
 		while ((g=csync_find_next(g, filename)) != 0) {
 			if (!strcmp(g->myname, SQL_V(1)))

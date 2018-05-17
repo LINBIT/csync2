@@ -12,7 +12,7 @@
 # You may even do it several times throughout such a script.
 cleanup
 
-# populate $D1 
+# populate $D1
 # ------------
 
 create_some_files()

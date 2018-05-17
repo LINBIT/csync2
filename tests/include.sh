@@ -1,20 +1,20 @@
 #!/bin/bash
 
 ################################################################
-# This is a small collection of helper functions to produce 
+# This is a small collection of helper functions to produce
 # TAP, as in http://en.wikipedia.org/wiki/Test_Anything_Protocol
 # excercised by prove(1)
 #
-# 
+#
 # Minimal Introduction
 # --------------------
-# 
+#
 # Each test script (*/*.t) will include this file,
 # which will generate a "testing plan
 # http://search.cpan.org/~petdance/Test-Harness-2.64/lib/Test/Harness/TAP.pod#THE_TAP_FORMAT
-# 
+#
 # TAP's general format is:
-# 
+#
 #     1..N
 #     ok 1 Description # Directive
 #     # Diagnostic
@@ -25,19 +25,19 @@
 #     not ok 49 # TODO not yet implemented
 #     not ok 50 # SKIP needs 77bit architecture
 #     more tests....
-# 
+#
 # Skipping whole test files:
-# 
+#
 #     1..0 # Skipped: WWW::Mechanize not installed
-# 
+#
 # Bail out!
-# 
+#
 # As an emergency measure a test script can decide that further tests are useless
 # (e.g. missing dependencies) and testing should stop immediately. In that case
 # the test script prints the magic words
-# 
+#
 #     Bail out! MySQL is not running.
-# 
+#
 ################################################################
 
 # You better not use fd 44 for anything else...
@@ -316,7 +316,7 @@ csync2_u()
 		server_exit=$?
 		[[ $client_exit = 0 && $server_exit = 0 && $nc_exit != 0 ]]
 	else
-		echo "Apparently nothing dirty on $1, not starting server on $2" 
+		echo "Apparently nothing dirty on $1, not starting server on $2"
 		# but still do the csync2 -u ...
 		csync2 -N $1 -uvvv
 	fi
@@ -357,7 +357,7 @@ case "$0" in
 	export -f csync2
 	;;
 *)
-		
+
 	TESTS_TMP_DIR=$(mktemp -d "$TESTS_DIR/tmp.XXX")
 	trap 'rm -rf "$TESTS_TMP_DIR"' EXIT
 

@@ -36,7 +36,7 @@ AM_YFLAGS = -d
 BUILT_SOURCES = cfgfile_parser.h
 LIBS += -ldl
 CLEANFILES = cfgfile_parser.c cfgfile_parser.h cfgfile_scanner.c	\
-             private_librsync private_libsqlite config.log		
+             private_librsync private_libsqlite config.log
 
 DISTCLEANFILES = config.status config.h .deps/*.Po stamp-h1 Makefile Makefile.in configure
 
@@ -49,7 +49,7 @@ MANTEXSRC = $(MANNAME).tex
 MANAUX = $(MANNAME).aux
 MANPDF = $(MANNAME).pdf
 
-docfiles += $(MANPDF) 
+docfiles += $(MANPDF)
 
 CLEANFILES += $(MANPDF) $(MANAUX) $(MANNAME).log $(MANNAME).idx $(MANNAME).out $(MANNAME).toc
 

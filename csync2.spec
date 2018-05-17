@@ -38,10 +38,10 @@ BuildRoot:    %{_tmppath}/%{name}-%{version}-build
 Summary:      Cluster sync tool
 
 %description
-Csync2 is a cluster synchronization tool. It can be used to keep files on 
-multiple hosts in a cluster in sync. Csync2 can handle complex setups with 
+Csync2 is a cluster synchronization tool. It can be used to keep files on
+multiple hosts in a cluster in sync. Csync2 can handle complex setups with
 much more than just 2 hosts, handle file deletions and can detect conflicts.
-It is expedient for HA-clusters, HPC-clusters, COWs and server farms. 
+It is expedient for HA-clusters, HPC-clusters, COWs and server farms.
 
 %prep
 %setup
@@ -52,7 +52,7 @@ export CFLAGS="$RPM_OPT_FLAGS -I/usr/kerberos/include"
 if ! [ -f configure ]; then ./autogen.sh; fi
 %configure --enable-mysql --enable-postgres --enable-sqlite3
 
-make all 
+make all
 
 %install
 [ "$RPM_BUILD_ROOT" != "/" ] && [ -d $RPM_BUILD_ROOT ] && rm -rf $RPM_BUILD_ROOT
