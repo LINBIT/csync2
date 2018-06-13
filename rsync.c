@@ -49,7 +49,7 @@
  *
  * @return index of the terminating byte.
  **/
-static size_t strlcpy(char *d, const char *s, size_t bufsize)
+size_t strlcpy(char *d, const char *s, size_t bufsize)
 {
         size_t len = strlen(s);
         size_t ret = len;
