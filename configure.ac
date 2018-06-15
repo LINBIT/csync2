@@ -43,7 +43,7 @@ AM_CONDITIONAL([HAVE_PDFLATEX], test -n "$PDFLATEX")
 
 
 dnl inspired by rsync's configure.ac
-AC_CHECK_FUNCS(fchmod setmode open64 mkstemp64)
+AC_CHECK_FUNCS(fchmod setmode open64 mkstemp64 strlcpy)
 AC_CACHE_CHECK([for secure mkstemp],csync_cv_HAVE_SECURE_MKSTEMP,[
 AC_TRY_RUN([#include <stdlib.h>
 #include <sys/types.h>

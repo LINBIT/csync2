@@ -49,6 +49,7 @@
  *
  * @return index of the terminating byte.
  **/
+#ifndef HAVE_STRLCPY
 static size_t strlcpy(char *d, const char *s, size_t bufsize)
 {
         size_t len = strlen(s);
@@ -61,6 +62,7 @@ static size_t strlcpy(char *d, const char *s, size_t bufsize)
         }
         return ret;
 }
+#endif
 
 /* splits filepath at the last '/', if any, like so:
  *	dirname		basename	filepath
