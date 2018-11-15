@@ -63,7 +63,7 @@ mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/xinetd.d
 %makeinstall
 
 install -m 644 csync2.xinetd $RPM_BUILD_ROOT%{_sysconfdir}/xinetd.d/csync2
-install -m 644 doc/csync2_paper.pdf $RPM_BUILD_ROOT%{_docdir}/csync2/csync2_paper.pdf
+install -m 644 doc/csync2.adoc $RPM_BUILD_ROOT%{_docdir}/csync2/csync2.adoc
 
 %clean
 [ "$RPM_BUILD_ROOT" != "/" ] && [ -d $RPM_BUILD_ROOT ] && rm -rf $RPM_BUILD_ROOT
@@ -80,7 +80,7 @@ fi
 %{_sbindir}/csync2-compare
 %{_var}/lib/csync2
 %doc %{_mandir}/man1/csync2.1.gz
-%doc %{_docdir}/csync2/csync2_paper.pdf
+%doc %{_docdir}/csync2/csync2.adoc
 %doc %{_docdir}/csync2/ChangeLog
 %doc %{_docdir}/csync2/README
 %doc %{_docdir}/csync2/AUTHORS

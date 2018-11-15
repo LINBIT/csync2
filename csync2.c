@@ -100,9 +100,10 @@ void help(char *cmd)
 	printf(
 "\n"
 PACKAGE_STRING " - cluster synchronization tool, 2nd generation\n"
-"Copyright (C) 2004 - 2015 LINBIT Information Technologies GmbH\n"
-"        http://www.linbit.com\n"
-"See also: http://git.linbit.com/csync2.git/?a=blob;f=AUTHORS\n"
+"Copyright (C) 2004 - 2013  LINBIT Information Technologies GmbH\n"
+"Copyright (C) 2008 - 2018  LINBIT HA Solutions GmbH\n"
+"        https://www.linbit.com\n"
+"See also: https://github.com/LINBIT/csync2/\n"
 "\n"
 "Version: " CSYNC2_VERSION "\n"
 "\n"

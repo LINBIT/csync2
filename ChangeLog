@@ -1,5 +1,5 @@
 Please see git for a complete changelog:
-http://git.linbit.com/csync2.git/
+https://github.com/LINBIT/csync2/
 
-git clone git://git.linbit.com/csync2.git
+git clone https://github.com/LINBIT/csync2/
 cd csync2 && git log

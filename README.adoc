@@ -1,0 +1,43 @@
+
+About csync2
+------------
+
+Csync2 is a cluster synchronization tool. It can be used to keep files on
+multiple hosts in a cluster in sync. Csync2 can handle complex setups with
+much more than just 2 hosts, handle file deletions and can detect conflicts.
+
+It is expedient for HA-clusters, HPC-clusters, COWs and server farms. If
+you are looking for a tool to sync your laptop with your workstation, you
+better have a look at Unison (http://www.cis.upenn.edu/~bcpierce/unison/)
+too.
+
+The csync2 git tree can be found at https://github.com/LINBIT/csync2/.
+
+Copyright
+---------
+
+csync2 - cluster synchronization tool, 2nd generation +
+Copyright © 2004 - 2013  LINBIT Information Technologies GmbH +
+Copyright © 2008 - 2018  https://www.linbit.com[LINBIT HA Solutions GmbH] +
+see also <<AUTHORS#,AUTHORS>>
+
+License
+-------
+SPDX-License-Identifier: GPL-2.0-or-later
+
+Documentation
+-------------
+
+You should definitely read the documentation before trying to setup csync2, +
+see <<doc/csync2#>>
+
+Mailing List
+------------
+
+There is a csync2 mailing list:
+
+http://lists.linbit.com/mailman/listinfo/csync2
+
+It is recommended to subscribe to this list if you are using csync2 in
+production environments.
+
