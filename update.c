@@ -1156,11 +1156,12 @@ void csync_remove_old()
 		const struct csync_group_host *h;
 
 		const char *filename = url_decode(SQL_V(0));
+		const char *peername = url_decode(SQL_V(2));
 
 		while ((g=csync_find_next(g, filename)) != 0) {
 			if (!strcmp(g->myname, SQL_V(1)))
 				for (h = g->host; h; h = h->next) {
-					if (!strcmp(h->hostname, SQL_V(2)))
+					if (!strcmp(h->hostname, peername))
 						goto this_dirty_record_is_ok;
 				}
 		}

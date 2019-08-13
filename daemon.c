@@ -77,7 +77,7 @@ void csync_file_update(const char *filename, const char *peername)
 	struct stat st;
 	SQL("Removing file from dirty db",
 			"delete from dirty where filename = '%s' and peername = '%s'",
-			url_encode(filename), peername);
+			url_encode(filename), url_encode(peername));
 	if ( lstat_strict(prefixsubst(filename), &st) != 0 || csync_check_pure(filename) ) {
 		SQL("Removing file from file db",
 			"delete from file where filename = '%s'",
