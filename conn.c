@@ -276,6 +276,7 @@ int conn_activate_ssl(int server_role)
 	char *ssl_keyfile;
 	char *ssl_certfile;
 	int err;
+	int handshake_repeat = 0;
 
 	if (csync_conn_usessl)
 		return 0;
@@ -333,40 +334,46 @@ int conn_activate_ssl(int server_role)
 		(gnutls_transport_ptr_t)(long)conn_fd_out
 	);
 
-	err = gnutls_handshake(conn_tls_session);
-	switch(err) {
-	case GNUTLS_E_SUCCESS:
-		break;
 
-	case GNUTLS_E_WARNING_ALERT_RECEIVED:
-		alrt = gnutls_alert_get(conn_tls_session);
-		fprintf(
-			csync_debug_out,
-			"SSL: warning alert received from peer: %d (%s).\n",
-			alrt, gnutls_alert_get_name(alrt)
-		);
-		break;
+	do {
+		handshake_repeat = 0;
+		err = gnutls_handshake(conn_tls_session);
+		switch(err) {
+		case GNUTLS_E_SUCCESS:
+			break;
 
-	case GNUTLS_E_FATAL_ALERT_RECEIVED:
-		alrt = gnutls_alert_get(conn_tls_session);
-		fprintf(
-			csync_debug_out,
-			"SSL: fatal alert received from peer: %d (%s).\n",
-			alrt, gnutls_alert_get_name(alrt)
-		);
+		case GNUTLS_E_WARNING_ALERT_RECEIVED:
+			alrt = gnutls_alert_get(conn_tls_session);
+			fprintf(
+				csync_debug_out,
+				"SSL: warning alert received from peer: %d (%s).\n",
+				alrt, gnutls_alert_get_name(alrt)
+			);
+			handshake_repeat = 1;
+			break;
 
-	default:
-		gnutls_bye(conn_tls_session, GNUTLS_SHUT_RDWR);
-		gnutls_deinit(conn_tls_session);
-		gnutls_certificate_free_credentials(conn_x509_cred);
-		gnutls_global_deinit();
+		case GNUTLS_E_FATAL_ALERT_RECEIVED:
+			alrt = gnutls_alert_get(conn_tls_session);
+			fprintf(
+				csync_debug_out,
+				"SSL: fatal alert received from peer: %d (%s).\n",
+				alrt, gnutls_alert_get_name(alrt)
+			);
+			// fall-through!
 
-		csync_fatal(
-			"SSL: handshake failed: %s (%s)\n",
-			gnutls_strerror(err),
-			gnutls_strerror_name(err)
-		);
-	}
+		default:
+			gnutls_bye(conn_tls_session, GNUTLS_SHUT_RDWR);
+			gnutls_deinit(conn_tls_session);
+			gnutls_certificate_free_credentials(conn_x509_cred);
+			gnutls_global_deinit();
+
+			csync_fatal(
+				"SSL: handshake failed: %s (%s)\n",
+				gnutls_strerror(err),
+				gnutls_strerror_name(err)
+			);
+		}
+	} while (handshake_repeat);
 
 	csync_conn_usessl = 1;
 
