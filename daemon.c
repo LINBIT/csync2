@@ -747,6 +747,7 @@ void csync_daemon_session()
 						goto conn_without_ssl_ok;
 				}
 				cmd_error = conn_response(CR_ERR_SSL_EXPECTED);
+				peer = NULL;
 			}
 conn_without_ssl_ok:;
 #endif
