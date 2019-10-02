@@ -53,7 +53,7 @@ enum connection_response read_conn_status(const char *file, const char *host)
 		csync_debug(2, "While syncing file %s:\n", file);
 	else
 		file = "<no file>";
-	csync_debug(3, "response from peer(%s): %s [%u] <- %s", file, host, conn_status, line);
+	csync_debug(3, "response from peer(%s): [%s] [%u] <- %s", file, host, conn_status, line);
 	return conn_status;
 }
 
@@ -72,7 +72,7 @@ int connect_to_host(const char *peername)
 		}
 	}
 
-	csync_debug(1, "Connecting to host %s (%s) ...\n",
+	csync_debug(1, "Connecting to host [%s] (%s) ...\n",
 			peername, use_ssl ? "SSL" : "PLAIN");
 
 	if ( conn_open(peername) ) return -1;
@@ -1191,4 +1191,3 @@ this_dirty_record_is_ok:
 	}
 	textlist_free(tl);
 }
-

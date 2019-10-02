@@ -664,9 +664,12 @@ int main(int argc, char ** argv)
 
 		for (i=0; cfgname[i]; i++)
 			if ( !(cfgname[i] >= '0' && cfgname[i] <= '9') &&
-			     !(cfgname[i] >= 'a' && cfgname[i] <= 'z') ) {
+			     !(cfgname[i] >= 'a' && cfgname[i] <= 'z') &&
+					 !(cfgname[i] >= 'A' && cfgname[i] <= 'Z') &&
+					 !(cfgname[i] == '_' || cfgname[i] == '-' || cfgname[i] == '.'  )
+				 ) {
 				(mode == MODE_INETD ? conn_printf : csync_fatal)
-						("Config names are limited to [a-z0-9]+.\n");
+						("Config names are limited to [a-zA-Z0-9_.-]+.\n");
 				return mode != MODE_INETD;
 			}
 
@@ -684,8 +687,8 @@ int main(int argc, char ** argv)
 	if (!csync_database || !csync_database[0] || csync_database[0] == '/')
 		csync_database = db_default_database(csync_database);
 
-	csync_debug(2, "My hostname is %s.\n", myhostname);
-	csync_debug(2, "Database-File: %s\n", csync_database);
+	csync_debug(2, "My hostname is [%s].\n", myhostname);
+	csync_debug(2, "Database-File: [%s]\n", csync_database);
 
 	{
 		const struct csync_group *g;
@@ -961,4 +964,3 @@ found_a_group:;
 	if ( retval >= 0 && csync_error_count == 0 ) return retval;
 	return csync_error_count != 0;
 }
-

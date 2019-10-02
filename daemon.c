@@ -356,6 +356,7 @@ int verify_peername(const char *name, address_t *peeraddr)
 	struct addrinfo *result, *rp;
 	int try_mapped_ipv4;
 	int s;
+	char _address[INET6_ADDRSTRLEN];
 
 	/* Obtain address(es) matching host */
 	memset(&hints, 0, sizeof(struct addrinfo));
@@ -367,7 +368,6 @@ int verify_peername(const char *name, address_t *peeraddr)
 		csync_debug(1, "getaddrinfo: %s\n", gai_strerror(s));
 		return 0;
 	}
-
 	try_mapped_ipv4 =
 		af == AF_INET6 &&
 		!memcmp(&peeraddr->sa_in6.sin6_addr,
@@ -378,23 +378,48 @@ int verify_peername(const char *name, address_t *peeraddr)
 
 	for (rp = result; rp != NULL; rp = rp->ai_next) {
 		/* both IPv4 */
-		if (af == AF_INET && rp->ai_family == AF_INET &&
-		    !memcmp(&((struct sockaddr_in*)rp->ai_addr)->sin_addr,
+
+
+		if (af == AF_INET && rp->ai_family == AF_INET){
+			csync_debug(3,"getaddrinfo translates peername [%s] to ip [%s]\n",name,
+				inet_ntop(AF_INET, &((struct sockaddr_in*)rp->ai_addr)->sin_addr,
+					_address,sizeof(_address)) );
+			if (!memcmp(&((struct sockaddr_in*)rp->ai_addr)->sin_addr,
 			    &peeraddr->sa_in.sin_addr, sizeof(struct in_addr)))
-			break;
+					break;
+			else csync_debug(3, "Doesn't match incoming AF_INET [%s]\n",
+				inet_ntop(AF_INET, &peeraddr->sa_in.sin_addr,
+					_address,sizeof(_address)) );
+		}
+
 		/* both IPv6 */
-		if (af == AF_INET6 && rp->ai_family == AF_INET6 &&
-		    !memcmp(&((struct sockaddr_in6*)rp->ai_addr)->sin6_addr,
+		if (af == AF_INET6 && rp->ai_family == AF_INET6) {
+			csync_debug(3,"getaddrinfo translates peername [%s] to ip [%s]\n",name,
+				inet_ntop(AF_INET6, &((struct sockaddr_in*)rp->ai_addr)->sin_addr,
+					_address,sizeof(_address)) );
+		  if (!memcmp(&((struct sockaddr_in6*)rp->ai_addr)->sin6_addr,
 			    &peeraddr->sa_in6.sin6_addr, sizeof(struct in6_addr)))
-			break;
+					break;
+			else csync_debug(3, "Doesn't match incoming AF_INET6 [%s]\n",
+				inet_ntop(AF_INET6, &peeraddr->sa_in6.sin6_addr,
+					_address,sizeof(_address)) );
+     }
 		/* peeraddr IPv6, but actually ::ffff:I.P.v.4,
 		 * and forward lookup returned IPv4 only */
 		if (af == AF_INET6 && rp->ai_family == AF_INET &&
-		    try_mapped_ipv4 &&
-		    !memcmp(&((struct sockaddr_in*)rp->ai_addr)->sin_addr,
+		    try_mapped_ipv4) {
+				csync_debug(3,"getaddrinfo translates peername [%s] to ip [%s]\n",name,
+						inet_ntop(AF_INET, &((struct sockaddr_in*)rp->ai_addr)->sin_addr,
+							_address,sizeof(_address)) );
+				if (!memcmp(&((struct sockaddr_in*)rp->ai_addr)->sin_addr,
 			    (unsigned char*)&peeraddr->sa_in6.sin6_addr + 12,
 			    sizeof(struct in_addr)))
-			break;
+					break;
+					else csync_debug(3, "Doesn't match incoming AF_INET6 [%s]\n",
+						inet_ntop(AF_INET6, &peeraddr->sa_in6.sin6_addr,
+							_address,sizeof(_address)) );
+		}
+
 	}
 	freeaddrinfo(result);
 	if (rp != NULL) /* memcmp found a match */
@@ -734,6 +759,7 @@ void csync_daemon_session()
 			if (verify_peername(tag[1], &peername)) {
 				peer = strdup(tag[1]);
 			} else {
+				csync_debug(3, "Peername [%s] forward ipnrs don't match incoming ipnr\n", peername,tag[1]);
 				peer = NULL;
 				cmd_error = conn_response(CR_ERR_IDENTIFICATION_FAILED);
 				break;
