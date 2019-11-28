@@ -23,7 +23,7 @@
 # and creating the source tar file.
 
 PACKAGE=csync2
-URL=http://git.linbit.com/csync2.git
+URL=https://github.com/LINBIT/csync2
 
 case "$1" in
   -*)
@@ -38,11 +38,9 @@ case "$1" in
 	[[ $RELEASE = $VERSION ]] && RELEASE=1
 	set -ex
 
-	which pdflatex
-
 	LANG=C LC_ALL=C date "+csync2 ($VERSION-$RELEASE) unstable; urgency=low%n%n`
 		`  * New Upstream Version.%n%n -- Lars Ellenberg `
-		`<lars+csync2@linbit.com>  %a, %d %b %Y `
+		`<lars.ellenberg@linbit.com>  %a, %d %b %Y `
 		`%H:%M:%S %z%n" > debian/changelog.new
 	cat debian/changelog >> debian/changelog.new
 	mv debian/changelog.new debian/changelog
