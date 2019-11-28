@@ -31,8 +31,8 @@
 #include "dl.h"
 
 #ifdef HAVE_MYSQL
-#include <mysql/mysql.h>
-#include <mysql/mysqld_error.h>
+#include <mysql.h>
+#include <mysqld_error.h>
 
 static struct db_mysql_fns {
 	MYSQL *(*mysql_init_fn) (MYSQL *);
@@ -53,16 +53,16 @@ static void *dl_handle;
 
 static void db_mysql_dlopen(void)
 {
-	csync_debug(2, "Opening shared library libmysqlclient.so\n");
-	dl_handle = dlopen("libmysqlclient.so", RTLD_LAZY);
+	csync_debug(2, "Opening shared library " LIBMYSQLCLIENT_SO "\n");
+	dl_handle = dlopen(LIBMYSQLCLIENT_SO, RTLD_LAZY);
 	if (dl_handle == NULL) {
 		csync_fatal
-		    ("Could not open libmysqlclient.so: %s\n"
+		    ("Could not open " LIBMYSQLCLIENT_SO ": %s\n"
 		     "Please install Mysql client library (libmysqlclient) or use other database (sqlite, postgres)\n",
 		     dlerror());
 	}
 
-	csync_debug(2, "Reading symbols from shared library libmysqlclient.so\n");
+	csync_debug(2, "Reading symbols from shared library " LIBMYSQLCLIENT_SO "\n");
 
 	LOOKUP_SYMBOL(dl_handle, mysql_init);
 	LOOKUP_SYMBOL(dl_handle, mysql_real_connect);
@@ -206,8 +206,6 @@ int db_mysql_exec(db_conn_p conn, const char *sql)
 
 int db_mysql_prepare(db_conn_p conn, const char *sql, db_stmt_p * stmt_p, char **pptail)
 {
-	int rc = DB_ERROR;
-
 	*stmt_p = NULL;
 
 	if (!conn)
@@ -219,7 +217,7 @@ int db_mysql_prepare(db_conn_p conn, const char *sql, db_stmt_p * stmt_p, char *
 	}
 	db_stmt_p stmt = malloc(sizeof(*stmt));
 	/* TODO avoid strlen, use configurable limit? */
-	rc = f.mysql_query_fn(conn->private, sql);
+	f.mysql_query_fn(conn->private, sql);
 
 	if (f.mysql_warning_count_fn(conn->private) > 0) {
 		print_warnings(1, conn->private);

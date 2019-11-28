@@ -58,16 +58,16 @@ static void *dl_handle;
 
 static void db_postgres_dlopen(void)
 {
-	csync_debug(2, "Opening shared library libpq.so\n");
+	csync_debug(2, "Opening shared library " LIBPQ_SO "\n");
 
-	dl_handle = dlopen("libpq.so", RTLD_LAZY);
+	dl_handle = dlopen(LIBPQ_SO, RTLD_LAZY);
 	if (dl_handle == NULL) {
 		csync_fatal
-		    ("Could not open libpq.so: %s\n"
+		    ("Could not open " LIBPQ_SO ": %s\n"
 		     "Please install postgres client library (libpg) or use other database (sqlite, mysql)\n",
 		     dlerror());
 	}
-	csync_debug(2, "Reading symbols from shared library libpq.so\n");
+	csync_debug(2, "Reading symbols from shared library " LIBPQ_SO "\n");
 
 	LOOKUP_SYMBOL(dl_handle, PQconnectdb);
 	LOOKUP_SYMBOL(dl_handle, PQstatus);

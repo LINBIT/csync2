@@ -33,15 +33,6 @@ AC_PROG_INSTALL
 AC_PROG_YACC
 AM_PROG_LEX
 
-# Check for presence of pdfLaTeX
-AC_CHECK_PROG(PDFLATEX, pdflatex, pdflatex)
-if test -z "$PDFLATEX"; then
-  AC_MSG_WARN([Unable to create PDF version of the user manual.])
-fi
-
-AM_CONDITIONAL([HAVE_PDFLATEX], test -n "$PDFLATEX")
-
-
 dnl inspired by rsync's configure.ac
 AC_CHECK_FUNCS(fchmod setmode open64 mkstemp64 strlcpy)
 AC_CACHE_CHECK([for secure mkstemp],csync_cv_HAVE_SECURE_MKSTEMP,[
@@ -116,9 +107,9 @@ AC_ARG_ENABLE([gnutls],
 	[AS_HELP_STRING([--disable-gnutls],[enable/disable GNU TLS support (default is enabled)])],
 	[], [ enable_gnutls=yes ])
 
+PKG_PROG_PKG_CONFIG
 if test "$enable_gnutls" != no
 then
-   PKG_PROG_PKG_CONFIG
    PKG_CHECK_MODULES([LIBGNUTLS], [gnutls >= 2.6.0], [
       AC_DEFINE([HAVE_LIBGNUTLS], 1, [Define to 1 when using GNU TLS library])
    ])
@@ -137,21 +128,33 @@ AC_ARG_ENABLE([postgres],
 if test "$enable_mysql" == yes
 then
 	# Check for mysql.
-	# This is a bloody hack for fedora core
-	CFLAGS="$CFLAGS `mysql_config --cflags`"
+	CFLAGS="$CFLAGS `pkg-config --cflags mysqlclient`"
 
 	# Check MySQL development header
-	AC_CHECK_HEADERS([mysql/mysql.h], , [AC_MSG_ERROR([[mysql header not found; install mysql-devel and dependencies for MySQL Support]])])
+	AC_CHECK_HEADERS([mysql.h], , [AC_MSG_ERROR([[mysql header not found; install mysql-devel and dependencies for MySQL Support]])])
 
 	AC_DEFINE([HAVE_MYSQL], 1, [Define if mysql support is wanted])
+
+	# [] quotes, or autofoo will strip the character class [] in sed, breaking the regex.
+	[LIBMYSQLCLIENT_SO=$( readlink $(pkg-config --variable=libdir mysqlclient)/libmysqlclient.so | sed -e 's,^.*/,,;s/\(\.so\.[0-9]*\)\..*$/\1/')]
+	test -n "$LIBMYSQLCLIENT_SO" || AC_MSG_ERROR([Could not determine library name to be used in dlopen for mysql support])
 fi
+AC_DEFINE_UNQUOTED([LIBMYSQLCLIENT_SO], ["$LIBMYSQLCLIENT_SO"], [library name to be used in dlopen for mysql support])
 
 if test "$enable_postgres" == yes
 then
+	CFLAGS="$CFLAGS `pkg-config --cflags libpq`"
         AC_CHECK_HEADERS([libpq-fe.h], , [AC_MSG_ERROR([[postgres header not found; install libpq-dev and dependencies for Postgres support]])])
 
 	AC_DEFINE([HAVE_POSTGRES], 1, [Define if postgres support is wanted])
+
+	# Hmpf. libdir not included in libpq.pc; use pg_config
+	# LIBPQ_SO=$( readlink $(pkg-config --variable=libdir libpq)/libpq.so | sed -e 's,^.*/,,;s/\(\.so\.[0-9]*\)\..*$/\1/')
+	# [] quotes, or autofoo will strip the character class [] in sed, breaking the regex.
+	[LIBPQ_SO=$( readlink $(pg_config --libdir)/libpq.so | sed -e 's,^.*/,,;s/\(\.so\.[0-9]*\)\..*$/\1/')]
+	test -n "$LIBPQ_SO" || AC_MSG_ERROR([Could not determine library name to be used in dlopen for postgres support])
 fi
+AC_DEFINE_UNQUOTED([LIBPQ_SO], ["$LIBPQ_SO"], [library name to be used in dlopen for postgres support])
 
 # at least one db backend must be configured.
 
