@@ -33,7 +33,7 @@ Autoreqprov:  on
 Version: 2.0
 Release:      1
 Source0:      csync2-%{version}.tar.gz
-URL:          http://oss.linbit.com/csync2
+URL:          https://github.com/LINBIT/csync2#readme
 BuildRoot:    %{_tmppath}/%{name}-%{version}-build
 Summary:      Cluster sync tool
 

@@ -13,6 +13,12 @@ too.
 
 The csync2 git tree can be found at https://github.com/LINBIT/csync2/.
 
+Documentation
+-------------
+
+You should definitely read the documentation before trying to setup csync2, +
+see <<doc/csync2#>>
+
 Copyright
 ---------
 
@@ -24,12 +30,6 @@ see also <<AUTHORS#,AUTHORS>>
 License
 -------
 SPDX-License-Identifier: GPL-2.0-or-later
-
-Documentation
--------------
-
-You should definitely read the documentation before trying to setup csync2, +
-see <<doc/csync2#>>
 
 Mailing List
 ------------
