@@ -227,6 +227,14 @@ csync2 stream tcp nowait root \
 
 to /etc/inetd.conf.
 
+[[configuration-file]]
+Configuration File
+~~~~~~~~~~~~~~~~~~
+
+A simple Csync^2^ configuration file. The configuration
+filename is /etc/csync2.cfg when no -C _configname_ option has been
+passed and /etc/csync2__configname_.cfg with a -C _configname_ option.
+
 ....
 group mygroup                           # A synchronization group (see 3.4.1)
 {
@@ -262,29 +270,6 @@ prefix homedir                          # a prefix declaration (see 3.4.7)
         on *:        /home;
 }
 ....
-
-....
-csync2 -cr /
-if csync2 -M; then
-        echo "!!"
-        echo "!! There are unsynced changes! Type 'yes' if you still want to"
-        echo "!! exit (or press crtl-c) and anything else if you want to start"
-        echo "!! a new login shell instead."
-        echo "!!"
-        if read -p "Do you really want to logout? " in &&
-           [ ".$in" != ".yes" ]; then
-                exec bash --login
-        fi
-fi
-....
-
-[[configuration-file]]
-Configuration File
-~~~~~~~~~~~~~~~~~~
-
-Figure 1 shows a simple Csync^2^ configuration file. The configuration
-filename is /etc/csync2.cfg when no -C _configname_ option has been
-passed and /etc/csync2__configname_.cfg with a -C _configname_ option.
 
 [[synchronization-groups]]
 Synchronization Groups
@@ -489,6 +474,56 @@ lock before giving up. Default is 12 seconds. The amount will be
 slightly randomized with a jitter of up to 6 seconds based on the
 respective process id.
 
+[[backing-up]]
+Backing up
+^^^^^^^^^^
+
+Csync^2^ can back up the files it modifies. This may be useful for
+scenarios where one is afraid of accidentally syncing files in the wrong
+direction.
+
+The backup-directory statement is used to tell Csync^2^ in which
+directory it should create the backup files and the backup-generations
+statement is used to tell Csync^2^ how many old versions of the files
+should be kept in the backup directory.
+
+The files in the backup directory are named like the file they back up,
+with all slashes substituted by underscores and a generation counter
+appended. Note that only the file content, not the metadata such as
+ownership and permissions are backed up.
+
+Per default Csync^2^ does not back up the files it modifies. The default
+value for backup-generations is 3.
+
+[[activating-the-logout-check]]
+Activating the Logout Check
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The Csync^2^ sources contain a little script called csync2_locheck.sh
+
+....
+csync2 -cr /
+if csync2 -M; then
+        echo "!!"
+        echo "!! There are unsynced changes! Type 'yes' if you still want to"
+        echo "!! exit (or press crtl-c) and anything else if you want to start"
+        echo "!! a new login shell instead."
+        echo "!!"
+        if read -p "Do you really want to logout? " in &&
+           [ ".$in" != ".yes" ]; then
+                exec bash --login
+        fi
+fi
+....
+
+If you copy that script into your ~/.bash_logout script (or include it
+using the source shell command), the shell will not let you log out if
+there are any unsynced changes.
+
+[[database-schema]]
+Database Schema
+---------------
+
 ....
 CREATE TABLE file (
         filename, checktxt,
@@ -516,43 +551,7 @@ CREATE TABLE x509_cert (
 );
 ....
 
-[[backing-up]]
-Backing up
-^^^^^^^^^^
-
-Csync^2^ can back up the files it modifies. This may be useful for
-scenarios where one is afraid of accidentally syncing files in the wrong
-direction.
-
-The backup-directory statement is used to tell Csync^2^ in which
-directory it should create the backup files and the backup-generations
-statement is used to tell Csync^2^ how many old versions of the files
-should be kept in the backup directory.
-
-The files in the backup directory are named like the file they back up,
-with all slashes substituted by underscores and a generation counter
-appended. Note that only the file content, not the metadata such as
-ownership and permissions are backed up.
-
-Per default Csync^2^ does not back up the files it modifies. The default
-value for backup-generations is 3.
-
-[[activating-the-logout-check]]
-Activating the Logout Check
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The Csync^2^ sources contain a little script called csync2_locheck.sh
-(Figure 2).
-
-If you copy that script into your ~/.bash_logout script (or include it
-using the source shell command), the shell will not let you log out if
-there are any unsynced changes.
-
-[[database-schema]]
-Database Schema
----------------
-
-Figure 3 shows the Csync^2^ database schema. The database can be
+This shows the Csync^2^ database schema. The database can be
 accessed using the sqlite command line shell. All string values are URL
 encoded in the database.
 
@@ -595,6 +594,10 @@ other hosts in the csync2 cluster (like the SSH known_hosts file).
 [[running-csync2]]
 Running Csync^2^
 ----------------
+
+Simply calling csync2 without any additional arguments prints out a help
+message (see below). A more detailed description of the most important
+usage scenarios is given in the next sections.
 
 ....
 csync2 2.0 - cluster synchronization tool, 2nd generation
@@ -727,10 +730,6 @@ Environment variables:
 Csync2 will refuse to do anything if this file is found:
 $CSYNC2_SYSTEM_DIR/csync2.lock
 ....
-
-Simply calling csync2 without any additional arguments prints out a help
-message (Figure 4). A more detailed description of the most important
-usage scenarios is given in the next sections.
 
 [[just-synchronizing-the-files]]
 Just synchronizing the files
