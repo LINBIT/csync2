@@ -23,6 +23,7 @@
 # norootforbuild
 # neededforbuild  openssl openssl-devel
 
+BuildRequires: automake autoconf mysql-devel postgresql-devel byacc flex
 BuildRequires: sqlite-devel sqlite librsync gnutls-devel librsync-devel
 
 Name:         csync2
@@ -82,8 +83,8 @@ fi
 %doc %{_mandir}/man1/csync2.1.gz
 %doc %{_docdir}/csync2/csync2.adoc
 %doc %{_docdir}/csync2/ChangeLog
-%doc %{_docdir}/csync2/README
-%doc %{_docdir}/csync2/AUTHORS
+%doc %{_docdir}/csync2/README.adoc
+%doc %{_docdir}/csync2/AUTHORS.adoc
 %config(noreplace) %{_sysconfdir}/xinetd.d/csync2
 %config(noreplace) %{_sysconfdir}/csync2.cfg
 
