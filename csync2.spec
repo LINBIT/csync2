@@ -21,6 +21,8 @@ BuildRequires:  bison
 BuildRequires:  flex
 BuildRequires:  libgnutls-devel
 BuildRequires:  librsync-devel
+BuildRequires:  mysql-devel
+BuildRequires:  postgresql-devel
 BuildRequires:  hostname
 # openssl required at build time due to rpmlint checks which run postinstall script which uses openssl
 BuildRequires:  openssl
