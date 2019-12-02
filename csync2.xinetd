@@ -1,4 +1,4 @@
-# default: on
+# default: off
 # description: csync2
 service csync2
 {
@@ -9,7 +9,9 @@ service csync2
 	group		= root
 	server		= /usr/sbin/csync2
 	server_args	= -i -l
+	port		= 30865
+	type		= UNLISTED
 	#log_on_failure	+= USERID
-	disable		= no
+	disable		= yes
 	# only_from	= 192.168.199.3 192.168.199.4
 }
