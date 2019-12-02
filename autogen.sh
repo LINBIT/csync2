@@ -23,6 +23,17 @@ autoheader
 automake --add-missing --copy
 autoconf
 
+my_defaults=(
+	--prefix=/usr
+	--localstatedir=/var
+	--sysconfdir=/etc/csync2/
+	--enable-sqlite3
+	--enable-mysql
+	--enable-postgres
+	--enable-systemd
+)
+
+
 if [ "$1" = clean ]; then
 	./configure && make distclean
 	rm -rf librsync[.-]* libsqlite.* sqlite-*
@@ -33,12 +44,12 @@ if [ "$1" = clean ]; then
 	rm -rf cygwin/librsync-0.9.7.tar.gz
 	rm -rf cygwin/sqlite-2.8.16.tar.gz
 else
-	./configure  --prefix=/usr --localstatedir=/var --sysconfdir=/etc
+	./configure "${my_defaults[@]}"
 
+	set +x
 	echo ""
 	echo "Configured as"
-	echo "./configure  --prefix=/usr --localstatedir=/var --sysconfdir=/etc"
+	echo "./configure ${my_defaults[*]}"
 	echo ""
-	echo "reconfigure, if you want it different"
+	echo "reconfigure, if you don't like that"
 fi
-

@@ -32,6 +32,13 @@ csync2_SOURCES = action.c cfgfile_parser.y cfgfile_scanner.l check.c	\
 
 EXTRA_DIST = csync2.cfg csync2.xinetd
 
+INSTALL_TARGETS = install-config-files
+
+if USE_SYSTEMD
+EXTRA_DIST += csync2.socket csync2@.service
+INSTALL_TARGETS += install-systemd-files
+endif
+
 AM_YFLAGS = -d
 BUILT_SOURCES = cfgfile_parser.h
 LIBS += -ldl
@@ -40,7 +47,7 @@ CLEANFILES = cfgfile_parser.c cfgfile_parser.h cfgfile_scanner.c	\
 
 DISTCLEANFILES = config.status config.h .deps/*.Po stamp-h1 Makefile Makefile.in configure
 
-docfiles = ChangeLog README.adoc AUTHORS.adoc doc/csync2.adoc
+docfiles = ChangeLog README.adoc AUTHORS.adoc doc/csync2.adoc COPYING
 
 doc_DATA = $(docfiles)
 dist_doc_DATA = $(docfiles)
@@ -62,11 +69,18 @@ endif
 AM_CPPFLAGS  = -D'DBDIR="$(localstatedir)/lib/csync2"'
 AM_CPPFLAGS += -D'ETCDIR="$(sysconfdir)"'
 
-install-data-local:
+install-config-files:
 	$(mkinstalldirs) $(DESTDIR)$(sysconfdir)
 	$(mkinstalldirs) $(DESTDIR)$(localstatedir)/lib/csync2
 	test -e $(DESTDIR)$(sysconfdir)/csync2.cfg || \
 		$(INSTALL_DATA) $(srcdir)/csync2.cfg $(DESTDIR)$(sysconfdir)/csync2.cfg
+
+install-systemd-files:
+	$(MKDIR_P) $(DESTDIR)$(SYSTEMD_UNITDIR)
+	$(INSTALL_DATA) csync2.socket $(DESTDIR)$(SYSTEMD_UNITDIR)/csync2.socket
+	$(INSTALL_DATA) csync2@.service $(DESTDIR)$(SYSTEMD_UNITDIR)/csync2@.service
+
+install-data-local: $(INSTALL_TARGETS)
 
 cert:
 	$(mkinstalldirs) $(DESTDIR)$(sysconfdir)

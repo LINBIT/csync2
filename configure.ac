@@ -29,6 +29,7 @@ AM_CONFIG_HEADER(config.h)
 
 # Checks for programs.
 AC_PROG_CC
+AC_PROG_CPP
 AC_PROG_INSTALL
 AC_PROG_YACC
 AM_PROG_LEX
@@ -163,6 +164,18 @@ if test "$enable_postgres" != yes && test "$enable_mysql" != yes &&
 then
 	AC_MSG_ERROR([No database backend configured. Please enable either sqlite, sqlite3, mysql or postgres.])
 fi
+
+AC_ARG_ENABLE([systemd],
+	AS_HELP_STRING([--enable-systemd], [enable systemd support]),
+	[use_systemd=$enableval], [use_systemd=no])
+AM_CONDITIONAL(USE_SYSTEMD, test "x$use_systemd" != "xno")
+AC_SUBST(USE_SYSTEMD)
+
+AC_ARG_WITH([systemd-unitdir],
+	AS_HELP_STRING([--with-systemd-unitdir=PATH],
+		[specify exact directory for systemd service files, defaults to PREFIX/lib/systemd/system/]),
+	[SYSTEMD_UNITDIR=$withval], [SYSTEMD_UNITDIR="${prefix}/lib/systemd/system"])
+AC_SUBST(SYSTEMD_UNITDIR)
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

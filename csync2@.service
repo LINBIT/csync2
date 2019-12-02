@@ -1,0 +1,9 @@
+[Unit]
+Description=csync2 connection handler
+After=syslog.target
+
+[Service]
+ExecStart=-/usr/sbin/csync2 -i -v
+StandardInput=socket
+StandardOutput=socket
+
