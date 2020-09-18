@@ -1,8 +1,8 @@
 Source: csync2
 Section: admin
 Priority: optional
-Maintainer: Philipp Richter <philipp.richter@linbit.com>
-Build-Depends: debhelper (>= 4.0.0), librsync-dev, libsqlite3-dev, libc6-dev, libgnutls-dev, bison, flex
+Maintainer: Lars Ellenberg <lars.ellenberg@linbit.com>
+Build-Depends: debhelper (>= 4.0.0), librsync-dev, libsqlite3-dev, libc6-dev, libgnutls28-dev, bison, flex
 Standards-Version: 3.6.2
 
 Package: csync2
