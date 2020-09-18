@@ -469,7 +469,7 @@ auto_resolve_entry_point:
 
 skip_action:
 	if ( !S_ISLNK(st.st_mode) ) {
-		conn_printf("SETIME %s %s %Ld\n",
+		conn_printf("SETIME %s %s %lld\n",
 				url_encode(key), url_encode(filename),
 				(long long)st.st_mtime);
 		last_conn_status = read_conn_status(filename, peername);

@@ -49,7 +49,7 @@ const char *csync_genchecktxt(const struct stat *st, const char *filename, int i
 	xxprintf("v1");
 
 	if ( !S_ISLNK(st->st_mode) && !S_ISDIR(st->st_mode) )
-		xxprintf(":mtime=%Ld", ign_mtime ? (long long)0 : (long long)st->st_mtime);
+		xxprintf(":mtime=%lld", ign_mtime ? (long long)0 : (long long)st->st_mtime);
 
 	if ( !csync_ignore_mod )
 		xxprintf(":mode=%d", (int)st->st_mode);
@@ -61,7 +61,7 @@ const char *csync_genchecktxt(const struct stat *st, const char *filename, int i
 		xxprintf(":gid=%d", (int)st->st_gid);
 
 	if ( S_ISREG(st->st_mode) )
-		xxprintf(":type=reg:size=%Ld", (long long)st->st_size);
+		xxprintf(":type=reg:size=%lld", (long long)st->st_size);
 
 	if ( S_ISDIR(st->st_mode) )
 		xxprintf(":type=dir");
