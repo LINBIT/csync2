@@ -1,3 +1,9 @@
+csync2 (2.1~0rc1) unstable; urgency=low
+
+  * Preparing new Upstream Version.
+
+ -- Lars Ellenberg <lars.ellenberg@linbit.com>  Fri, 18 Sep 2020 14:39:57 +0200
+
 csync2 (2.0-1) unstable; urgency=low
 
   * Preparing new Upstream Version

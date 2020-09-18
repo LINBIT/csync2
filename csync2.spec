@@ -1,41 +1,38 @@
-# csync2 - cluster synchronization tool, 2nd generation
-# Copyright (C) 2004 - 2015 LINBIT Information Technologies GmbH
-# http://www.linbit.com; see also AUTHORS
 #
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
+# spec file for package csync2
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# Copyright 2004-2020 LINBIT, Vienna, Austria
 #
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+# SPDX-License-Identifier: GPL-2.0-or-later
 
-#
-# spec file for package csync2 (Version 2.0)
-#
+Summary:        Cluster synchronization tool
+License:        GPL-2.0-or-later
+Group:          Productivity/Clustering/HA
 
-# norootforbuild
-# neededforbuild  openssl openssl-devel
+Name:           csync2
+Version: 2.1
+Release: 0rc1
+URL:            https://github.com/LINBIT/csync2#readme
+Source0:        %{name}-%{version}-%{release}.tar.gz
 
-BuildRequires: sqlite-devel sqlite librsync gnutls-devel librsync-devel
+BuildRequires:  autoconf
+BuildRequires:  automake
+BuildRequires:  bison
+BuildRequires:  flex
+BuildRequires:  libgnutls-devel
+BuildRequires:  librsync-devel
+BuildRequires:  hostname
+# openssl required at build time due to rpmlint checks which run postinstall script which uses openssl
+BuildRequires:  openssl
+BuildRequires:  pkgconfig
+BuildRequires:  sqlite3-devel
+Requires:       openssl
+Requires:       sqlite3
+%if 0%{?suse_version} >= 1210 || 0%{?rhel} >= 7
+BuildRequires:  systemd
+%endif
 
-Name:         csync2
-License:      GPL
-Group:        System/Monitoring
-Requires:     sqlite openssl librsync
-Autoreqprov:  on
-Version: 2.0
-Release:      1
-Source0:      csync2-%{version}.tar.gz
-URL:          https://github.com/LINBIT/csync2#readme
-BuildRoot:    %{_tmppath}/%{name}-%{version}-build
-Summary:      Cluster sync tool
+BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 
 %description
 Csync2 is a cluster synchronization tool. It can be used to keep files on
@@ -50,29 +47,30 @@ It is expedient for HA-clusters, HPC-clusters, COWs and server farms.
 %build
 export CFLAGS="$RPM_OPT_FLAGS -I/usr/kerberos/include"
 if ! [ -f configure ]; then ./autogen.sh; fi
-%configure --enable-mysql --enable-postgres --enable-sqlite3
+%configure --enable-mysql --enable-postgres --enable-sqlite3 \
+	--sysconfdir=%{_sysconfdir}/csync2 --docdir=%{_docdir}/%{name}
 
-make all
+make %{?_smp_mflags}
 
 %install
-[ "$RPM_BUILD_ROOT" != "/" ] && [ -d $RPM_BUILD_ROOT ] && rm -rf $RPM_BUILD_ROOT
-mkdir -p $RPM_BUILD_ROOT%{_sbindir}
-mkdir -p $RPM_BUILD_ROOT%{_var}/lib/csync2
-mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/xinetd.d
-
 %makeinstall
 
-install -m 644 csync2.xinetd $RPM_BUILD_ROOT%{_sysconfdir}/xinetd.d/csync2
-install -m 644 doc/csync2.adoc $RPM_BUILD_ROOT%{_docdir}/csync2/csync2.adoc
+mkdir -p %{buildroot}%{_localstatedir}/lib/csync2
+install -m 644 doc/csync2.adoc %{buildroot}%{_docdir}/csync2/csync2.adoc
+install -m 644 doc/csync2-quickstart.adoc %{buildroot}%{_docdir}/csync2/csync2-quickstart.adoc
 
 %clean
 [ "$RPM_BUILD_ROOT" != "/" ] && [ -d $RPM_BUILD_ROOT ] && rm -rf $RPM_BUILD_ROOT
 make clean
 
+%pre
+%service_add_pre csync2.socket
+
 %post
 if ! grep -q "^csync2" %{_sysconfdir}/services ; then
      echo "csync2          30865/tcp" >>%{_sysconfdir}/services
 fi
+%service_add_post csync2.socket
 
 %files
 %defattr(-,root,root)
@@ -88,5 +86,8 @@ fi
 %config(noreplace) %{_sysconfdir}/csync2.cfg
 
 %changelog
+* Fri Sep 18 2020 Lars Ellenberg <lars.ellenberg@linbit.com> - 2.1-1
+- New upstream release
+
 * Tue Jan 27 2015 Lars Ellenberg <lars.ellenberg@linbit.com> - 2.0-1
 - New upstream release

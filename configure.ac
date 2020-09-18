@@ -17,7 +17,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 # Process this file with autoconf to produce a configure script.
-AC_INIT(csync2, 2.0, csync2@lists.linbit.com)
+AC_INIT(csync2, 2.1-0rc1, csync2@lists.linbit.com)
 AM_INIT_AUTOMAKE
 
 AC_CONFIG_SRCDIR(csync2.c)
