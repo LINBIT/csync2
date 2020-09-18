@@ -1,0 +1,82 @@
+Getting started with Csync^2^
+=============================
+
+All commands detailed here need to be executed as root, so be extra careful.
+
+The config file for Csync^2^ is `/etc/csync2/csync2.cfg`. Here is an example:
+
+....
+mygroup {
+  host host1;
+  host host2;
+  key     /etc/csync2/mygroup.key;
+  include /etc/csync2/csync2.cfg;
+  include /etc/testfile;
+}
+....
+
+This will sync the Csync^2^ configuration and `/etc/testfile` between `host1` and
+`host2`. Create the file on `host1`. Note that hostnames should typically be the FQDN
+returned by `hostname` footnote:[
+Technically correct: when talking to a peer, Csync^2^ "introduces" itself with
+its "hostname"; the peer then does a forward name lookup on this provided name,
+and double checks that the client address returned by the `getpeername()`
+socket api matches this forward lookup for the introduction.].
+
+Generate the pre-shared key used for authentication:
+```
+  csync2 -k /etc/csync2/mygroup.key
+```
+
+Copy the configuration file and the pre-shared key to host2:
+```
+  scp /etc/csync2/csync2.cfg /etc/csync2/mygroup.key host2:/etc/csync2/
+```
+
+The SSL key and certificate may be generated upon package installation,
+but you can create your own if you like. The files are:
+```
+  /etc/csync2/csync2_ssl_key.pem
+  /etc/csync2/csync2_ssl_cert.pem
+```
+
+Note that the common name (CN) in each node's SSL certificate should match
+the hostname, or the SSL connection may fail.  If you ever replace a node, and its
+SSL key changes, existing nodes will still have a cached copy of the old key,
+and the connection will fail.  To remove the old key from an existing node's
+cache, run the following command on each existing node:
+```
+  csync2 --ls-ssl-cert <some-hostname>
+  csync2 --rm-ssl-cert <replaced-hostname>
+```
+
+The Csync^2^ service is disabled by default. To start it on both your hosts
+using systemd (preferred):
+```
+  systemctl enable csync2.socket
+  systemctl start csync2.socket
+```
+
+If you would prefer to do it the old way with xinetd, run:
+```
+  chkconfig csync2 on
+  chkconfig --level 345 xinetd on
+  service xinetd restart
+```
+
+If you are running iptables, you need to open tcp port 30865 on both hosts so
+that the other host can connect.
+
+Now you should be able to run and initial verbose sync on both hosts:
+```
+    csync2 -xv
+```
+
+Once everything looks good, you can add a file with the following line as
+`/etc/cron.d/csync2` or add it to `/etc/crontab`:
+```
+*/5 * * * * root csync2 -x
+```
+
+Happy syncing!
+
