@@ -686,6 +686,45 @@ io_error:
 	return -1;
 }
 
+/* The "temporary" newfname typically has been created as "-rw------- root:root".
+ * Before we rename it into place, "clone" the permissions and ownership of the
+ * old file to avoid files already with the "correct name", but root owned and
+ * unreadable by the applications, if even for a short time.
+ * If the old file does not exist (or cannot be stat()ed), ignore.
+ * If we cannot rename into place, but have to truncate/rewrite,
+ * we keep the existing file anyways, so no ownership/permission change happens.
+ * If permissions and/or ownership has also changed, in addition to
+ * content, those will be explicitly synced "soon".
+ * If there are errors while cloning the ownership or permissions, so what?
+ * Ignore, it stays at root:root 0600, and won't be worse than before.
+ *
+ * Can we do better?
+ * Until we change the ugly ad-hoc csync2 "protocol" to use "transaction" like
+ * semantics, and know all of the changed content, plus ownership, permissions,
+ * mtime, ACLs and other meta data as context information before starting to
+ * act on it on the receiving side, I don't see how.
+ */
+static void clone_ownership_and_permissions(const char *newfname, const char *oldfname)
+{
+	struct stat sbuf;
+	int uid, gid;
+	if (stat(oldfname, &sbuf))
+		return; /* At least we tried */
+	uid = csync_ignore_uid ? -1 : sbuf.st_uid;
+	gid = csync_ignore_gid ? -1 : sbuf.st_gid;
+	csync_debug(3, "Cloning ownership and permissions to tmp file: 0o%03o %d:%d %s [%s]\n",
+			sbuf.st_mode, uid, gid, newfname, oldfname);
+	if (chown(newfname, uid, gid))
+		csync_debug(3, "Error '%s' for chown(%s,%d,%d) rsync-patch: %s\n",
+				strerror(errno), newfname, uid, gid, oldfname);
+	if (chmod(newfname, sbuf.st_mode))
+		csync_debug(3, "Error '%s' for chmod(%s,0o%03o) rsync-patch: %s\n",
+				strerror(errno), newfname, sbuf.st_mode, oldfname);
+
+	/* FIXME also "clone" acls;
+	 * as long as csync2 is no acl aware, there is no point, though */
+}
+
 int csync_rs_patch(const char *filename)
 {
 	FILE *basis_file = 0, *delta_file = 0, *new_file = 0;
@@ -757,6 +796,8 @@ int csync_rs_patch(const char *filename)
 		goto copy;
 	}
 #endif
+
+	clone_ownership_and_permissions(newfname, prefixsubst(filename));
 
 	if (rename(newfname, prefixsubst(filename))) {
 		char buffer[512];
