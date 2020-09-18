@@ -217,8 +217,11 @@ You have to do that on each host you’re running csync2 on. When servers
 are talking with each other for the first time, they add each other to
 the database.
 
-The Csync^2^ TCP port 30865 needs to be added to the /etc/services file
-and inetd needs to be told about Csync^2^ by adding
+We recommend to add the Csync^2^ TCP port 30865 to the /etc/services file,
+so you can use `csync2` as named port. You can use csync2 with systemd socket units,
+as standalone server, or via `inetd` or `xinetd`. Templates for systemd and
+xinetd are included [see also <<csync2-quickstart#>>].
+If you use inetd, it needs to be told about Csync^2^ by adding
 
 ....
 csync2 stream tcp nowait root \
@@ -226,6 +229,7 @@ csync2 stream tcp nowait root \
 ....
 
 to /etc/inetd.conf.
+
 
 [[configuration-file]]
 Configuration File
