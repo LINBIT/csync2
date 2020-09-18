@@ -49,18 +49,16 @@ case "$1" in
 		configure.ac
 	perl -pi -e "s/^Version:.*/Version: $VERSION/;s/^Release:.*/Release: $RELEASE/" csync2.spec
 
-	# # generate an uptodate copy of the paper
-	# git commit -m "Preparing version $VERSION" \
-	# 		debian/changelog \
-	# 		configure.ac \
-	# 		csync2.spec
+	: git commit -m "Preparing version $VERSION" \
+			debian/changelog \
+			configure.ac \
+			csync2.spec
 
-	# git tag -a -m "$PACKAGE-$VERSION" $PACKAGE-$VERSION
+	: git tag -a -m "$PACKAGE-$VERSION" $PACKAGE-$VERSION
 
-	# include paper.pdf in tarball
-	# tar cvzf $PACKAGE-$VERSION.tar.gz \
-	# 	--owner=0 --group=0 $PACKAGE-$VERSION
-	# rm -rf $PACKAGE-$VERSION
+	: tar cvzf $PACKAGE-$VERSION.tar.gz \
+		--owner=0 --group=0 $PACKAGE-$VERSION
+	: rm -rf $PACKAGE-$VERSION
 	;;
 esac
 
