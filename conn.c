@@ -392,8 +392,8 @@ int conn_check_peer_cert(const char *peername, int callfatal)
 	peercerts = gnutls_certificate_get_peers(conn_tls_session, &npeercerts);
 	if(peercerts == NULL || npeercerts == 0) {
 		if (callfatal)
-			csync_fatal("Peer did not provide an SSL X509 cetrificate.\n");
-		csync_debug(1, "Peer did not provide an SSL X509 cetrificate.\n");
+			csync_fatal("Peer did not provide an SSL X509 certificate.\n");
+		csync_debug(1, "Peer did not provide an SSL X509 certificate.\n");
 		return 0;
 	}
 
@@ -426,8 +426,8 @@ int conn_check_peer_cert(const char *peername, int callfatal)
 
 		if (!cert_is_ok) {
 			if (callfatal)
-				csync_fatal("Peer did provide a wrong SSL X509 cetrificate.\n");
-			csync_debug(1, "Peer did provide a wrong SSL X509 cetrificate.\n");
+				csync_fatal("Peer did provide a wrong SSL X509 certificate.\n");
+			csync_debug(1, "Peer did provide a wrong SSL X509 certificate.\n");
 			return 0;
 		}
 	}

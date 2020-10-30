@@ -592,7 +592,7 @@ Csync^2^ gets interrupted in the middle of the synchronization process.
 In this case the records in the action table are processed when Csync^2^
 is executed the next time.
 
-The x509_cert table is used to cache the SSL cetrificates used by the
+The x509_cert table is used to cache the SSL certificates used by the
 other hosts in the csync2 cluster (like the SSH known_hosts file).
 
 [[running-csync2]]
