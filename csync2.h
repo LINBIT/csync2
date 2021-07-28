@@ -435,6 +435,7 @@ extern int csync_messages_printed;
 extern int csync_server_child_pid;
 extern int csync_timestamps;
 extern int csync_new_force;
+extern int csync_atomic_patch;
 
 extern char myhostname[];
 extern int bind_to_myhostname;

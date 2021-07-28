@@ -297,7 +297,6 @@ got_error:
 enum connection_response csync_update_file_mod(const char *peername,
 		const char *filename, int force, int dry_run)
 {
-	int atomic_update =  1;
 	struct stat st;
 	enum connection_response last_conn_status = CR_ERROR;
 	int auto_resolve_run = 0;
@@ -379,7 +378,7 @@ auto_resolve_entry_point:
 	}
 
 	if ( S_ISREG(st.st_mode) ) {
-		if (atomic_update) {
+		if (csync_atomic_patch) {
 			conn_printf("ATOMICPATCH %s %s %d %d %d %d\n",
 					url_encode(key), url_encode(filename),
 					st.st_uid, st.st_gid,
@@ -461,7 +460,7 @@ auto_resolve_entry_point:
 		goto got_error;
 	}
 
-	if (!atomic_update) {
+	if (!csync_atomic_patch) {
 
 		conn_printf("SETOWN %s %s %d %d\n",
 				url_encode(key), url_encode(filename),

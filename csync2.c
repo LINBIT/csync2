@@ -67,6 +67,7 @@ int csync_error_count = 0;
 int csync_debug_level = 0;
 FILE *csync_debug_out = 0;
 int csync_syslog = 0;
+int csync_atomic_patch = 0;
 
 int csync_server_child_pid = 0;
 int csync_timestamps = 0;
@@ -436,7 +437,7 @@ int main(int argc, char ** argv)
 		return 1;
 	}
 
-	while ( (opt = getopt(argc, argv, "W:s:Ftp:G:P:C:D:N:HBAIXULlSTMRvhcuoimfxrd")) != -1 ) {
+	while ( (opt = getopt(argc, argv, "W:s:Ftp:G:P:C:D:N:HBAIXULlSTMRavhcuoimfxrd")) != -1 ) {
 
 		switch (opt) {
 			case 'W':
@@ -462,6 +463,9 @@ int main(int argc, char ** argv)
 				break;
 			case 'G':
 				active_grouplist = optarg;
+				break;
+			case 'a':
+				csync_atomic_patch =  1;
 				break;
 			case 'P':
 				active_peerlist = optarg;
