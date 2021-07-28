@@ -105,4 +105,11 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
+# Project specific
 *.swp
+*.swo
+cfgfile_parser.c
+cfgfile_parser.h
+cfgfile_scanner.c
+config.h
+csync2

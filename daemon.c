@@ -512,9 +512,12 @@ void csync_daemon_session()
 		for (cmdnr=0; cmdtab[cmdnr].text; cmdnr++)
 			if ( !strcasecmp(cmdtab[cmdnr].text, tag[0]) ) break;
 
-		// Print command and it's arguments fully
+		// Print command and its arguments fully
 		csync_debug(1, "START  COMMAND -> %s\n", tag[0]);
 		for (int i = 1; i < 32; i++){
+		      if (!tag[i])
+			      break;
+
 		      csync_debug(1, "[Arg %d] -> %s\n", i, tag[i]);
 		}
 		csync_debug(1, "FINISH  COMMAND -> %s\n", tag[0]);
