@@ -233,7 +233,7 @@ extern int db_sync_mode;
 extern int csync_rs_check(const char *filename, int isreg);
 extern void csync_rs_sig(const char *filename);
 extern int csync_rs_delta(const char *filename);
-extern int csync_rs_patch(const char *filename);
+extern int csync_rs_patch(const char *filename, struct stat *atomic_stats);
 extern int mkpath(const char *path, mode_t mode);
 extern void split_dirname_basename(char *dirname, char* basename, const char *filepath);
 

@@ -290,38 +290,39 @@ struct csync_command {
 };
 
 enum {
-	A_SIG, A_FLUSH, A_MARK, A_TYPE, A_GETTM, A_GETSZ, A_DEL, A_PATCH,
-	A_MKDIR, A_MKCHR, A_MKBLK, A_MKFIFO, A_MKLINK, A_MKSOCK,
+	A_SIG, A_FLUSH, A_MARK, A_TYPE, A_GETTM, A_GETSZ, A_DEL, A_ATOMIC,
+	A_PATCH, A_MKDIR, A_MKCHR, A_MKBLK, A_MKFIFO, A_MKLINK, A_MKSOCK,
 	A_SETOWN, A_SETMOD, A_SETIME, A_LIST, A_GROUP,
 	A_DEBUG, A_HELLO, A_BYE
 };
 
 struct csync_command cmdtab[] = {
-	{ "sig",	1, 0, 0, 0, 1, A_SIG	},
-	{ "mark",	1, 0, 0, 0, 1, A_MARK	},
-	{ "type",	2, 0, 0, 0, 1, A_TYPE	},
-	{ "gettm",	1, 0, 0, 0, 1, A_GETTM	},
-	{ "getsz",	1, 0, 0, 0, 1, A_GETSZ	},
-	{ "flush",	1, 1, 0, 0, 1, A_FLUSH	},
-	{ "del",	1, 1, 0, 1, 1, A_DEL	},
-	{ "patch",	1, 1, 2, 1, 1, A_PATCH	},
-	{ "mkdir",	1, 1, 1, 1, 1, A_MKDIR	},
-	{ "mkchr",	1, 1, 1, 1, 1, A_MKCHR	},
-	{ "mkblk",	1, 1, 1, 1, 1, A_MKBLK	},
-	{ "mkfifo",	1, 1, 1, 1, 1, A_MKFIFO	},
-	{ "mklink",	1, 1, 1, 1, 1, A_MKLINK	},
-	{ "mksock",	1, 1, 1, 1, 1, A_MKSOCK	},
-	{ "setown",	1, 1, 0, 2, 1, A_SETOWN	},
-	{ "setmod",	1, 1, 0, 2, 1, A_SETMOD	},
-	{ "setime",	1, 0, 0, 2, 1, A_SETIME	},
-	{ "list",	0, 0, 0, 0, 1, A_LIST	},
+	{ "sig",		1, 0, 0, 0, 1, A_SIG	},
+	{ "mark"		1, 0, 0, 0, 1, A_MARK	},
+	{ "type"		2, 0, 0, 0, 1, A_TYPE	},
+	{ "gettm"		1, 0, 0, 0, 1, A_GETTM	},
+	{ "getsz"		1, 0, 0, 0, 1, A_GETSZ	},
+	{ "flush"		1, 1, 0, 0, 1, A_FLUSH	},
+	{ "del",		1, 1, 0, 1, 1, A_DEL	},
+	{ "atomicpatch",	1, 1, 2, 1, 1, A_ATOMIC	},
+	{ "patch",		1, 1, 2, 1, 1, A_PATCH	},
+	{ "mkdir",		1, 1, 1, 1, 1, A_MKDIR	},
+	{ "mkchr",		1, 1, 1, 1, 1, A_MKCHR	},
+	{ "mkblk",		1, 1, 1, 1, 1, A_MKBLK	},
+	{ "mkfifo",		1, 1, 1, 1, 1, A_MKFIFO	},
+	{ "mklink",		1, 1, 1, 1, 1, A_MKLINK	},
+	{ "mksock",		1, 1, 1, 1, 1, A_MKSOCK	},
+	{ "setown",		1, 1, 0, 2, 1, A_SETOWN	},
+	{ "setmod",		1, 1, 0, 2, 1, A_SETMOD	},
+	{ "setime",		1, 0, 0, 2, 1, A_SETIME	},
+	{ "list",		0, 0, 0, 0, 1, A_LIST	},
 #if 0
-	{ "debug",	0, 0, 0, 0, 1, A_DEBUG	},
+	{ "debug",		0, 0, 0, 0, 1, A_DEBUG	},
 #endif
-	{ "group",	0, 0, 0, 0, 0, A_GROUP	},
-	{ "hello",	0, 0, 0, 0, 0, A_HELLO	},
-	{ "bye",	0, 0, 0, 0, 0, A_BYE	},
-	{ 0,		0, 0, 0, 0, 0, 0	}
+	{ "group",		0, 0, 0, 0, 0, A_GROUP	},
+	{ "hello",		0, 0, 0, 0, 0, A_HELLO	},
+	{ "bye",		0, 0, 0, 0, 0, A_BYE	},
+	{ 0,			0, 0, 0, 0, 0, 0	}
 };
 
 typedef union address {
@@ -481,6 +482,7 @@ void csync_daemon_session()
 	socklen_t peerlen = sizeof(peername);
 	char *peer=0, *tag[32];
 	int i;
+	struct stat atomic_stats;
 
 
 	if (fstat(0, &sb))
@@ -506,8 +508,16 @@ void csync_daemon_session()
 		if (!setup_tag(tag, line))
 			continue;
 
+
 		for (cmdnr=0; cmdtab[cmdnr].text; cmdnr++)
 			if ( !strcasecmp(cmdtab[cmdnr].text, tag[0]) ) break;
+
+		// Print command and it's arguments fully
+		csync_debug(1, "START  COMMAND -> %s\n", tag[0]);
+		for (int i = 1; i < 32; i++){
+		      csync_debug(1, "[Arg %d] -> %s\n", i, tag[i]);
+		}
+		csync_debug(1, "FINISH  COMMAND -> %s\n", tag[0]);
 
 		if ( !cmdtab[cmdnr].text ) {
 			cmd_error = conn_response(CR_ERR_UNKNOWN_COMMAND);
@@ -628,11 +638,28 @@ void csync_daemon_session()
 			if (!csync_file_backup(tag[2]))
 				csync_unlink(tag[2], 0);
 			break;
+		case A_ATOMIC:
+			if (!csync_file_backup(tag[2])) {
+				conn_resp(CR_OK_SEND_DATA);
+				csync_rs_sig(tag[2]);
+
+				memset(&atomic_stats, 0, sizeof(atomic_stats));
+				atomic_stats.st_uid = atoll(tag[3]);
+				atomic_stats.st_gid = atoll(tag[4]);
+				atomic_stats.st_mode = atoll(tag[5]);
+				atomic_stats.st_mtime = atoll(tag[6]);
+
+
+				if (csync_rs_patch(tag[2], &atomic_stats))
+					cmd_error = strerror(errno);
+			}
+			break;
 		case A_PATCH:
 			if (!csync_file_backup(tag[2])) {
 				conn_resp(CR_OK_SEND_DATA);
 				csync_rs_sig(tag[2]);
-				if (csync_rs_patch(tag[2]))
+
+				if (csync_rs_patch(tag[2], NULL))
 					cmd_error = strerror(errno);
 			}
 			break;

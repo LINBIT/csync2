@@ -297,6 +297,7 @@ got_error:
 enum connection_response csync_update_file_mod(const char *peername,
 		const char *filename, int force, int dry_run)
 {
+	int atomic_update =  1;
 	struct stat st;
 	enum connection_response last_conn_status = CR_ERROR;
 	int auto_resolve_run = 0;
@@ -378,8 +379,16 @@ auto_resolve_entry_point:
 	}
 
 	if ( S_ISREG(st.st_mode) ) {
-		conn_printf("PATCH %s %s\n",
-				url_encode(key), url_encode(filename));
+		if (atomic_update) {
+			conn_printf("ATOMICPATCH %s %s %d %d %d %d\n",
+					url_encode(key), url_encode(filename),
+					st.st_uid, st.st_gid,
+					st.st_mode,
+					(long long)st.st_mtime);
+		} else {
+			conn_printf("PATCH %s %s\n",
+					url_encode(key), url_encode(filename));
+		}
 		last_conn_status = read_conn_status(filename, peername);
 		/* FIXME be more specific?
 		 * (last_conn_status != CR_OK_SEND_DATA) ??
@@ -452,29 +461,32 @@ auto_resolve_entry_point:
 		goto got_error;
 	}
 
-	conn_printf("SETOWN %s %s %d %d\n",
-			url_encode(key), url_encode(filename),
-			st.st_uid, st.st_gid);
-	last_conn_status = read_conn_status(filename, peername);
-	if (!is_ok_response(last_conn_status))
-		goto got_error;
+	if (!atomic_update) {
 
-	if ( !S_ISLNK(st.st_mode) ) {
-		conn_printf("SETMOD %s %s %d\n", url_encode(key),
-				url_encode(filename), st.st_mode);
+		conn_printf("SETOWN %s %s %d %d\n",
+				url_encode(key), url_encode(filename),
+				st.st_uid, st.st_gid);
 		last_conn_status = read_conn_status(filename, peername);
 		if (!is_ok_response(last_conn_status))
 			goto got_error;
-	}
+
+		if ( !S_ISLNK(st.st_mode) ) {
+			conn_printf("SETMOD %s %s %d\n", url_encode(key),
+					url_encode(filename), st.st_mode);
+			last_conn_status = read_conn_status(filename, peername);
+			if (!is_ok_response(last_conn_status))
+				goto got_error;
+		}
 
 skip_action:
-	if ( !S_ISLNK(st.st_mode) ) {
-		conn_printf("SETIME %s %s %lld\n",
-				url_encode(key), url_encode(filename),
-				(long long)st.st_mtime);
-		last_conn_status = read_conn_status(filename, peername);
-		if (!is_ok_response(last_conn_status))
-			goto got_error;
+		if ( !S_ISLNK(st.st_mode) ) {
+			conn_printf("SETIME %s %s %lld\n",
+					url_encode(key), url_encode(filename),
+					(long long)st.st_mtime);
+			last_conn_status = read_conn_status(filename, peername);
+			if (!is_ok_response(last_conn_status))
+				goto got_error;
+		}
 	}
 
 	SQL("Remove dirty-file entry.",
