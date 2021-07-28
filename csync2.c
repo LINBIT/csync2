@@ -684,8 +684,56 @@ int main(int argc, char ** argv)
 	if (!csync_database || !csync_database[0] || csync_database[0] == '/')
 		csync_database = db_default_database(csync_database);
 
+
+
+	// If local hostname is not set, try to guess it by getting the addrinfo of every hostname  in the
+	// group and try to bind on that address. If bind is successful set that host as local hostname.
+	{
+		struct csync_group *g;
+		struct csync_group_host *h;
+		struct csync_group_host *prev = 0;
+		struct addrinfo *rp, *result;
+		int sfd;
+		int bind_status;
+
+		for (g=csync_group; g; g=g->next) {
+			if ( !g->myname ) {
+				h = g->host;
+				while(h && !g->myname) {
+					getaddrinfo(h->hostname, NULL, NULL, &result);
+					for (rp = result; rp != NULL; rp = rp->ai_next) {
+						sfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+						if (sfd == -1)
+							continue;
+						bind_status = bind(sfd, rp->ai_addr, rp->ai_addrlen);
+						close(sfd);
+
+						if (bind_status == 0) {
+							g->myname = h->hostname;
+							snprintf(myhostname, 256, "%s", h->hostname);
+							g->local_slave = h->slave;
+
+							if (!prev) {
+								g->host = h->next;
+							} else {
+								prev->next = h->next;
+							}
+							free(h);
+							csync_debug(1, "My hostname guessed as: %s\n", g->myname);
+							break;
+						}
+					}
+					freeaddrinfo(result);
+					prev = h;
+					h = h->next;
+				}
+			}
+		}
+	}
+
 	csync_debug(2, "My hostname is %s.\n", myhostname);
 	csync_debug(2, "Database-File: %s\n", csync_database);
+
 
 	{
 		const struct csync_group *g;
