@@ -298,11 +298,11 @@ enum {
 
 struct csync_command cmdtab[] = {
 	{ "sig",		1, 0, 0, 0, 1, A_SIG	},
-	{ "mark"		1, 0, 0, 0, 1, A_MARK	},
-	{ "type"		2, 0, 0, 0, 1, A_TYPE	},
-	{ "gettm"		1, 0, 0, 0, 1, A_GETTM	},
-	{ "getsz"		1, 0, 0, 0, 1, A_GETSZ	},
-	{ "flush"		1, 1, 0, 0, 1, A_FLUSH	},
+	{ "mark",		1, 0, 0, 0, 1, A_MARK	},
+	{ "type",		2, 0, 0, 0, 1, A_TYPE	},
+	{ "gettm",		1, 0, 0, 0, 1, A_GETTM	},
+	{ "getsz",		1, 0, 0, 0, 1, A_GETSZ	},
+	{ "flush",		1, 1, 0, 0, 1, A_FLUSH	},
 	{ "del",		1, 1, 0, 1, 1, A_DEL	},
 	{ "atomicpatch",	1, 1, 2, 1, 1, A_ATOMIC	},
 	{ "patch",		1, 1, 2, 1, 1, A_PATCH	},
