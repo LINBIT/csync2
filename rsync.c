@@ -807,6 +807,7 @@ int csync_rs_patch(const char *filename, struct stat *atomic_stats)
 	clone_ownership_and_permissions(newfname, prefixsubst(filename), atomic_stats);
 
 	// Set modification time
+	fflush(new_file);
 	if (atomic_stats) {
 		struct utimbuf utb;
 		utb.actime = atomic_stats->st_mtime;
