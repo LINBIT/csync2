@@ -437,7 +437,7 @@ int main(int argc, char ** argv)
 		return 1;
 	}
 
-	while ( (opt = getopt(argc, argv, "W:s:Ftp:G:P:C:D:N:HBAIXULlSTMRavhcuoimfxrd")) != -1 ) {
+	while ( (opt = getopt(argc, argv, "W:s:Ftp:G:P:C:D:N:O::HBAIXULlSTMRavhcuoimfxrd")) != -1 ) {
 
 		switch (opt) {
 			case 'W':
@@ -451,6 +451,15 @@ int main(int argc, char ** argv)
 				if (!csync_timestamp_out)
 					csync_fatal("Can't open timestanp file `%s': %s\n",
 							optarg, strerror(errno));
+				break;
+			case 'O': 
+				{
+					char *logname = optarg ? optarg : "/tmp/csync2_full_log.log";
+					if((debug_file = fopen(logname, "w+")) == NULL) {
+						fprintf(stderr, "Could not open full log file:  %s\n", logname);
+						exit(1);
+					}
+				}
 				break;
 			case 'F':
 				csync_new_force = 1;
