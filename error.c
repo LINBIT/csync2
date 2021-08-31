@@ -34,9 +34,6 @@ int csync_messages_printed = 0;
 
 time_t csync_startup_time = 0;
 
-FILE *full_debug_log = 0;
-char *logname = "/tmp/csync2_full_log.log";
-
 void csync_printtime()
 {
 	if (csync_timestamps || csync_timestamp_out)
@@ -105,17 +102,6 @@ static int csync_log_level_to_sys_log_level(int lv)
 
 void csync_vdebug(int lv, const char *fmt, va_list ap)
 {
-	va_list debug_file_va;
-	if (full_debug_log == NULL) {
-		if((full_debug_log = fopen(logname, "w+")) == NULL) {
-			fprintf(stderr, "Could not open full log file:  %s\n", logname);
-			exit(1);
-		}
-	}
-
-	va_copy(debug_file_va, ap);
-	vfprintf(full_debug_log, fmt, debug_file_va);
-
 	if (csync_debug_level < lv)
 		return;
 
