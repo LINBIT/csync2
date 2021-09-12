@@ -809,10 +809,10 @@ int csync_rs_patch(const char *filename, struct stat *atomic_stats)
 	// Set modification time
 	fflush(new_file);
 	if (atomic_stats) {
-		struct utimbuf utb;
-		utb.actime = atomic_stats->st_mtime;
-		utb.modtime = atomic_stats->st_mtime;
-		if ( utime(newfname, &utb) )
+		struct timespec tsp[2];
+		tsp[0].tv_sec = tsp[1].tv_sec = atomic_stats->st_mtim.tv_sec;
+		tsp[0].tv_nsec = tsp[1].tv_nsec =  atomic_stats->st_mtim.tv_sec;
+		if(utimensat(0, newfname, tsp, 0))
 			csync_debug(1, "Could not change the modification date\n");
 
 	}

@@ -650,7 +650,11 @@ void csync_daemon_session()
 				atomic_stats.st_uid = atoll(tag[3]);
 				atomic_stats.st_gid = atoll(tag[4]);
 				atomic_stats.st_mode = atoll(tag[5]);
-				atomic_stats.st_mtime = atoll(tag[6]);
+				long long timestamp  = atoll(tag[6]);
+				struct timespec tsp;
+				tsp.tv_sec =  (int) (timestamp / 1000000000);
+				tsp.tv_nsec = timestamp % 1000000000;
+				atomic_stats.st_mtim = tsp;
 
 
 				if (csync_rs_patch(tag[2], &atomic_stats))
@@ -732,11 +736,13 @@ void csync_daemon_session()
 			break;
 		case A_SETIME:
 			{
-				struct utimbuf utb;
-				utb.actime = atoll(tag[3]);
-				utb.modtime = atoll(tag[3]);
-				if ( utime(prefixsubst(tag[2]), &utb) )
+				struct timespec tsp[2];
+				long long timestamp = atoll(tag[3]);
+				tsp[0].tv_sec = tsp[1].tv_sec = (int) (timestamp / 1000000000);
+				tsp[0].tv_nsec = tsp[1].tv_nsec =  timestamp % 1000000000;
+				if(utimensat(0, prefixsubst(tag[2]), tsp, 0))
 					cmd_error = strerror(errno);
+
 			}
 			break;
 		case A_LIST:
