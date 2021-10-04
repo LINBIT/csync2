@@ -462,7 +462,7 @@ auto_resolve_entry_point:
 		goto got_error;
 	}
 
-	if (!csync_atomic_patch) {
+	if (!csync_atomic_patch || !S_ISREG(st.st_mode)) {
 
 		conn_printf("SETOWN %s %s %d %d\n",
 				url_encode(key), url_encode(filename),
