@@ -98,7 +98,13 @@ void csync_mark(const char *file, const char *thispeer, const char *peerfilter)
 	}
 
 	csync_debug(1, "Marking file as dirty: %s\n", file);
-	for (pl_idx=0; pl[pl_idx].peername; pl_idx++)
+	for (pl_idx=0; pl[pl_idx].peername; pl_idx++) {
+		// In case of -P flag, don't mark files as dirty
+		if (active_peerlist && !strstr(active_peerlist, pl[pl_idx].peername))  {
+			csync_debug(1, "Not marking host %s as dirty because -P flag was specified\n", pl[pl_idx].peername);
+			continue;
+		}
+
 		if (!peerfilter || !strcmp(peerfilter, pl[pl_idx].peername)) {
 			SQL("Deleting old dirty file entries",
 				"DELETE FROM dirty WHERE filename = '%s' AND peername = '%s'",
@@ -113,6 +119,7 @@ void csync_mark(const char *file, const char *thispeer, const char *peerfilter)
 				url_encode(pl[pl_idx].myname),
 				url_encode(pl[pl_idx].peername));
 		}
+	}
 
 	free(pl);
 }
