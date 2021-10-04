@@ -67,7 +67,7 @@ int csync_error_count = 0;
 int csync_debug_level = 0;
 FILE *csync_debug_out = 0;
 int csync_syslog = 0;
-int csync_atomic_patch = 0;
+int csync_atomic_patch = 1; //TODO - make an inverse flag.
 
 int csync_server_child_pid = 0;
 int csync_timestamps = 0;
