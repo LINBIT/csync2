@@ -407,8 +407,16 @@ auto_resolve_entry_point:
 			goto got_error;
 	} else
 	if ( S_ISDIR(st.st_mode) ) {
-		conn_printf("MKDIR %s %s\n",
-				url_encode(key), url_encode(filename));
+		if (csync_atomic_patch) {
+			conn_printf("MKDIR %s %s %d %d %d %lld\n",
+					url_encode(key), url_encode(filename),
+					st.st_uid, st.st_gid,
+					st.st_mode,
+					nano_timestamp);
+		} else {
+			conn_printf("MKDIR %s %s\n",
+					url_encode(key), url_encode(filename));
+		}
 		last_conn_status = read_conn_status(filename, peername);
 		if (!is_ok_response(last_conn_status))
 			goto maybe_auto_resolve;
@@ -462,7 +470,7 @@ auto_resolve_entry_point:
 		goto got_error;
 	}
 
-	if (!csync_atomic_patch || !S_ISREG(st.st_mode)) {
+	if (!csync_atomic_patch || (!S_ISREG(st.st_mode) && S_ISDIR(st.st_mode))) {
 
 		conn_printf("SETOWN %s %s %d %d\n",
 				url_encode(key), url_encode(filename),

@@ -468,12 +468,39 @@ static int setup_tag(char *tag[32], char *line)
 	return 1;
 }
 
+void csync_dir_update(char* tag[]) {
+	const char *directory = prefixsubst(tag[2]);
+	uid_t uid = atoll(tag[3]);
+	gid_t gid = atoll(tag[4]);
+
+	if (mkdir(directory, atoll(tag[5]) )) return;
+
+	if (!csync_atomic_patch) return;
+
+
+	if (chown(directory, uid, gid))
+		csync_debug(3, "Error '%s' for chown(%s,%d,%d)\n",
+				strerror(errno), directory, uid, gid);
+
+	struct timespec tsp[2];
+	long long timestamp = atoll(tag[6]);
+	tsp[0].tv_sec = tsp[1].tv_sec = (int) (timestamp / 1000000000);
+	tsp[0].tv_nsec = tsp[1].tv_nsec =  timestamp % 1000000000;
+
+	if(utimensat(0, directory, tsp, 0))
+		csync_debug(3, "Error '%s' for utimensat\n",
+			strerror(errno), directory);
+
+
+}
+
 static void destroy_tag(char *tag[32])
 {
 	int i = 0;
 	for (i = 0; i < 32; i++)
 		free(tag[i]);
 }
+
 void csync_daemon_session()
 {
 	static char line[4 * 4096];
@@ -694,11 +721,11 @@ void csync_daemon_session()
 				}
 			}
 #else
-			if ( mkdir(prefixsubst(tag[2]), 0700) ) {
-				struct stat st;
-				if ( lstat_strict((prefixsubst(tag[2])), &st) != 0 || !S_ISDIR(st.st_mode))
-					cmd_error = strerror(errno);
-			}
+			csync_dir_update(tag);
+
+			struct stat st;
+			if ( lstat_strict((prefixsubst(tag[2])), &st) != 0 || !S_ISDIR(st.st_mode))
+				cmd_error = strerror(errno);
 #endif
 			break;
 		case A_MKCHR:
@@ -841,3 +868,4 @@ next_cmd:
 		destroy_tag(tag);
 	}
 }
+
