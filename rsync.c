@@ -22,6 +22,7 @@
 #include <librsync.h>
 #include <unistd.h>
 #include <string.h>
+#include <utime.h>
 #include <errno.h>
 #include <stdio.h>
 
@@ -704,12 +705,18 @@ io_error:
  * mtime, ACLs and other meta data as context information before starting to
  * act on it on the receiving side, I don't see how.
  */
-static void clone_ownership_and_permissions(const char *newfname, const char *oldfname)
+static void clone_ownership_and_permissions(const char *newfname, const char *oldfname, struct stat *atomic_stats)
 {
 	struct stat sbuf;
 	int uid, gid;
-	if (stat(oldfname, &sbuf))
-		return; /* At least we tried */
+
+	if (atomic_stats) {
+		sbuf = *atomic_stats;
+	} else {
+		if (stat(oldfname, &sbuf))
+			return; /* At least we tried */
+	}
+
 	uid = csync_ignore_uid ? -1 : sbuf.st_uid;
 	gid = csync_ignore_gid ? -1 : sbuf.st_gid;
 	csync_debug(3, "Cloning ownership and permissions to tmp file: 0o%03o %d:%d %s [%s]\n",
@@ -725,7 +732,7 @@ static void clone_ownership_and_permissions(const char *newfname, const char *ol
 	 * as long as csync2 is no acl aware, there is no point, though */
 }
 
-int csync_rs_patch(const char *filename)
+int csync_rs_patch(const char *filename, struct stat *atomic_stats)
 {
 	FILE *basis_file = 0, *delta_file = 0, *new_file = 0;
 	int backup_errno;
@@ -797,7 +804,18 @@ int csync_rs_patch(const char *filename)
 	}
 #endif
 
-	clone_ownership_and_permissions(newfname, prefixsubst(filename));
+	clone_ownership_and_permissions(newfname, prefixsubst(filename), atomic_stats);
+
+	// Set modification time
+	fflush(new_file);
+	if (atomic_stats) {
+		struct timespec tsp[2];
+		tsp[0].tv_sec = tsp[1].tv_sec = atomic_stats->st_mtim.tv_sec;
+		tsp[0].tv_nsec = tsp[1].tv_nsec =  atomic_stats->st_mtim.tv_nsec;
+		if(utimensat(0, newfname, tsp, 0))
+			csync_debug(1, "Could not change the modification date\n");
+
+	}
 
 	if (rename(newfname, prefixsubst(filename))) {
 		char buffer[512];
