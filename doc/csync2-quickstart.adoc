@@ -3,14 +3,14 @@ Getting started with Csync^2^
 
 All commands detailed here need to be executed as root, so be extra careful.
 
-The config file for Csync^2^ is `/etc/csync2/csync2.cfg`. Here is an example:
+The config file for Csync^2^ is `/etc/csync2.cfg`. Here is an example:
 
 ....
-mygroup {
+group mygroup {
   host host1;
   host host2;
   key     /etc/csync2/mygroup.key;
-  include /etc/csync2/csync2.cfg;
+  include /etc/csync2.cfg;
   include /etc/testfile;
 }
 ....
@@ -30,7 +30,8 @@ Generate the pre-shared key used for authentication:
 
 Copy the configuration file and the pre-shared key to host2:
 ```
-  scp /etc/csync2/csync2.cfg /etc/csync2/mygroup.key host2:/etc/csync2/
+  scp /etc/csync2.cfg host2:/etc/csync2.cfg
+  scp /etc/csync2/mygroup.key host2:/etc/csync2/
 ```
 
 The SSL key and certificate may be generated upon package installation,
