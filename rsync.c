@@ -646,7 +646,6 @@ int csync_rs_delta(const char *filename)
 		csync_debug(0, "I/O Error '%s' while %s in rsync-delta: %s\n",
 				errstr, "opening data file for reading", filename);
 		conn_printf("%s\n", errstr);
-		fclose(new_file);
 		errno = backup_errno;
 		return -1;
 	}
