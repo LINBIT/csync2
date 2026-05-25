@@ -378,6 +378,8 @@ struct csync_group {
 	struct csync_group_pattern *pattern;
 	struct csync_group_action *action;
 	const char *key, *myname, *gname;
+	const char *key_filename;	/* declared path; read lazily into ->key
+					 * only for groups we participate in */
 	int auto_method, local_slave;
 	const char *backup_directory;
 	int backup_generations;

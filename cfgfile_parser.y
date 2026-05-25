@@ -131,13 +131,21 @@ static void add_patt(int patterntype, char *pattern)
 
 static void set_key(char *keyfilename)
 {
+	if ( csync_group->key_filename || csync_group->key )
+		csync_fatal("Config error: a group might only have one key.\n");
+
+	/* Defer the read to check_group, where we know whether the local
+	 * host participates and whether reading the file is required. */
+	csync_group->key_filename = keyfilename;
+}
+
+static void read_keyfile_for_group(struct csync_group *g)
+{
 	FILE *keyfile;
-	char *fname = keyfilename;
+	const char *keyfilename = g->key_filename;
+	char *fname = (char *)keyfilename;
 	char line[1024];
 	int i;
-
-	if ( csync_group->key )
-		csync_fatal("Config error: a group might only have one key.\n");
 
 	if (fname && fname[0] && fname[0] != '/')
 		ASPRINTF(&fname, "%s/%s", systemdir, keyfilename);
@@ -159,10 +167,9 @@ static void set_key(char *keyfilename)
 	if ( strlen(line) < 32 )
 		csync_fatal("Config error: Key in file %s is too short.\n", fname);
 
-	csync_group->key = strdup(line);
+	g->key = strdup(line);
 	if (fname != keyfilename)
 		free(fname);
-	free(keyfilename);
 	fclose(keyfile);
 }
 
@@ -219,8 +226,8 @@ static void set_bak_gen(char *gen)
 
 static void check_group()
 {
-	if ( ! csync_group->key )
-		csync_fatal("Config error: every group must have a key.\n");
+	if ( ! csync_group->key_filename )
+		csync_fatal("Config error: every group must declare a key file.\n");
 
 	if ( csync_group->auto_method < 0 )
 		csync_group->auto_method = CSYNC_AUTO_METHOD_NONE;
@@ -281,6 +288,11 @@ foundactivepeers:
 		csync_group->myname = 0;
 found_asactive:	;
 	}
+
+	/* Resolve the keyfile only for groups we participate in;
+	 * foreign-group keyfiles need not exist or be readable. */
+	if (csync_group->myname)
+		read_keyfile_for_group(csync_group);
 }
 
 static void new_action()
