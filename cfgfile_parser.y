@@ -285,30 +285,36 @@ found_asactive:	;
 
 static void new_action()
 {
+	struct csync_group_action **tail;
 	struct csync_group_action *t =
 		calloc(sizeof(struct csync_group_action), 1);
-	t->next = csync_group->action;
 	t->logfile = "/dev/null";
-	csync_group->action = t;
+	for (tail = &csync_group->action; *tail; tail = &(*tail)->next)
+		;
+	*tail = t;
 }
 
 static void add_action_pattern(const char *pattern)
 {
+	struct csync_group_action_pattern **tail;
 	struct csync_group_action_pattern *t =
 		calloc(sizeof(struct csync_group_action_pattern), 1);
 	t->star_matches_slashes = !!strstr(pattern, "**");
 	t->pattern = pattern;
-	t->next = csync_group->action->pattern;
-	csync_group->action->pattern = t;
+	for (tail = &csync_group->action->pattern; *tail; tail = &(*tail)->next)
+		;
+	*tail = t;
 }
 
 static void add_action_exec(const char *command)
 {
+	struct csync_group_action_command **tail;
 	struct csync_group_action_command *t =
 		calloc(sizeof(struct csync_group_action_command), 1);
 	t->command = command;
-	t->next = csync_group->action->command;
-	csync_group->action->command = t;
+	for (tail = &csync_group->action->command; *tail; tail = &(*tail)->next)
+		;
+	*tail = t;
 }
 
 static void set_action_logfile(const char *logfile)
