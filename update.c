@@ -912,7 +912,7 @@ found_host_check:
 		&& fwrite(buffer, 1, rc, p) == rc)
 		;
 
-	fclose(p);
+	pclose(p);
 	signal(SIGPIPE, old_sigpipe_handler);
 	if (rc > 0)
 		fprintf(stdout, "*** output to diff truncated\n");
