@@ -21,7 +21,7 @@ endif
 configure: configure-stamp
 configure-stamp:
 	dh_testdir
-	./configure CFLAGS="$(CFLAGS)" --prefix=/usr --localstatedir=/var --sysconfdir=/etc --enable-mysql --enable-postgres --enable-sqlite3
+	./configure CFLAGS="$(CFLAGS)" --prefix=/usr --localstatedir=/var --sysconfdir=/etc/csync2 --enable-mysql --enable-postgres --enable-sqlite3
 	touch configure-stamp
 
 build: build-stamp
@@ -45,7 +45,7 @@ install: build
 	install csync2 $(CURDIR)/debian/csync2/usr/sbin/csync2
 	install csync2-compare $(CURDIR)/debian/csync2/usr/sbin/csync2-compare
 	install csync2_locheck.sh $(CURDIR)/debian/csync2/usr/share/csync2/csync2_locheck.sh
-	install -m 644 csync2.cfg $(CURDIR)/debian/csync2/etc/csync2.cfg
+	install -m 644 csync2.cfg $(CURDIR)/debian/csync2/etc/csync2/csync2.cfg
 
 # Build architecture-independent files here.
 binary-indep: build install

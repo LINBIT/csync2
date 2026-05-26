@@ -236,8 +236,8 @@ Configuration File
 ~~~~~~~~~~~~~~~~~~
 
 A simple Csync^2^ configuration file. The configuration
-filename is /etc/csync2.cfg when no -C _configname_ option has been
-passed and /etc/csync2__configname_.cfg with a -C _configname_ option.
+filename is /etc/csync2/csync2.cfg when no -C _configname_ option has been
+passed and /etc/csync2/csync2__configname_.cfg with a -C _configname_ option.
 
 ....
 group mygroup                           # A synchronization group (see 3.4.1)
@@ -729,7 +729,7 @@ Creating key file:
 Environment variables:
         CSYNC2_SYSTEM_DIR
                 Directory containing csync2.cfg and other csync2 system files.
-                Defaults to /etc.
+                Defaults to /etc/csync2.
 
 Csync2 will refuse to do anything if this file is found:
 $CSYNC2_SYSTEM_DIR/csync2.lock
@@ -864,7 +864,7 @@ synchronization groups is needed. For such cases it is possible to use
 multiple configuration files (and databases) side by side.
 
 The additional configurations must have a unique name. The configuration
-file is then named /etc/csync2__myname_.cfg and the database is named
+file is then named /etc/csync2/csync2__myname_.cfg and the database is named
 /var/lib/csync2/_hostname___myname_.db. Accordingly Csync^2^ must be
 called with the -C _myname_ option.
 

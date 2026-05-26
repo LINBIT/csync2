@@ -23,9 +23,9 @@ AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR(csync2.c)
 AM_CONFIG_HEADER(config.h)
 
-# Use /etc and /var instead of $prefix/...
-# test "$localstatedir" = '${prefix}/var' && localstatedir=/var
-# test "$sysconfdir" = '${prefix}/etc' && sysconfdir=/etc
+# Default to /etc/csync2 instead of $prefix/etc, so plain ./configure
+# matches how distros build us (autogen.sh, csync2.spec, debian/rules).
+test "$sysconfdir" = '${prefix}/etc' && sysconfdir=/etc/csync2
 
 # Checks for programs.
 AC_PROG_CC

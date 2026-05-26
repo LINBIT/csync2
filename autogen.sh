@@ -26,7 +26,7 @@ autoconf
 my_defaults=(
 	--prefix=/usr
 	--localstatedir=/var
-	--sysconfdir=/etc/csync2/
+	--sysconfdir=/etc/csync2
 	--enable-sqlite3
 	--enable-mysql
 	--enable-postgres
