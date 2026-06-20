@@ -19,6 +19,7 @@
  */
 
 #include "csync2.h"
+#include <stdint.h>
 #include <string.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -48,8 +49,10 @@ const char *csync_genchecktxt(const struct stat *st, const char *filename, int i
 	/* version 1 of this check text */
 	xxprintf("v1");
 
-	if ( !S_ISLNK(st->st_mode) && !S_ISDIR(st->st_mode) )
-		xxprintf(":mtime=%lld", ign_mtime ? (long long)0 : (long long)st->st_mtime);
+	if ( !S_ISLNK(st->st_mode) && !S_ISDIR(st->st_mode) ) {
+		int64_t timestamp = st->st_mtime * 1000000000 + st->st_mtim.tv_nsec;
+		xxprintf(":mtime=%lld", ign_mtime ? (long long)0 : (long long)timestamp);
+	}
 
 	if ( !csync_ignore_mod )
 		xxprintf(":mode=%d", (int)st->st_mode);
