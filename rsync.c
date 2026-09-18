@@ -38,6 +38,8 @@
 #include <w32api/windows.h>
 #endif
 
+#define CSYNC_CHUNK 16384
+
 
 /* This has been taken from rsync:lib/compat.c */
 
@@ -366,7 +368,7 @@ static FILE* open_temp_file(char *fnametmp, const char *fname)
 
 void csync_send_file(FILE *in)
 {
-	char buffer[512];
+	char buffer[CSYNC_CHUNK];
 	int rc, chunk;
 	long size;
 
@@ -377,7 +379,7 @@ void csync_send_file(FILE *in)
 	conn_printf("octet-stream %ld\n", size);
 
 	while ( size > 0 ) {
-		chunk = size > 512 ? 512 : size;
+		chunk = size > CSYNC_CHUNK ? CSYNC_CHUNK : size;
 		rc = fread(buffer, 1, chunk, in);
 
 		if ( rc <= 0 )
@@ -394,7 +396,7 @@ void csync_send_file(FILE *in)
 
 int csync_recv_file(FILE *out)
 {
-	char buffer[512];
+	char buffer[CSYNC_CHUNK];
 	int rc, chunk;
 	long size;
 
@@ -407,7 +409,7 @@ int csync_recv_file(FILE *out)
 	csync_debug(3, "Receiving %ld bytes ..\n", size);
 
 	while ( size > 0 ) {
-		chunk = size > 512 ? 512 : size;
+		chunk = size > CSYNC_CHUNK ? CSYNC_CHUNK : size;
 		rc = conn_read(buffer, chunk);
 
 		if ( rc <= 0 )
@@ -491,7 +493,7 @@ out:
 int csync_rs_check(const char *filename, int isreg)
 {
 	FILE *sig_file = 0;
-	char buffer1[512], buffer2[512];
+	char buffer1[CSYNC_CHUNK], buffer2[CSYNC_CHUNK];
 	int rc, chunk, found_diff = 0;
 	int backup_errno;
 	long size;
@@ -530,7 +532,7 @@ int csync_rs_check(const char *filename, int isreg)
 	}
 
 	while (size > 0) {
-		chunk = size > 512 ? 512 : size;
+		chunk = size > CSYNC_CHUNK ? CSYNC_CHUNK : size;
 		rc = conn_read(buffer1, chunk);
 
 		if (rc <= 0)
@@ -564,7 +566,7 @@ error:
 
 	/* drain response */
 	while (size > 0) {
-		chunk = size > 512 ? 512 : size;
+		chunk = size > CSYNC_CHUNK ? CSYNC_CHUNK : size;
 		rc = conn_read(buffer1, chunk);
 		if (rc <= 0)
 			csync_fatal("Read-error while receiving data.\n");
