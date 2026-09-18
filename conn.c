@@ -474,7 +474,13 @@ static inline int READ(void *buf, size_t count)
 {
 #ifdef HAVE_LIBGNUTLS
 	if (csync_conn_usessl)
-		return gnutls_record_recv(conn_tls_session, buf, count);
+	{
+		ssize_t rc;
+		do {
+			rc = gnutls_record_recv(conn_tls_session, buf, count);
+		} while (rc == GNUTLS_E_AGAIN || rc == GNUTLS_E_INTERRUPTED);
+		return (int)rc;
+	}
 	else
 #endif
 		return read(conn_fd_in, buf, count);
@@ -485,8 +491,21 @@ static inline int WRITE(const void *buf, size_t count)
 	static int n, total;
 
 #ifdef HAVE_LIBGNUTLS
-	if (csync_conn_usessl)
-		return gnutls_record_send(conn_tls_session, buf, count);
+	if (csync_conn_usessl) {
+		size_t sent = 0;
+		while (sent < count) {
+			ssize_t rc = gnutls_record_send(conn_tls_session,
+					((const char *)buf) + sent, count - sent);
+			if (rc == GNUTLS_E_AGAIN || rc == GNUTLS_E_INTERRUPTED)
+				continue;
+			if (rc < 0)
+				return sent ? (int)sent : (int)rc;
+			if (rc == 0)
+				break;
+			sent += (size_t)rc;
+		}
+		return (int)sent;
+	}
 	else
 #endif
 	{
