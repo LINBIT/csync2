@@ -331,14 +331,13 @@ typedef union address {
 	struct sockaddr_storage ss;
 } address_t;
 
-const char *csync_inet_ntop(address_t *addr)
+const char *csync_inet_ntop(address_t *addr, char *buf, socklen_t len)
 {
-	char buf[INET6_ADDRSTRLEN];
 	sa_family_t af = addr->sa.sa_family;
 	return inet_ntop(af,
 		af == AF_INET  ? (void*)&addr->sa_in.sin_addr :
 		af == AF_INET6 ? (void*)&addr->sa_in6.sin6_addr : NULL,
-		buf, sizeof(buf));
+		buf, len);
 }
 
 /*
@@ -517,8 +516,10 @@ void csync_daemon_session()
 		cmd_error = 0;
 
 		if ( cmdtab[cmdnr].need_ident && !peer ) {
+			char buf[INET6_ADDRSTRLEN];
+
 			conn_printf("Dear %s, please identify first.\n",
-				    csync_inet_ntop(&peername) ?: "stranger");
+				    csync_inet_ntop(&peername, buf, sizeof(buf)) ?: "stranger");
 			goto next_cmd;
 		}
 
