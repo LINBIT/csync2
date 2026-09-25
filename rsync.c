@@ -271,6 +271,11 @@ static int get_tmpname(char *fnametmp, const char *tempdir, const char *fname)
 		++f;
 		if (!tempdir) {
 			length = f - fname;
+			if (length >= MAXPATHLEN) {
+				csync_debug(1, "temporary filename too long: %s\n", fname);
+				fnametmp[0] = '\0';
+				return 0;
+			}
 			/* copy up to and including the slash */
 			strlcpy(fnametmp, fname, length + 1);
 		}
