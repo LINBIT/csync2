@@ -585,7 +585,16 @@ void csync_daemon_session()
 			break;
 		case A_TYPE:
 			{
-				FILE *f = fopen(prefixsubst(tag[2]), "rb");
+				struct stat st;
+				FILE *f = NULL;
+
+				if (!stat(prefixsubst(tag[2]), &st)) {
+					if (S_ISFIFO(st.st_mode)) {
+						cmd_error = "A_TYPE: fopen: FIFO file";
+						break;
+					}
+					f = fopen(prefixsubst(tag[2]), "rb");
+				}
 
 				if (!f && errno == ENOENT)
 					f = fopen("/dev/null", "rb");
